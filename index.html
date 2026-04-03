@@ -889,58 +889,6 @@ function renderTabContent(data) {
   // Gráfico interactivo drill-down (si hay datos crudos)
   html += buildDrillChart();
 
-  // Charts row
-  html += '<div class="charts-row">';
-
-  if (data.grafico_barras?.items?.length) {
-    const items = data.grafico_barras.items;
-    const maxVal = Math.max(...items.map(i => i.valor));
-    html += `<div class="chart-card"><div class="chart-title">${data.grafico_barras.titulo}</div><div class="bars">`;
-    items.forEach((item, i) => {
-      const h = maxVal > 0 ? Math.round((item.valor / maxVal) * 100) : 4;
-      html += `<div class="bar-col">
-        <div class="bar-val">${item.valor}</div>
-        <div class="bar-fill" style="height:${h}%;background:${COLORS[i%COLORS.length]}"></div>
-        <div class="bar-lbl">${item.label}</div>
-      </div>`;
-    });
-    html += '</div></div>';
-  }
-
-  if (data.grafico_pie?.items?.length) {
-    html += `<div class="chart-card"><div class="chart-title">${data.grafico_pie.titulo}</div>`;
-    data.grafico_pie.items.forEach((item, i) => {
-      const pct = Math.round((item.valor||0)*100);
-      html += `<div style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#6B7E96">
-            <span style="width:10px;height:10px;border-radius:50%;background:${COLORS[i%COLORS.length]};display:inline-block"></span>
-            ${item.label}
-          </span>
-          <span style="font-size:13px;font-weight:600;color:#1E2A3A">${item.pct}</span>
-        </div>
-        <div style="height:4px;background:#E8EEF8;border-radius:2px">
-          <div style="height:100%;width:${pct}%;background:${COLORS[i%COLORS.length]};border-radius:2px"></div>
-        </div>
-      </div>`;
-    });
-    html += '</div>';
-  }
-
-  html += '</div>'; // charts-row
-
-  // Tabla (si existe)
-  const tabla = data.tabla || data.tabla_top;
-  if (tabla?.filas?.length) {
-    html += `<div class="table-card" style="margin-bottom:14px"><div class="table-title">${tabla.titulo}</div><table>
-      <thead><tr>${(tabla.columnas||[]).map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-      <tbody>`;
-    tabla.filas.forEach(fila => {
-      html += `<tr>${fila.map(cel => `<td>${cel}</td>`).join('')}</tr>`;
-    });
-    html += '</tbody></table></div>';
-  }
-
   // Insights
   if (data.insights?.length) {
     html += '<div class="insights-card"><div class="ins-head">🤖 Insights generados por IA</div>';
