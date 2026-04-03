@@ -180,6 +180,7 @@ nav{position:sticky;top:0;z-index:100;padding:16px 40px;display:flex;align-items
 
 /* UPLOAD SCREEN */
 #screen-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 57px);padding:40px 24px;text-align:center;background:linear-gradient(160deg,#F0F6FF 0%,#F8FAFF 60%,#EEF3FC 100%);}
+#screen-upload[style*="none"],#screen-processing[style*="none"],#screen-dashboard[style*="none"]{height:0!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important;}
 .hero-title{font-family:var(--font-h);font-size:clamp(32px,5vw,56px);font-weight:800;color:#1E2A3A;letter-spacing:-0.02em;line-height:1.05;margin-bottom:12px;}
 .hero-title em{font-style:normal;color:var(--blue-lt);}
 .hero-sub{font-size:16px;color:#6B7E96;max-width:480px;margin:0 auto 40px;}
@@ -1448,9 +1449,10 @@ function stepDone(idx) {
 // ── SHOW SCREEN ──
 function show(screen) {
   ['upload','processing','dashboard'].forEach(s => {
-    const el = document.getElementById(`screen-${s}`);
+    const el = document.getElementById('screen-' + s);
     el.style.display = s === screen ? (s === 'upload' || s === 'processing' ? 'flex' : 'block') : 'none';
   });
+  window.scrollTo({top: 0, behavior: 'instant'});
 }
 
 // ── RESET ──
