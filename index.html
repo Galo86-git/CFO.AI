@@ -208,6 +208,9 @@ input[type=file]{display:none;}
 .url-ok{padding:0 10px;font-size:13px;display:none;}
 .url-ok.valid{display:flex;align-items:center;color:var(--green);}
 .url-ok.invalid{display:flex;align-items:center;color:var(--red);}
+
+.url-hint-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+.url-hint-label{font-size:11px;color:var(--muted-lt);white-space:nowrap;font-style:italic;}
 </style>
 </head>
 <body>
@@ -256,19 +259,17 @@ input[type=file]{display:none;}
       <div class="dash-meta" id="dash-meta"></div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-      <!-- Fila izquierda/derecha superior -->
       <div class="dash-actions">
         <button class="btn-action" id="btn-resumen" onclick="toggleResumen()">📋 Resumen</button>
-        <button class="btn-action" id="btn-pptx" onclick="exportPPTX()">📊 PPT</button>
-        <div class="url-input-wrap" id="url-wrap" style="display:none">
+        <button class="btn-action" id="btn-mercado" onclick="genMercado()">🌐 Análisis de mercado</button>
+      </div>
+      <div class="url-hint-row" id="url-wrap" style="display:none">
+        <span class="url-hint-label">💡 Mejor reporte con tu URL:</span>
+        <div class="url-input-wrap">
           <div class="url-icon">🌐</div>
-          <input class="url-field" id="url-field" type="url" placeholder="web del negocio (opcional)" oninput="validateURL(this)">
+          <input class="url-field" id="url-field" type="url" placeholder="ej: www.minegocio.com.ar" oninput="validateURL(this)">
           <div class="url-ok" id="url-ok"></div>
         </div>
-      </div>
-      <!-- Fila inferior -->
-      <div class="dash-actions">
-        <button class="btn-action" id="btn-mercado" onclick="genMercado()">🌐 Análisis de mercado</button>
       </div>
     </div>
   </div>
@@ -872,74 +873,84 @@ function fmtN(v){
 
 async function genMercado(){
   var btn=document.getElementById('btn-mercado'),orig=btn.innerHTML;
-  var frases=['🔍 Buscando en la web...','🏪 Analizando competidores...','📊 Relevando precios...','📈 Detectando tendencias...','✍️ Redactando informe...'];
+  var frases=['🔍 Analizando sector...','🏪 Relevando competidores...','📊 Cruzando precios...','🎨 Aplicando identidad visual...','✍️ Redactando informe...'];
   var fi=0;btn.innerHTML=frases[0];btn.disabled=true;
   var iv=setInterval(function(){fi=(fi+1)%frases.length;btn.innerHTML=frases[fi];},2000);
   try{
     var d=S.dashData||{},rubro=d.tipo_negocio||'comercio minorista',titulo=d.titulo||'negocio';
-    var urlCtx=S.empresaURL?(' Sitio web del negocio para analizar: '+S.empresaURL+'. Usá esta información real del sitio para enriquecer el análisis.'):''; var prompt='Sos analista de mercado. Informe completo para: '+titulo+' ('+rubro+').'+urlCtx+' Incluí: 1)Resumen del sector 2)Tendencias 2024-2025 con datos concretos 3)Competidores típicos con estrategias y precios 4)Rangos de precios en Argentina 5)Oportunidades 6)Amenazas y riesgos 7)Benchmarks del sector (margen, rotación, ticket medio) 8)Recomendaciones accionables. Formato HTML con h2,h3,p,ul,table. Sin DOCTYPE ni html/body.';
+    var urlEmpresa=S.empresaURL||'';
+
+    // Extraer colores de la web si hay URL
+    var brandColors = {primary:'1E2A3A', secondary:'3B7DD8', accent:'F59E0B'};
+    if(urlEmpresa){
+      try{
+        var colorRes=await fetch('/api/extract-colors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:urlEmpresa})});
+        if(colorRes.ok){var colorData=await colorRes.json();if(colorData.colors)brandColors=colorData.colors;}
+      }catch(e){console.log('Colors fallback');}
+    }
+
+    var urlCtx=urlEmpresa?' Web del negocio: '+urlEmpresa+'. Analizá y mencioná información real del sitio (productos, servicios, posicionamiento).':'';
+    var prompt='Sos analista de mercado senior. Informe completo para: '+titulo+' ('+rubro+').'+urlCtx+' Incluí: 1)Resumen ejecutivo del sector 2)Tendencias 2024-2025 con datos concretos 3)Competidores típicos con estrategias y precios orientativos 4)Rangos de precios en Argentina 5)Oportunidades de crecimiento 6)Amenazas y riesgos 7)Benchmarks del sector (margen ideal, rotación, ticket medio) 8)Recomendaciones estratégicas accionables. Formato HTML con h2,h3,p,ul,table. Sin DOCTYPE ni html/body tags. Sé específico con números y datos reales del mercado argentino 2024-2025.';
     var html=await callClaude(prompt,[],4000);clearInterval(iv);
     var clean=html.replace(/```html|```/g,'').trim();
-    var full='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Analisis de Mercado</title><style>body{font-family:"Segoe UI",Arial,sans-serif;color:#1E2A3A;padding:48px 60px;max-width:860px;margin:0 auto;line-height:1.7;}h1{font-size:28px;font-weight:800;border-bottom:4px solid #3B7DD8;padding-bottom:12px;margin-bottom:8px;}h2{font-size:20px;font-weight:700;margin-top:36px;margin-bottom:8px;padding-left:12px;border-left:4px solid #3B7DD8;}h3{font-size:16px;font-weight:600;color:#3B7DD8;margin-top:20px;}p{color:#3B4A5A;margin-bottom:12px;}ul{padding-left:20px;margin-bottom:16px;}li{margin-bottom:6px;color:#3B4A5A;}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}th{background:#1E2A3A;color:#fff;padding:10px 14px;text-align:left;}td{padding:9px 14px;border-bottom:1px solid #E8EEF8;color:#3B4A5A;}tr:nth-child(even) td{background:#F8FAFF;}@media print{body{padding:20px;}}</style></head><body>'+'<h1>Analisis de Mercado</h1><div style="font-size:15px;color:#6B7E96;margin-bottom:6px;">'+titulo+' · '+rubro+'</div>'+'<div style="font-size:12px;color:#8A9BB5;margin-bottom:32px;">Generado el '+new Date().toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'})+' por CFO.AI</div>'+clean+'<div style="margin-top:48px;padding-top:20px;border-top:1px solid #E8EEF8;font-size:11px;color:#8A9BB5;text-align:center;">Analisis generado por CFO.AI</div>'+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},800);};<'+'/script></body></html>';
-window.open(URL.createObjectURL(new Blob([full],{type:'text/html;charset=utf-8'})),'_blank');
+
+    // Colores de marca para el PDF
+    var pc='#'+brandColors.primary;
+    var sc='#'+brandColors.secondary;
+    var ac='#'+brandColors.accent;
+    // Color de texto sobre primary (blanco o negro según luminancia)
+    var r=parseInt(brandColors.primary.substr(0,2),16),g=parseInt(brandColors.primary.substr(2,2),16),b=parseInt(brandColors.primary.substr(4,2),16);
+    var lum=(0.299*r+0.587*g+0.114*b)/255;
+    var textOnPrimary=lum>0.5?'#1E2A3A':'#FFFFFF';
+
+    var full='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Análisis de Mercado — '+titulo+'</title>'
+      +'<style>'
+      +'body{font-family:"Segoe UI",Arial,sans-serif;color:#1E2A3A;margin:0;padding:0;background:#F8FAFF;}'
+      +'.cover{background:'+pc+';padding:56px 64px 40px;min-height:220px;position:relative;overflow:hidden;}'
+      +'.cover::before{content:"";position:absolute;top:-60px;right:-60px;width:300px;height:300px;border-radius:50%;background:'+sc+';opacity:0.15;}'
+      +'.cover::after{content:"";position:absolute;bottom:-40px;left:200px;width:180px;height:180px;border-radius:50%;background:'+ac+';opacity:0.12;}'
+      +'.cover h1{font-size:32px;font-weight:800;color:'+textOnPrimary+';margin:0 0 8px;letter-spacing:-0.02em;position:relative;}'
+      +'.cover .sub{font-size:15px;color:'+textOnPrimary+';opacity:0.7;margin-bottom:6px;position:relative;}'
+      +'.cover .date{font-size:12px;color:'+textOnPrimary+';opacity:0.5;position:relative;}'
+      +'.cover .brand{position:absolute;top:24px;right:64px;font-size:13px;font-weight:700;letter-spacing:0.1em;color:'+textOnPrimary+';opacity:0.5;}'
+      +'.accent-bar{height:6px;background:linear-gradient(90deg,'+sc+','+ac+');}'
+      +'.body{padding:40px 64px;max-width:900px;margin:0 auto;}'
+      +'h2{font-size:19px;font-weight:700;color:'+pc+';margin-top:36px;margin-bottom:10px;padding-left:14px;border-left:4px solid '+sc+';}'
+      +'h3{font-size:15px;font-weight:600;color:'+sc+';margin-top:18px;margin-bottom:6px;}'
+      +'p{color:#3B4A5A;margin-bottom:12px;line-height:1.75;}'
+      +'ul{padding-left:20px;margin-bottom:16px;}li{margin-bottom:7px;color:#3B4A5A;line-height:1.6;}'
+      +'li::marker{color:'+sc+';}'
+      +'table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:8px;overflow:hidden;}'
+      +'th{background:'+pc+';color:'+textOnPrimary+';padding:11px 16px;text-align:left;font-size:12px;font-weight:600;letter-spacing:0.05em;}'
+      +'td{padding:10px 16px;border-bottom:1px solid #E8EEF8;color:#3B4A5A;}'
+      +'tr:nth-child(even) td{background:#F0F6FF;}'
+      +'tr:last-child td{border-bottom:none;}'
+      +'strong{color:'+pc+';}'
+      +'.footer{background:'+pc+';padding:20px 64px;display:flex;justify-content:space-between;align-items:center;margin-top:40px;}'
+      +'.footer span{font-size:11px;color:'+textOnPrimary+';opacity:0.5;}'
+      +'@page{margin:0;}'
+      +'@media print{body{background:#fff;}.cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.accent-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.footer{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
+      +'</style></head><body>'
+      +'<div class="cover">'
+      +'<div class="brand">CFO.AI</div>'
+      +'<h1>Análisis de Mercado</h1>'
+      +'<div class="sub">'+titulo+' · '+rubro+'</div>'
+      +'<div class="date">'+new Date().toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'})+'</div>'
+      +'</div>'
+      +'<div class="accent-bar"></div>'
+      +'<div class="body">'+clean+'</div>'
+      +'<div class="footer">'
+      +'<span>Análisis generado por CFO.AI</span>'
+      +'<span>'+titulo+' · Confidencial</span>'
+      +'</div>'
+      +'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},900);};<'+'/script>'
+      +'</body></html>';
+
+    window.open(URL.createObjectURL(new Blob([full],{type:'text/html;charset=utf-8'})),'_blank');
     btn.innerHTML=orig;btn.disabled=false;
   }catch(e){clearInterval(iv);btn.innerHTML=orig;btn.disabled=false;alert('Error: '+e.message);}
 }
 
-
-var urlTimer = null;
-function validateURL(input) {
-  var val = input.value.trim();
-  var ok = document.getElementById('url-ok');
-  S.empresaURL = '';
-  if (!val) { ok.className='url-ok'; ok.textContent=''; return; }
-
-  // Formato básico
-  var href;
-  try {
-    href = new URL(val.startsWith('http') ? val : 'https://'+val).href;
-  } catch(e) {
-    ok.className='url-ok invalid'; ok.textContent='✕';
-    return;
-  }
-
-  // Mostrar verificando...
-  ok.className='url-ok'; ok.textContent='⏳';
-
-  // Debounce: esperar 800ms antes de verificar
-  clearTimeout(urlTimer);
-  urlTimer = setTimeout(function() {
-    fetch('/api/validate-url', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({url: href})
-    })
-    .then(function(r){
-      if (!r.ok) { // endpoint no existe, aceptar URL con formato válido
-        S.empresaURL = href; input.value = href;
-        ok.className='url-ok valid'; ok.textContent='✓'; return null;
-      }
-      return r.json();
-    })
-    .then(function(data) {
-      if (!data) return;
-      if (data.valid) {
-        S.empresaURL = href;
-        input.value = href;
-        ok.className='url-ok valid'; ok.textContent='✓';
-      } else {
-        S.empresaURL = '';
-        ok.className='url-ok invalid'; ok.textContent='✕';
-      }
-    })
-    .catch(function() {
-      // Si el endpoint no existe o falla, aceptar con formato válido
-      S.empresaURL = href;
-      input.value = href;
-      ok.className='url-ok valid'; ok.textContent='✓';
-    });
-  }, 800);
-}
 
 function saveHistory(filename,titulo){try{var h=JSON.parse(localStorage.getItem('cfoai-hist')||'[]');var upd=[{filename:filename,titulo:titulo,fecha:new Date().toLocaleDateString('es-AR'),ts:Date.now()}].concat(h.filter(function(x){return x.filename!==filename;})).slice(0,3);localStorage.setItem('cfoai-hist',JSON.stringify(upd));}catch(e){}}
 function renderHistory(){try{var h=JSON.parse(localStorage.getItem('cfoai-hist')||'[]');if(!h.length)return;document.getElementById('hist-bar').style.display='block';document.getElementById('hist-chips').innerHTML=h.map(function(x){return '<div class="hist-chip" title="'+x.filename+'">'+x.titulo+' · '+x.fecha+'</div>';}).join('');}catch(e){}}
