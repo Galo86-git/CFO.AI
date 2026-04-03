@@ -574,7 +574,7 @@ function buildSummary(sheets, filename) {
     out += 'Columnas: ' + cols.join(', ') + '\n';
 
     // Detectar columna de total/importe
-    const totalCol = findNumCol(cols, ['total','importe','monto','amount','factura','venta','precio','subtotal','valor']);
+    const totalCol = findNumCol(cols, ['total','importe','monto','amount','factura','venta','precio','subtotal','valor','ingreso','revenue','sales','neto','bruto','($)','(€)']);
     const qtyCol   = findNumCol(cols, ['cantidad','qty','quantity','unidad']);
     const catCol   = findNumCol(cols, ['categoria','categoría','category','tipo','type','producto','rubro','familia']);
     const clienteCol = findNumCol(cols, ['cliente','client','razon','razón','nombre']);
