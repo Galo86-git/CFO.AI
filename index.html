@@ -1260,9 +1260,65 @@ async function toggleInsightDetail(btn) {
 
 
 // ══════════════════════════════════════════
-// MODO OSCURO
+// EXPORTAR A IMAGEN
 // ══════════════════════════════════════════
+async function exportarImagen() {
+  const btns = document.querySelectorAll('.btn-action');
+  const btn = btns[0];
+  const original = btn.textContent;
+  btn.textContent = '⏳ Capturando...';
+  try {
+    const el = document.getElementById('dash-content');
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#F8FAFF', scale: 2, useCORS: true, logging: false
+    });
+    const link = document.createElement('a');
+    const nombre = (window._dashData?.titulo || 'dashboard').toLowerCase().replace(/[ ]+/g,'-');
+    link.download = 'CFO-AI-' + nombre + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) { alert('Error al exportar: ' + e.message); }
+  btn.textContent = original;
+}
 
+// ══════════════════════════════════════════
+// RESUMEN EJECUTIVO
+// ══════════════════════════════════════════
+let resumenGenerado = false;
+
+async function generarResumen() {
+  const panel = document.getElementById('resumen-panel');
+  const body  = document.getElementById('resumen-body');
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  if (resumenGenerado) return;
+
+  const d = window._dashData || {};
+  const kpisStr = (d.kpis||[]).map(k => k.label + ': ' + k.valor).join(', ');
+  const insStr  = (d.insights||[]).map(i => i.texto).join('. ');
+
+  const prompt = 'Escribi un resumen ejecutivo de 4-5 oraciones en espanol para este negocio. '
+    + 'Claro, directo, util para compartir con contador o socio por WhatsApp o mail. '
+    + 'Sin bullets, en prosa fluida. Comenzar con el nombre del negocio. '
+    + 'Negocio: ' + (d.titulo||'') + ' (' + (d.tipo_negocio||'') + ', ' + (d.periodo||'') + '). '
+    + 'KPIs: ' + kpisStr + '. Situacion: ' + insStr
+    + '. Al final agregar: "Analisis generado por CFO.AI."';
+
+  try {
+    const response = await fetch('/api/claude', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt, max_tokens: 400 })
+    });
+    const data = await response.json();
+    const texto = data.content?.[0]?.text || 'No se pudo generar.';
+    const paras = texto.split('\n').filter(function(l){return l.trim();});
+    body.innerHTML = paras.map(function(p){return '<p>'+p+'</p>';}).join('');
+    body.dataset.texto = texto;
+    resumenGenerado = true;
+  } catch(e) {
+    body.innerHTML = '<p style="color:#B45454">Error. Intentá de nuevo.</p>';
+  }
+}
 
 function copiarResumen() {
   const texto = document.getElementById('resumen-body').dataset.texto || '';
