@@ -544,11 +544,11 @@ tr:last-child td{border-bottom:none;}
   <!-- PANEL RESUMEN EJECUTIVO -->
   <div class="resumen-panel" id="resumen-panel" style="display:none">
     <div class="resumen-head">
-      <span style="font-family:var(--font-h);font-weight:700;color:#1E2A3A">📋 Resumen ejecutivo</span>
-      <div style="display:flex;gap:8px">
-        <button class="btn-copy" id="btn-copy" onclick="copiarResumen()">Copiar texto</button>
-        <button onclick="document.getElementById('resumen-panel').style.display='none'" style="background:none;border:none;color:#8A9BB5;cursor:pointer;font-size:16px">✕</button>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-family:var(--font-h);font-size:15px;font-weight:700;color:#1E2A3A">📋 Resumen ejecutivo</span>
+        <button class="btn-copy" id="btn-copy" onclick="copiarResumen()">📋 Copiar</button>
       </div>
+      <button onclick="document.getElementById('resumen-panel').style.display='none'" style="background:none;border:none;color:#8A9BB5;cursor:pointer;font-size:18px;line-height:1;padding:2px 4px">✕</button>
     </div>
     <div class="resumen-body" id="resumen-body">
       <div style="display:flex;align-items:center;gap:8px;color:#8A9BB5;font-size:13px">
