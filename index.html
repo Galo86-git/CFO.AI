@@ -180,7 +180,18 @@ nav{position:sticky;top:0;z-index:100;padding:16px 40px;display:flex;align-items
 
 /* UPLOAD SCREEN */
 #screen-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 57px);padding:40px 24px;text-align:center;background:linear-gradient(160deg,#F0F6FF 0%,#F8FAFF 60%,#EEF3FC 100%);}
-#screen-upload[style*="none"],#screen-processing[style*="none"],#screen-dashboard[style*="none"]{height:0!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important;}
+#screen-upload[style*="display: none"],
+#screen-processing[style*="display: none"],
+#screen-dashboard[style*="display: none"] {
+  position: absolute !important;
+  width: 1px !important; height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important;
+  padding: 0 !important; margin: 0 !important;
+  min-height: 0 !important;
+  pointer-events: none !important;
+}
 .hero-title{font-family:var(--font-h);font-size:clamp(32px,5vw,56px);font-weight:800;color:#1E2A3A;letter-spacing:-0.02em;line-height:1.05;margin-bottom:12px;}
 .hero-title em{font-style:normal;color:var(--blue-lt);}
 .hero-sub{font-size:16px;color:#6B7E96;max-width:480px;margin:0 auto 40px;}
@@ -295,7 +306,7 @@ tr:last-child td{border-bottom:none;}
   background: linear-gradient(135deg, #2563C8, #3B7DD8);
   border: none; cursor: pointer;
   box-shadow: 0 4px 20px rgba(37,99,200,0.45);
-  display: none; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   transition: all 0.22s; color: #fff; font-size: 22px;
 }
 .chat-toggle.visible { display: flex; }
@@ -1452,7 +1463,9 @@ function show(screen) {
     const el = document.getElementById('screen-' + s);
     el.style.display = s === screen ? (s === 'upload' || s === 'processing' ? 'flex' : 'block') : 'none';
   });
-  window.scrollTo({top: 0, behavior: 'instant'});
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
 // ── RESET ──
