@@ -110,7 +110,7 @@ input[type=file]{display:none;}
 .sa-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
 .sa-item:last-child{border-bottom:none;}
 .sa-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
-.sa-icon.red{background:#FEF2F2;}.sa-icon.amber{background:#FFFBEB;}.sa-icon.green{background:#ECFDF5;}
+.sa-icon.red{background:#FEF2F2;}.sa-icon.amber{background:#FFFBEB;}.sa-icon.green{background:#ECFDF5;}.sa-icon.blue{background:var(--blue-pale);}.sa-badge.blue{background:var(--blue-pale);color:var(--blue);}
 .sa-text{font-size:13px;color:var(--ink);line-height:1.5;flex:1;}
 .sa-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;white-space:nowrap;flex-shrink:0;align-self:center;}
 .sa-badge.red{background:#FEF2F2;color:#B91C1C;}.sa-badge.amber{background:#FFFBEB;color:#92400E;}.sa-badge.green{background:#ECFDF5;color:#065F46;}
@@ -469,12 +469,56 @@ function calcMetrics(sheets,yellowCols){
 }
 
 function buildSmartAlerts(m,cmp){
-  var a=[],tv=m.totalVentas,tc=m.totalCompras;
-  if(m.stockCriticos.length>0)a.push({icon:'⚠️',type:'red',text:'<strong>'+m.stockCriticos.length+' producto'+(m.stockCriticos.length>1?'s':'')+' con stock bajo mínimo</strong> — '+m.stockCriticos.slice(0,3).join(', ')+(m.stockCriticos.length>3?' y más':'')+'. Riesgo de quiebre.',badge:'Urgente',bt:'red'});
-  if(m.periodoComp&&m.periodoComp.delta!==null){var d=parseFloat(m.periodoComp.delta);if(d<-10)a.push({icon:'📉',type:'red',text:'Ventas de <strong>'+m.periodoComp.last+'</strong> cayeron <strong>'+Math.abs(d).toFixed(1)+'%</strong> vs '+m.periodoComp.prev+'.',badge:'-'+Math.abs(d).toFixed(1)+'%',bt:'red'});else if(d>15)a.push({icon:'📈',type:'green',text:'Ventas de <strong>'+m.periodoComp.last+'</strong> subieron <strong>'+d.toFixed(1)+'%</strong> vs '+m.periodoComp.prev+'.',badge:'+'+d.toFixed(1)+'%',bt:'green'});}
-  if(m.byCat.length>0){var p=tv>0?m.byCat[0][1]/tv*100:0;if(p>50)a.push({icon:'🎯',type:'amber',text:'<strong>'+m.byCat[0][0]+'</strong> representa el <strong>'+p.toFixed(0)+'%</strong> de ventas. Alta concentración.',badge:p.toFixed(0)+'% conc.',bt:'amber'});}
-  if(tc>0&&tv>0){var mg=(tv-tc)/tv*100;if(mg<20)a.push({icon:'💰',type:'amber',text:'Margen estimado <strong>'+mg.toFixed(1)+'%</strong>. Revisar costos o precios.',badge:mg.toFixed(1)+'%',bt:'amber'});}
-  if(cmp){var diff=cmp.totalVentas>0?(tv-cmp.totalVentas)/cmp.totalVentas*100:0;a.push({icon:'📊',type:diff>=0?'green':'red',text:'Vs período anterior: <strong>'+(diff>=0?'+':'')+diff.toFixed(1)+'%</strong>.',badge:(diff>=0?'+':'')+diff.toFixed(1)+'%',bt:diff>=0?'green':'red'});}
+  var a=[];
+  var tv=m.totalVentas, tc=m.totalCompras, tco=m.totalCostos;
+
+  // 1. ALERTA DE VENTAS
+  if(m.periodoComp&&m.periodoComp.delta!==null){
+    var d=parseFloat(m.periodoComp.delta);
+    var tipo=d<-10?'red':d>10?'green':'amber';
+    var icono=d<-10?'📉':d>10?'📈':'➡️';
+    var txt='Ventas <strong>'+m.periodoComp.last+'</strong>: '+fmt(m.periodoComp.vLast)+' ('+(d>=0?'+':'')+d.toFixed(1)+'% vs '+m.periodoComp.prev+').';
+    if(d<-10) txt+=' Caída significativa — investigar causa.';
+    else if(d>10) txt+=' Crecimiento saludable — identificar el driver.';
+    else txt+=' Ventas estables sin variación significativa.';
+    a.push({icon:icono,type:tipo,text:txt,badge:(d>=0?'+':'')+d.toFixed(1)+'%',bt:tipo,titulo:'Ventas'});
+  } else if(tv>0){
+    a.push({icon:'📊',type:'blue',text:'Ventas totales del período: <strong>'+fmt(tv)+'</strong> en '+m.nTrans+' transacciones. Ticket promedio: '+fmt(m.ticketMed)+'.',badge:fmt(tv),bt:'blue',titulo:'Ventas'});
+  }
+
+  // 2. ALERTA DE PRECIOS (margen y ticket)
+  if(tc>0&&tv>0){
+    var mg=(tv-tc)/tv*100;
+    var tipoMg=mg<20?'red':mg<35?'amber':'green';
+    var iconoMg=mg<20?'⚠️':mg<35?'💰':'✅';
+    a.push({icon:iconoMg,type:tipoMg,text:'Margen bruto estimado: <strong>'+mg.toFixed(1)+'%</strong>. Costo de ventas: '+fmt(tc)+'. '+(mg<20?'Margen bajo — revisar precios o negociar con proveedores.':mg<35?'Margen moderado — hay espacio para optimizar precios.':'Margen saludable para el sector.'),badge:mg.toFixed(1)+'% margen',bt:tipoMg,titulo:'Precios'});
+  } else {
+    var tkTipo=m.ticketMed>0?'blue':'amber';
+    a.push({icon:'🏷️',type:tkTipo,text:'Ticket medio por transacción: <strong>'+fmt(m.ticketMed)+'</strong>. '+(m.byCat.length>0?'Categoría líder: '+m.byCat[0][0]+' ('+fmt(m.byCat[0][1])+').':'Analizá qué categorías tienen mayor margen para optimizar precios.'),badge:fmt(m.ticketMed),bt:tkTipo,titulo:'Precios'});
+  }
+
+  // 3. ALERTA DE COSTOS (compras / stock)
+  if(tc>0){
+    var rComp=tv>0?(tc/tv*100):0;
+    var tipoC=rComp>70?'red':rComp>50?'amber':'green';
+    var iconoC=rComp>70?'🔴':rComp>50?'⚠️':'✅';
+    a.push({icon:iconoC,type:tipoC,text:'Costo de compras: <strong>'+fmt(tc)+'</strong> ('+rComp.toFixed(0)+'% de las ventas). '+(rComp>70?'Relación costo/venta alta — revisar política de compras y proveedores.':rComp>50?'Relación costo/venta moderada — hay oportunidad de negociar mejores precios.':'Buena eficiencia en compras respecto a ventas.'),badge:rComp.toFixed(0)+'% s/ventas',bt:tipoC,titulo:'Costos'});
+  } else if(m.totalStock>0){
+    a.push({icon:'📦',type:'blue',text:'Stock valorizado: <strong>'+fmt(m.totalStock)+'</strong> en '+(m.stockCriticos.length>0?'inventario activo. <strong>'+m.stockCriticos.length+' productos bajo mínimo</strong>: '+m.stockCriticos.slice(0,3).join(', ')+'.':'inventario activo sin alertas críticas.'),badge:fmt(m.totalStock),bt:'blue',titulo:'Costos'});
+  } else {
+    a.push({icon:'📦',type:'blue',text:'No se detectaron datos de compras o stock en el archivo. Agregá una hoja de Compras para ver el análisis de costos.',badge:'Sin datos',bt:'blue',titulo:'Costos'});
+  }
+
+  // 4. ALERTA DE GASTOS (costos operativos)
+  if(tco>0){
+    var rGasto=tv>0?(tco/tv*100):0;
+    var tipoG=rGasto>30?'red':rGasto>20?'amber':'green';
+    var iconoG=rGasto>30?'🔴':rGasto>20?'⚠️':'✅';
+    a.push({icon:iconoG,type:tipoG,text:'Gastos operativos: <strong>'+fmt(tco)+'</strong> ('+rGasto.toFixed(0)+'% de las ventas). '+(rGasto>30?'Gastos elevados — revisar estructura de costos fijos.':rGasto>20?'Gastos moderados — analizar rubros con mayor peso.':'Gastos operativos bajo control.'),badge:rGasto.toFixed(0)+'% s/ventas',bt:tipoG,titulo:'Gastos'});
+  } else {
+    a.push({icon:'💼',type:'blue',text:'No se detectaron datos de gastos operativos. Agregá una hoja de Costos Operativos para ver el análisis de gastos fijos vs variables.',badge:'Sin datos',bt:'blue',titulo:'Gastos'});
+  }
+
   return a;
 }
 
@@ -579,7 +623,15 @@ function clickTbar(el){
 
 function renderAlerts(alerts){
   document.getElementById('alerts-card').style.display='block';
-  document.getElementById('alerts-list').innerHTML=alerts.map(function(a){return '<div class="sa-item"><div class="sa-icon '+a.type+'">'+a.icon+'</div><div class="sa-text">'+a.text+'</div><div class="sa-badge '+a.bt+'">'+a.badge+'</div></div>';}).join('');
+  document.getElementById('alerts-list').innerHTML=alerts.map(function(a){
+    return '<div class="sa-item">'
+      +'<div class="sa-icon '+a.type+'">'+a.icon+'</div>'
+      +'<div class="sa-text">'
+      +(a.titulo?'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted-lt);margin-bottom:3px">'+a.titulo+'</div>':'')
+      +a.text+'</div>'
+      +'<div class="sa-badge '+a.bt+'">'+a.badge+'</div>'
+      +'</div>';
+  }).join('');
 }
 
 function renderDrill(metrics){
