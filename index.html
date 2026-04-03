@@ -264,7 +264,7 @@ input[type=file]{display:none;}
         <button class="btn-action" id="btn-mercado" onclick="genMercado()">🌐 Análisis de mercado</button>
       </div>
       <div class="url-hint-row" id="url-wrap" style="display:none">
-        <span class="url-hint-label">💡 Mejor reporte con tu URL:</span>
+        <span class="url-hint-label" id="url-hint-label">💡 Mejor reporte con tu URL:</span>
         <div class="url-input-wrap">
           <div class="url-icon">🌐</div>
           <input class="url-field" id="url-field" type="url" placeholder="ej: www.minegocio.com.ar" oninput="validateURL(this)">
@@ -962,17 +962,16 @@ var urlTimer=null;
 function validateURL(input){
   var val=input.value.trim();
   var ok=document.getElementById('url-ok');
-  S.empresaURL='';
-  if(!val){ok.className='url-ok';ok.textContent='';return;}
+  S.empresaURL=''; if(!val){ok.className='url-ok';ok.textContent='';var hle=document.getElementById('url-hint-label');if(hle)hle.textContent='💡 Mejor reporte con tu URL:';return;}
   var href;
   try{href=new URL(val.startsWith('http')?val:'https://'+val).href;}
   catch(e){ok.className='url-ok invalid';ok.textContent='✕';return;}
-  ok.className='url-ok';ok.textContent='⏳';
+  ok.className='url-ok';ok.textContent='⏳';  var hl=document.getElementById('url-hint-label');if(hl)hl.textContent='⏳ Verificando que el sitio existe...';
   clearTimeout(urlTimer);
   urlTimer=setTimeout(function(){
     fetch('/api/validate-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:href})})
-    .then(function(r){if(!r.ok){S.empresaURL=href;input.value=href;ok.className='url-ok valid';ok.textContent='✓';return null;}return r.json();})
-    .then(function(data){if(!data)return;if(data.valid){S.empresaURL=href;input.value=href;ok.className='url-ok valid';ok.textContent='✓';}else{S.empresaURL='';ok.className='url-ok invalid';ok.textContent='✕';}})
+    .then(function(r){if(!r.ok){S.empresaURL=href;input.value=href;ok.className='url-ok valid';ok.textContent='✓';var hlc=document.getElementById('url-hint-label');if(hlc)hlc.textContent='✅ Sitio verificado — el análisis usará esta web';var hl=document.getElementById('url-hint-label');if(hl)hl.textContent='✅ Sitio verificado — el análisis usará esta web';return null;}return r.json();})
+    .then(function(data){if(!data)return;var hl2=document.getElementById('url-hint-label');if(data.valid){S.empresaURL=href;input.value=href;ok.className='url-ok valid';ok.textContent='✓';if(hl2)hl2.textContent='✅ Sitio verificado — el análisis usará esta web';}else{S.empresaURL='';ok.className='url-ok invalid';ok.textContent='✕';if(hl2)hl2.textContent='❌ No se encontró ese sitio, revisá la URL';}})
     .catch(function(){S.empresaURL=href;input.value=href;ok.className='url-ok valid';ok.textContent='✓';});
   },800);
 }
