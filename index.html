@@ -508,7 +508,7 @@ function readFile(file) {
     const reader = new FileReader();
     reader.onload = e => {
       try {
-        const wb = XLSX.read(e.target.result, {type:'binary', cellDates:true});
+        const wb = XLSX.read(e.target.result, {type:'binary', cellDates:true, cellNF:false, cellText:false});
         const sheets = {};
         wb.SheetNames.forEach(name => {
           const ws = wb.Sheets[name];
@@ -530,36 +530,73 @@ function buildSummary(sheets, filename) {
 
   // Detectar columna numérica — Total tiene prioridad absoluta
   function findNumCol(cols, keywords) {
-    // 1. Buscar 'Total ($)' o 'Total (€)' exacto primero
-    const exactTotal = cols.find(c => /^total\s*[\(\$€]/i.test(c.trim()));
+    // ESTRATEGIA: la última columna con ($) o (€) que tenga keyword es casi siempre el Total
+    const skip = ['precio','price','unit','unitario','costo','cost','tipo','forma','estado',
+                  'nombre','razon','descripcion','codigo','cuit','email','telefono','patente',
+                  'vendedor','obra','nro','numero','remito','factura nro'];
+
+    // 0. Última columna con ($) o (€) — heurística más fuerte
+    const moneyCols = cols.filter(c => c.includes('($)') || c.includes('(€)'));
+    const lastMoney = moneyCols[moneyCols.length - 1];
+    if (lastMoney) {
+      const cl = lastMoney.toLowerCase();
+      if (!skip.some(s => cl.startsWith(s))) return lastMoney;
+    }
+
+    // 1. Exacto: empieza con 'Total'
+    const exactTotal = cols.find(c => c.toLowerCase().trim().startsWith('total'));
     if (exactTotal) return exactTotal;
-    // 2. Buscar columna que empiece con 'total'
-    const startsTotal = cols.find(c => c.toLowerCase().trim().startsWith('total'));
-    if (startsTotal) return startsTotal;
-    // 3. Buscar columnas con $ o € que tengan la keyword (evitar precio/unit)
-    const skipWords = ['precio','price','unit','unitario','costo','cost','compra','tipo','forma','estado','nombre','razon','razón','descripcion','codigo','cuit','email','telefono','patente','vendedor','obra'];
+
+    // 2. Columna con $ no-skip con keyword
     const moneyCol = cols.find(c => {
       const cl = c.toLowerCase();
-      if (skipWords.some(s => cl.includes(s))) return false;
-      return (c.includes('($)') || c.includes('(€)') || c.includes('$') || c.includes('€'))
-        && keywords.some(k => cl.includes(k));
+      if (skip.some(s => cl.includes(s))) return false;
+      return (c.includes('$') || c.includes('€')) && keywords.some(k => cl.includes(k));
     });
     if (moneyCol) return moneyCol;
-    // 4. Fallback: keyword excluyendo palabras de texto
-    const textWords = ['tipo','forma','estado','nombre','razon','descripcion','codigo','cuit','email','telefono','patente','vendedor','obra','precio','unit','costo'];
+
+    // 3. Keyword sin columnas de texto
     return cols.find(c => {
       const cl = c.toLowerCase();
-      if (textWords.some(s => cl.startsWith(s))) return false;
+      if (skip.some(s => cl.startsWith(s))) return false;
       return keywords.some(k => cl.includes(k));
     });
   }
 
-  // Función para sumar una columna numérica
+  // Función para sumar una columna numérica — con fallback a columnas componentes
   function sumCol(rows, col) {
-    return rows.reduce((acc, r) => {
+    let total = rows.reduce((acc, r) => {
       const v = parseFloat(String(r[col] || '').replace(/[^0-9.-]/g,''));
       return acc + (isNaN(v) ? 0 : v);
     }, 0);
+
+    // Si el total es 0 (columna de fórmulas no recalculadas), buscar columnas componentes
+    if (total === 0) {
+      const cols = Object.keys(rows[0] || {});
+      // Intentar Subtotal + IVA
+      const subtotalCol = cols.find(c => /subtotal/i.test(c));
+      const ivaCol      = cols.find(c => /iva|tax/i.test(c));
+      if (subtotalCol) {
+        total = rows.reduce((acc, r) => {
+          const s = parseFloat(String(r[subtotalCol]||'').replace(/[^0-9.-]/g,'')) || 0;
+          const t = ivaCol ? parseFloat(String(r[ivaCol]||'').replace(/[^0-9.-]/g,'')) || 0 : 0;
+          return acc + s + t;
+        }, 0);
+      }
+      // Si sigue en 0, intentar Precio Unit * Cantidad
+      if (total === 0) {
+        const precioCol = cols.find(c => /precio|price|unit/i.test(c) && /\$|€/i.test(c));
+        const cantCol   = cols.find(c => /cantidad|qty|quantity/i.test(c));
+        if (precioCol && cantCol) {
+          total = rows.reduce((acc, r) => {
+            const p = parseFloat(String(r[precioCol]||'').replace(/[^0-9.-]/g,'')) || 0;
+            const q = parseFloat(String(r[cantCol]||'').replace(/[^0-9.-]/g,'')) || 0;
+            return acc + (p * q);
+          }, 0);
+        }
+      }
+    }
+    return total;
   }
 
   // Función para contar valores únicos de una columna
