@@ -572,6 +572,8 @@ function buildSummary(sheets, filename) {
     out += '=== HOJA: ' + name + ' ===\n';
     out += 'Filas totales: ' + rows.length + '\n';
     out += 'Columnas: ' + cols.join(', ') + '\n';
+    console.log('[CFO.AI] Hoja:', name, '| Cols:', cols);
+    console.log('[CFO.AI] totalCol detectado:', findNumCol(cols, ['total','importe','monto','amount','factura','venta','precio','subtotal','valor','ingreso','revenue','sales','neto','bruto','($)','(€)']));
 
     // Detectar columna de total/importe
     const totalCol = findNumCol(cols, ['total','importe','monto','amount','factura','venta','precio','subtotal','valor','ingreso','revenue','sales','neto','bruto','($)','(€)']);
