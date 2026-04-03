@@ -1178,11 +1178,9 @@ async function toggleInsightDetail(btn) {
     const reply = data.content?.[0]?.text || 'No se pudo generar el detalle.';
 
     // Formatear: negrita y párrafos
-    const formatted = reply
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .split('
-').filter(p => p.trim())
-      .map(p => '<p>' + p + '</p>').join('');
+    const formatted2 = reply.replace(/[*][*]([^*]+)[*][*]/g, '<strong>$1</strong>');
+    const paras = formatted2.split('\n').filter(function(p){return p.trim();});
+    const formatted = paras.map(function(p){return '<p>'+p+'</p>';}).join('')
 
     panel.innerHTML = formatted;
     panel.dataset.loaded = '1';
