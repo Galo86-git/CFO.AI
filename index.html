@@ -384,22 +384,22 @@ function renderDashboard(d, filename) {
 
   // Tabs
   const tabs = [
-    { key: 'tab_kpis',       label: '📊 KPIs generales' },
-    { key: 'tab_proveedores', label: '🏭 Proveedores' },
-    { key: 'tab_ctas_ctes',  label: '👥 Ctas. Corrientes' },
+    { key: 'tab_kpis',        id: 'kpis',        label: '📊 KPIs generales' },
+    { key: 'tab_proveedores', id: 'proveedores',  label: '🏭 Proveedores' },
+    { key: 'tab_ctas_ctes',   id: 'ctas',         label: '👥 Ctas. Corrientes' },
   ];
 
   let html = `<div class="dash-tabs">`;
   tabs.forEach((t, i) => {
-    html += `<button class="dash-tab ${i===0?'active':''}" onclick="switchDashTab('${t.key}', this)">${t.label}</button>`;
+    html += `<button class="dash-tab ${i===0?'active':''}" onclick="switchDashTab('${t.id}', this)">${t.label}</button>`;
   });
   html += `</div>`;
 
   tabs.forEach((t, i) => {
     const data = d[t.key];
-    if (!data) return;
-    html += `<div class="dash-tab-content ${i===0?'active':''}" id="dTab_${t.key}">`;
-    html += renderTabContent(data);
+    const tabContent = data ? renderTabContent(data) : '<p style="color:#8A9BB5;padding:24px">No hay datos disponibles para esta sección.</p>';
+    html += `<div class="dash-tab-content ${i===0?'active':''}" id="dTab_${t.id}">`;
+    html += tabContent;
     html += `</div>`;
   });
 
@@ -414,11 +414,12 @@ function renderDashboard(d, filename) {
   document.getElementById('dash-content').innerHTML = html;
 }
 
-function switchDashTab(key, btn) {
+function switchDashTab(id, btn) {
   document.querySelectorAll('.dash-tab').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.dash-tab-content').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('dTab_' + key).classList.add('active');
+  const el = document.getElementById('dTab_' + id);
+  if (el) el.classList.add('active');
 }
 
 function renderTabContent(data) {
