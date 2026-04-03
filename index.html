@@ -380,58 +380,21 @@ IMPORTANTE: Devolvé SOLO el JSON, sin markdown, sin explicaciones, sin bloques 
 const COLORS = ['#3B7DD8','#06B6D4','#8B5CF6','#10B981','#F59E0B','#E07070'];
 
 function renderDashboard(d, filename) {
-  window._dashData = d; // guardar para el reporte
+  window._dashData = d;
   document.getElementById('dash-title').textContent = d.titulo || 'Tu negocio';
-  document.getElementById('dash-meta').textContent = `${d.tipo_negocio || ''} · ${d.periodo || ''} · Generado por CFO.AI`;
+  document.getElementById('dash-meta').textContent = (d.tipo_negocio||'') + ' · ' + (d.periodo||'') + ' · Generado por CFO.AI';
 
-  // Tabs
-  // Buscar keys de forma exhaustiva
-  const allKeys = Object.keys(d);
-  console.log('[CFO.AI] Todas las keys:', allKeys);
+  // Renderizar directo sin tabs — usar la data de kpis/grafico/insights del nivel raíz
+  // Claude puede devolver en nivel raíz o dentro de tab_kpis
+  const data = d.kpis ? d : (d.tab_kpis || d[Object.keys(d).find(k => typeof d[k] === 'object' && d[k]?.kpis)] || d);
 
-  // Búsqueda exacta primero, luego parcial
-  const findKey = (exactas, parciales) => {
-    const exactMatch = exactas.find(k => allKeys.includes(k));
-    if (exactMatch) return exactMatch;
-    return allKeys.find(k => parciales.some(kw => k.toLowerCase().includes(kw)));
-  };
+  let html = renderTabContent(data);
 
-  const keyKpis = findKey(['tab_kpis','tab_kpi'], ['kpi','general','resumen','ventas']) || allKeys[3];
-  const keyProv = findKey(['tab_proveedores','tab_proveedor'], ['provee','compra','supplier']) || allKeys[4];
-  const keyCtas = findKey(['tab_ctas_ctes','tab_cuentas','tab_clientes'], ['cta','corriente','cliente','cobro']) || allKeys[5];
-
-  console.log('[CFO.AI] Keys encontradas → KPIs:', keyKpis, '| Proveedores:', keyProv, '| Ctas:', keyCtas);
-  console.log('[CFO.AI] Datos → KPIs:', !!d[keyKpis], '| Proveedores:', !!d[keyProv], '| Ctas:', !!d[keyCtas]);
-  console.log('[CFO.AI] Valor keyProv:', d[keyProv]);
-  console.log('[CFO.AI] Valor keyCtas:', d[keyCtas]);
-  console.log('[CFO.AI] JSON completo:', JSON.stringify(d).slice(0,500));
-
-  const tabs = [
-    { data: d[keyKpis],  id: 'kpis',        label: '📊 KPIs generales' },
-    { data: d[keyProv],  id: 'proveedores',  label: '🏭 Proveedores' },
-    { data: d[keyCtas],  id: 'ctas',         label: '👥 Ctas. Corrientes' },
-  ];
-
-  let html = `<div class="dash-tabs">`;
-  tabs.forEach((t, i) => {
-    html += `<button class="dash-tab ${i===0?'active':''}" onclick="switchDashTab('${t.id}', this)">${t.label}</button>`;
-  });
-  html += `</div>`;
-
-  tabs.forEach((t, i) => {
-    const tabContent = t.data ? renderTabContent(t.data) : '<p style="color:#8A9BB5;padding:24px 0">Sin datos para esta sección en el archivo.</p>';
-    html += `<div class="dash-tab-content ${i===0?'active':''}" id="dTab_${t.id}">`;
-    html += tabContent;
-    html += `</div>`;
-  });
-
-  html += `<div class="cta-strip">
-    <div class="cta-text">
-      <h3>¿Querés el dashboard completo?</h3>
-      <p>Reportes PDF, forecast, actualizaciones diarias y mucho más.</p>
-    </div>
-    <a href="index.html#precios" class="btn-cta">Empezar gratis — 7 días</a>
-  </div>`;
+  html += '<div class="cta-strip">'
+    + '<div class="cta-text"><h3>¿Querés el dashboard completo?</h3>'
+    + '<p>Reportes PDF, forecast, actualizaciones diarias y mucho más.</p></div>'
+    + '<a href="index.html#precios" class="btn-cta">Empezar gratis — 7 días</a>'
+    + '</div>';
 
   document.getElementById('dash-content').innerHTML = html;
 }
