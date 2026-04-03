@@ -711,6 +711,226 @@ async function callClaude(prompt, context, maxTokens) {
 }
 
 
+// ════════════════════════════════════════════════════
+// CALCULAR MÉTRICAS LOCALES
+// ════════════════════════════════════════════════════
+function calcMetrics(sheets, yellowCols) {
+  const ventasKey = Object.keys(sheets).find(k => /vent|sale|transacc/i.test(k)) || Object.keys(sheets)[0];
+  const rows = sheets[ventasKey] || [];
+  const cols = rows.length ? Object.keys(rows[0]) : [];
+  const yc = (yellowCols||{})[ventasKey];
+  const valCol  = findTotalCol(cols, yc);
+  const catCol  = findCol(cols, [/categ|rubro|familia/i]);
+  const cliCol  = findCol(cols, [/cliente|razon|raz.n/i]);
+  const fechCol = findCol(cols, [/fecha|date/i]);
+  const vendCol = findCol(cols, [/vendedor/i]);
+  const prodCol = findCol(cols, [/^producto|^articulo/i]);
+  const totalVentas = sumCol(rows, valCol);
+  const nTrans = rows.length;
+  const ticketMed = nTrans > 0 ? totalVentas / nTrans : 0;
+  const byMes = {}, byMesCount = {};
+  if (fechCol && valCol) {
+    rows.forEach(r => {
+      const mes = extractMes(r[fechCol]);
+      if (!mes) return;
+      const v = parseFloat(String(r[valCol]||"").replace(/[^0-9.-]/g,""))||0;
+      byMes[mes] = (byMes[mes]||0) + v;
+      byMesCount[mes] = (byMesCount[mes]||0) + 1;
+    });
+  }
+  const byCat = catCol ? groupSum(rows, catCol, valCol) : [];
+  let periodoReal = "";
+  const meses = Object.keys(byMes);
+  if (fechCol && meses.length > 0) {
+    const primero = meses[0], ultimo = meses[meses.length-1];
+    periodoReal = primero === ultimo ? primero : primero + " – " + ultimo;
+  }
+  let periodoComp = null;
+  if (meses.length >= 2) {
+    const last = meses[meses.length-1], prev = meses[meses.length-2];
+    const vLast = byMes[last], vPrev = byMes[prev];
+    const delta = vPrev > 0 ? ((vLast-vPrev)/vPrev*100).toFixed(1) : null;
+    periodoComp = {last, prev, vLast, vPrev, delta};
+  }
+  const stockKey = Object.keys(sheets).find(k => /stock|invent/i.test(k));
+  let stockCriticos = [], totalStock = 0;
+  if (stockKey) {
+    const sr = sheets[stockKey];
+    const sc = Object.keys(sr[0]||{});
+    const actCol    = findCol(sc, [/stock.act|actual|existencia|stock$/i]);
+    const minCol    = findCol(sc, [/m[ií]nimo|min/i]);
+    const pvCol     = findCol(sc, [/precio.vent|precio.*venta/i]);
+    const prodSCol  = findCol(sc, [/producto|descrip|nombre|articulo/i]) || sc[1];
+    const actValCol = findCol(sc, [/valor.*stock|valor.*inv/i]);
+    if (actValCol) totalStock = sumCol(sr, actValCol);
+    else if (actCol && pvCol) totalStock = sr.reduce((a,r) => {
+      const act = parseFloat(String(r[actCol]||"").replace(/[^0-9.-]/g,""))||0;
+      const pv  = parseFloat(String(r[pvCol]||"").replace(/[^0-9.-]/g,""))||0;
+      return a + act*pv;
+    }, 0);
+    if (totalStock === 0) {
+      const vc2 = sc.find(c => c.includes("($)") || c.includes("(€)"));
+      if (vc2) totalStock = sumCol(sr, vc2);
+    }
+    if (actCol && minCol) {
+      stockCriticos = sr.filter(r => {
+        const a = parseFloat(String(r[actCol]||"").replace(/[^0-9.-]/g,""));
+        const m = parseFloat(String(r[minCol]||"").replace(/[^0-9.-]/g,""));
+        return !isNaN(a) && !isNaN(m) && a < m;
+      }).map(r => String(r[prodSCol]||"").trim()).filter(Boolean);
+    }
+  }
+  const comprasKey = Object.keys(sheets).find(k => /compra|purchase|proveedor/i.test(k));
+  let totalCompras = 0;
+  if (comprasKey) { const cr=sheets[comprasKey]; totalCompras = sumCol(cr, findTotalCol(Object.keys(cr[0]||{}), null)); }
+  const costKey = Object.keys(sheets).find(k => /costo|cost|gasto|operativ/i.test(k));
+  let totalCostos = 0;
+  if (costKey) {
+    const cr=sheets[costKey], cc=Object.keys(cr[0]||{});
+    const cv = findCol(cc,[/total.cost|total.mes|total.gasto/i]) || findTotalCol(cc,null);
+    totalCostos = sumCol(cr, cv);
+  }
+  const dims = [
+    {key:"cat", label:"Categoría", col:catCol},
+    {key:"cli", label:"Cliente",        col:cliCol},
+    {key:"mes", label:"Mes",            col:fechCol},
+    {key:"vend",label:"Vendedor",       col:vendCol},
+    {key:"prod",label:"Producto",       col:prodCol},
+  ].filter(d => d.col);
+  return {ventasKey,rows,cols,valCol,catCol,cliCol,fechCol,vendCol,
+    totalVentas,nTrans,ticketMed,byMes,byMesCount,byCat,periodoComp,
+    stockCriticos,totalStock,totalCompras,totalCostos,dims,periodoReal};
+}
+
+// ════════════════════════════════════════════════════
+// SMART ALERTS
+// ════════════════════════════════════════════════════
+function buildSmartAlerts(metrics, compareMetrics) {
+  const alerts = [];
+  const {totalVentas,totalCompras,byCat,periodoComp,stockCriticos} = metrics;
+  if (stockCriticos.length > 0) alerts.push({icon:"⚠️",type:"red",
+    text:"<strong>"+stockCriticos.length+" producto"+(stockCriticos.length>1?"s":"")+
+      " con stock bajo mínimo</strong> — "+stockCriticos.slice(0,3).join(", ")+
+      (stockCriticos.length>3?" y más":"")+". Riesgo de quiebre.",
+    badge:"Urgente",badgeType:"red"});
+  if (periodoComp && periodoComp.delta !== null) {
+    const d = parseFloat(periodoComp.delta);
+    if (d < -10) alerts.push({icon:"📉",type:"red",
+      text:"Ventas de <strong>"+periodoComp.last+"</strong> cayeron <strong>"+Math.abs(d).toFixed(1)+
+        "%</strong> vs "+periodoComp.prev+" ("+fmt(periodoComp.vPrev)+" → "+fmt(periodoComp.vLast)+"). Investigar causa.",
+      badge:"-"+Math.abs(d).toFixed(1)+"%",badgeType:"red"});
+    else if (d > 15) alerts.push({icon:"📈",type:"green",
+      text:"Ventas de <strong>"+periodoComp.last+"</strong> subieron <strong>"+d.toFixed(1)+
+        "%</strong> vs "+periodoComp.prev+". Identificar y replicar el driver.",
+      badge:"+"+d.toFixed(1)+"%",badgeType:"green"});
+  }
+  if (byCat.length > 0) {
+    const topPct = totalVentas > 0 ? (byCat[0][1]/totalVentas*100) : 0;
+    if (topPct > 50) alerts.push({icon:"🎯",type:"amber",
+      text:"<strong>"+byCat[0][0]+"</strong> representa el <strong>"+topPct.toFixed(0)+
+        "%</strong> de ventas. Alta concentración — riesgo ante cambios del mercado.",
+      badge:topPct.toFixed(0)+"% conc.",badgeType:"amber"});
+  }
+  if (totalCompras > 0 && totalVentas > 0) {
+    const margen = ((totalVentas-totalCompras)/totalVentas*100);
+    if (margen < 20) alerts.push({icon:"💰",type:"amber",
+      text:"Margen bruto estimado del <strong>"+margen.toFixed(1)+"%</strong>. Revisar costos o precios.",
+      badge:margen.toFixed(1)+"% margen",badgeType:"amber"});
+  }
+  if (compareMetrics) {
+    const diff = compareMetrics.totalVentas > 0 ? ((metrics.totalVentas-compareMetrics.totalVentas)/compareMetrics.totalVentas*100) : 0;
+    alerts.push({icon:"📊",type:diff>=0?"green":"red",
+      text:"Vs período anterior: <strong>"+(diff>=0?"+":"")+diff.toFixed(1)+"%</strong> ("+fmt(compareMetrics.totalVentas)+" → "+fmt(metrics.totalVentas)+").",
+      badge:(diff>=0?"+":"")+diff.toFixed(1)+"%",badgeType:diff>=0?"green":"red"});
+  }
+  return alerts;
+}
+
+// ════════════════════════════════════════════════════
+// BUILD SUMMARY
+// ════════════════════════════════════════════════════
+function buildSummary(sheets, filename, yellowCols, metrics) {
+  let out = "Archivo: "+filename+"\nHojas: "+Object.keys(sheets).join(", ")+"\n\n=== MÉTRICAS CALCULADAS ===\n";
+  out += "Total ventas: "+fmt(metrics.totalVentas)+" ("+metrics.nTrans+" transacciones)\n";
+  out += "Ticket medio: "+fmt(metrics.ticketMed)+"\n";
+  if (metrics.totalCompras>0) out += "Total compras: "+fmt(metrics.totalCompras)+"\n";
+  if (metrics.totalCostos>0)  out += "Costos operativos: "+fmt(metrics.totalCostos)+"\n";
+  if (metrics.totalStock>0)   out += "Valor stock: "+fmt(metrics.totalStock)+"\n";
+  if (metrics.stockCriticos.length>0) out += "Stock crítico: "+metrics.stockCriticos.slice(0,5).join(", ")+"\n";
+  if (metrics.periodoComp) {
+    const c=metrics.periodoComp;
+    out += "Período: "+c.last+" ("+fmt(c.vLast)+")";
+    if (c.delta) out += " vs "+c.prev+" ("+(parseFloat(c.delta)>=0?"+":"")+parseFloat(c.delta).toFixed(1)+"%)";
+    out += "\n";
+  }
+  if (metrics.byCat.length>0) {
+    out += "Top categorías:\n";
+    metrics.byCat.slice(0,6).forEach(([k,v]) => {
+      const pct = metrics.totalVentas>0 ? (v/metrics.totalVentas*100).toFixed(1) : "0";
+      out += "  "+k+": "+fmt(v)+" ("+pct+"%)\n";
+    });
+  }
+  const mks = Object.keys(metrics.byMes);
+  if (mks.length>0) { out += "Evolución mensual:\n"; mks.slice(-6).forEach(m => out += "  "+m+": "+fmt(metrics.byMes[m])+"\n"); }
+  return out.slice(0,8000);
+}
+
+// ════════════════════════════════════════════════════
+// RENDER DASHBOARD
+// ════════════════════════════════════════════════════
+function renderDashboard(d, metrics, alerts) {
+  document.getElementById("dash-title").textContent = d.titulo || "Tu negocio";
+  const periodo = metrics.periodoReal || d.periodo || "";
+  document.getElementById("dash-meta").textContent = (d.tipo_negocio||"")+" · "+periodo+" · Generado por CFO.AI";
+  renderKPIs(d.kpis||[], metrics);
+  if (metrics.stockCriticos.length>0) {
+    const nombres = metrics.stockCriticos.filter(n=>n);
+    if (nombres.length>0) {
+      document.getElementById("alert-stock-msg").textContent =
+        nombres.length+" producto"+(nombres.length>1?"s":"")+
+        " con stock bajo mínimo: "+nombres.slice(0,3).join(", ")+(nombres.length>3?" y más":"")+".";
+      document.getElementById("alert-stock").style.display = "flex";
+    }
+  }
+  if (Object.keys(metrics.byMes).length>=2) renderTimeline(metrics);
+  if (alerts.length>0) renderSmartAlerts(alerts);
+  if (metrics.dims.length>0) renderDrill(metrics);
+  if (d.insights && d.insights.length) renderInsights(d.insights);
+  setTimeout(function(){ var b=document.getElementById("chat-badge"); if(b&&!S.chatOpen) b.classList.add("on"); },3000);
+  S.resumenDone = false;
+}
+
+function renderKPIs(kpis, metrics) {
+  const row = document.getElementById("kpi-row");
+  if (!kpis.length) {
+    kpis = [
+      {label:"Ventas Totales",valor:fmt(metrics.totalVentas),sub:metrics.nTrans+" transacciones",trend:"up"},
+      {label:"Ticket Medio",valor:fmt(metrics.ticketMed),sub:"por operación",trend:"neu"}
+    ];
+    if (metrics.totalCompras>0) kpis.push({label:"Total Compras",valor:fmt(metrics.totalCompras),sub:"",trend:"neu"});
+    if (metrics.totalStock>0)   kpis.push({label:"Valor Stock",valor:fmt(metrics.totalStock),sub:"inventario",trend:"neu"});
+  }
+  row.innerHTML = kpis.map(function(k) {
+    var subHtml = k.sub||"";
+    if (metrics.periodoComp && metrics.periodoComp.delta && /venta|ingreso|factur/i.test(k.label)) {
+      var d=parseFloat(metrics.periodoComp.delta), cls=d>=0?"up":"dn", arr=d>=0?"▲":"▼";
+      subHtml += " <span class=""+cls+"">"+arr+" "+Math.abs(d).toFixed(1)+"% vs "+metrics.periodoComp.prev+"</span>";
+    }
+    return "<div class="kpi"><div class="kpi-lbl">"+k.label+"</div><div class="kpi-val">"+k.valor+"</div><div class="kpi-sub "+(k.trend||"")+"">"+subHtml+"</div></div>";
+  }).join("");
+}
+
+function renderFallback() {
+  document.getElementById("dash-title").textContent = "Dashboard de ejemplo";
+  document.getElementById("dash-meta").textContent = "Datos de muestra · CFO.AI";
+  document.getElementById("kpi-row").innerHTML =
+    "<div class="kpi"><div class="kpi-lbl">Facturación</div><div class="kpi-val">$2.8M</div><div class="kpi-sub up">▲ 18%</div></div>"
+    +"<div class="kpi"><div class="kpi-lbl">Ticket medio</div><div class="kpi-val">$48K</div><div class="kpi-sub">por operación</div></div>"
+    +"<div class="kpi"><div class="kpi-lbl">Transacciones</div><div class="kpi-val">58</div><div class="kpi-sub">este período</div></div>"
+    +"<div class="kpi"><div class="kpi-lbl">Margen</div><div class="kpi-val">34%</div><div class="kpi-sub up">saludable</div></div>";
+}
+
+
 function renderTimeline(metrics) {
   const card = document.getElementById('timeline-card');
   const bars = document.getElementById('timeline-bars');
