@@ -528,17 +528,28 @@ function buildSummary(sheets, filename) {
   const sheetNames = Object.keys(sheets);
   let out = 'Archivo: ' + filename + '\nHojas: ' + sheetNames.join(', ') + '\n\n';
 
-  // Detectar columna numérica — buscar primero match exacto de palabras clave de importe
+  // Detectar columna numérica — Total tiene prioridad absoluta
   function findNumCol(cols, keywords) {
-    // Primero buscar columnas que claramente son numéricas (contienen $ o €)
-    const moneyCol = cols.find(c => (c.includes('($)') || c.includes('(€)') || c.includes('$') || c.includes('€')) 
-      && keywords.some(k => c.toLowerCase().includes(k)));
+    // 1. Buscar 'Total ($)' o 'Total (€)' exacto primero
+    const exactTotal = cols.find(c => /^total\s*[\(\$€]/i.test(c.trim()));
+    if (exactTotal) return exactTotal;
+    // 2. Buscar columna que empiece con 'total'
+    const startsTotal = cols.find(c => c.toLowerCase().trim().startsWith('total'));
+    if (startsTotal) return startsTotal;
+    // 3. Buscar columnas con $ o € que tengan la keyword (evitar precio/unit)
+    const skipWords = ['precio','price','unit','unitario','costo','cost','compra','tipo','forma','estado','nombre','razon','razón','descripcion','codigo','cuit','email','telefono','patente','vendedor','obra'];
+    const moneyCol = cols.find(c => {
+      const cl = c.toLowerCase();
+      if (skipWords.some(s => cl.includes(s))) return false;
+      return (c.includes('($)') || c.includes('(€)') || c.includes('$') || c.includes('€'))
+        && keywords.some(k => cl.includes(k));
+    });
     if (moneyCol) return moneyCol;
-    // Luego buscar por keyword pero evitar columnas de texto obvias
-    const skipWords = ['tipo','forma','estado','nombre','razon','razón','descripcion','descripción','codigo','código','cuit','email','telefono','dirección','direccion','patente','proveedor','cliente','vendedor','obra'];
+    // 4. Fallback: keyword excluyendo palabras de texto
+    const textWords = ['tipo','forma','estado','nombre','razon','descripcion','codigo','cuit','email','telefono','patente','vendedor','obra','precio','unit','costo'];
     return cols.find(c => {
       const cl = c.toLowerCase();
-      if (skipWords.some(s => cl.startsWith(s))) return false;
+      if (textWords.some(s => cl.startsWith(s))) return false;
       return keywords.some(k => cl.includes(k));
     });
   }
