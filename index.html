@@ -79,16 +79,6 @@ input[type=file]{display:none;}
 .proc-steps li.active::before{content:'';width:12px;height:12px;border:2px solid var(--blue);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;flex-shrink:0;}
 .proc-steps li.wait::before{content:'○';color:var(--muted);}
 
-
-/* DASH TABS */
-.dash-tabs{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border2);border-radius:10px;overflow:hidden;width:fit-content;}
-.dash-tab{padding:11px 24px;background:#fff;border:none;color:#8A9BB5;font-family:var(--font-h);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.18s;border-right:1px solid var(--border);}
-.dash-tab:last-child{border-right:none;}
-.dash-tab.active{background:var(--blue);color:#fff;}
-.dash-tab:not(.active):hover{background:#F0F6FF;color:#1E2A3A;}
-.dash-tab-content{display:none;}
-.dash-tab-content.active{display:block;}
-
 /* DASHBOARD SCREEN */
 #screen-dashboard{display:none;padding:32px 32px 64px;max-width:1200px;margin:0 auto;background:var(--bg);min-height:100vh;}
 .dash-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
@@ -376,77 +366,35 @@ IMPORTANTE: Devolvé SOLO el JSON, sin markdown, sin explicaciones, sin bloques 
 }
 
 // ── RENDER DASHBOARD ──
-const COLORS = ['#3B7DD8','#06B6D4','#8B5CF6','#10B981','#F59E0B','#E07070'];
+const COLORS = ['#2563EB','#06B6D4','#8B5CF6','#10B981','#F59E0B','#EF4444'];
 
 function renderDashboard(d, filename) {
-  document.getElementById('dash-title').textContent = d.titulo || 'Tu negocio';
+  document.getElementById('dash-title').textContent = `${d.titulo || 'Tu negocio'}`;
   document.getElementById('dash-meta').textContent = `${d.tipo_negocio || ''} · ${d.periodo || ''} · Generado por CFO.AI`;
 
-  // Tabs
-  const tabs = [
-    { key: 'tab_kpis',        id: 'kpis',        label: '📊 KPIs generales' },
-    { key: 'tab_proveedores', id: 'proveedores',  label: '🏭 Proveedores' },
-    { key: 'tab_ctas_ctes',   id: 'ctas',         label: '👥 Ctas. Corrientes' },
-  ];
-
-  let html = `<div class="dash-tabs">`;
-  tabs.forEach((t, i) => {
-    html += `<button class="dash-tab ${i===0?'active':''}" onclick="switchDashTab('${t.id}', this)">${t.label}</button>`;
-  });
-  html += `</div>`;
-
-  tabs.forEach((t, i) => {
-    const data = d[t.key];
-    const tabContent = data ? renderTabContent(data) : '<p style="color:#8A9BB5;padding:24px">No hay datos disponibles para esta sección.</p>';
-    html += `<div class="dash-tab-content ${i===0?'active':''}" id="dTab_${t.id}">`;
-    html += tabContent;
-    html += `</div>`;
-  });
-
-  html += `<div class="cta-strip">
-    <div class="cta-text">
-      <h3>¿Querés el dashboard completo?</h3>
-      <p>Reportes PDF, forecast, actualizaciones diarias y mucho más.</p>
-    </div>
-    <a href="index.html#precios" class="btn-cta">Empezar gratis — 7 días</a>
-  </div>`;
-
-  document.getElementById('dash-content').innerHTML = html;
-}
-
-function switchDashTab(id, btn) {
-  document.querySelectorAll('.dash-tab').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.dash-tab-content').forEach(c => c.classList.remove('active'));
-  btn.classList.add('active');
-  const el = document.getElementById('dTab_' + id);
-  if (el) el.classList.add('active');
-}
-
-function renderTabContent(data) {
   let html = '';
 
   // KPIs
-  if (data.kpis?.length) {
-    html += '<div class="kpi-row">';
-    data.kpis.forEach(k => {
-      html += `<div class="kpi">
-        <div class="kpi-lbl">${k.label}</div>
-        <div class="kpi-val">${k.valor}</div>
-        <div class="kpi-sub ${k.trend||'neu'}">${k.sub}</div>
-      </div>`;
-    });
-    html += '</div>';
-  }
+  html += '<div class="kpi-row">';
+  (d.kpis || []).forEach(k => {
+    html += `<div class="kpi">
+      <div class="kpi-lbl">${k.label}</div>
+      <div class="kpi-val">${k.valor}</div>
+      <div class="kpi-sub ${k.trend||'neu'}">${k.sub}</div>
+    </div>`;
+  });
+  html += '</div>';
 
-  // Charts row
+  // Charts
   html += '<div class="charts-row">';
 
-  if (data.grafico_barras?.items?.length) {
-    const items = data.grafico_barras.items;
+  // Barras
+  if (d.grafico_barras?.items?.length) {
+    const items = d.grafico_barras.items;
     const maxVal = Math.max(...items.map(i => i.valor));
-    html += `<div class="chart-card"><div class="chart-title">${data.grafico_barras.titulo}</div><div class="bars">`;
+    html += `<div class="chart-card"><div class="chart-title">${d.grafico_barras.titulo}</div><div class="bars">`;
     items.forEach((item, i) => {
-      const h = maxVal > 0 ? Math.round((item.valor / maxVal) * 100) : 4;
+      const h = maxVal > 0 ? Math.round((item.valor / maxVal) * 100) : 0;
       html += `<div class="bar-col">
         <div class="bar-val">${item.valor}</div>
         <div class="bar-fill" style="height:${h}%;background:${COLORS[i%COLORS.length]}"></div>
@@ -456,19 +404,20 @@ function renderTabContent(data) {
     html += '</div></div>';
   }
 
-  if (data.grafico_pie?.items?.length) {
-    html += `<div class="chart-card"><div class="chart-title">${data.grafico_pie.titulo}</div>`;
-    data.grafico_pie.items.forEach((item, i) => {
-      const pct = Math.round((item.valor||0)*100);
+  // Pie
+  if (d.grafico_pie?.items?.length) {
+    html += `<div class="chart-card"><div class="chart-title">${d.grafico_pie.titulo}</div>`;
+    d.grafico_pie.items.forEach((item, i) => {
+      const pct = Math.round((item.valor||0) * 100);
       html += `<div style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:#6B7E96">
+          <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted-lt)">
             <span style="width:10px;height:10px;border-radius:50%;background:${COLORS[i%COLORS.length]};display:inline-block"></span>
             ${item.label}
           </span>
-          <span style="font-size:13px;font-weight:600;color:#1E2A3A">${item.pct}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--white)">${item.pct}</span>
         </div>
-        <div style="height:4px;background:#E8EEF8;border-radius:2px">
+        <div style="height:4px;background:var(--border);border-radius:2px">
           <div style="height:100%;width:${pct}%;background:${COLORS[i%COLORS.length]};border-radius:2px"></div>
         </div>
       </div>`;
@@ -478,28 +427,36 @@ function renderTabContent(data) {
 
   html += '</div>'; // charts-row
 
-  // Tabla (si existe)
-  const tabla = data.tabla || data.tabla_top;
-  if (tabla?.filas?.length) {
-    html += `<div class="table-card" style="margin-bottom:14px"><div class="table-title">${tabla.titulo}</div><table>
-      <thead><tr>${(tabla.columnas||[]).map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-      <tbody>`;
-    tabla.filas.forEach(fila => {
-      html += `<tr>${fila.map(cel => `<td>${cel}</td>`).join('')}</tr>`;
-    });
-    html += '</tbody></table></div>';
-  }
-
   // Insights
-  if (data.insights?.length) {
+  if (d.insights?.length) {
     html += '<div class="insights-card"><div class="ins-head">🤖 Insights generados por IA</div>';
-    data.insights.forEach(ins => {
+    d.insights.forEach(ins => {
       html += `<div class="ins-item"><div class="ins-icon">${ins.icon}</div><div class="ins-text">${ins.texto}</div></div>`;
     });
     html += '</div>';
   }
 
-  return html;
+  // Tabla top
+  if (d.tabla_top?.filas?.length) {
+    html += `<div class="table-card"><div class="table-title">${d.tabla_top.titulo}</div><table>
+      <thead><tr>${(d.tabla_top.columnas||[]).map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>`;
+    d.tabla_top.filas.forEach(fila => {
+      html += `<tr>${fila.map((cel,i)=>`<td>${cel}</td>`).join('')}</tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // CTA
+  html += `<div class="cta-strip">
+    <div class="cta-text">
+      <h3>¿Querés el dashboard completo?</h3>
+      <p>Reportes PDF, forecast, actualizaciones diarias y mucho más.</p>
+    </div>
+    <a href="index.html#precios" class="btn-cta">Empezar gratis — 7 días</a>
+  </div>`;
+
+  document.getElementById('dash-content').innerHTML = html;
 }
 
 function renderFallback() {
