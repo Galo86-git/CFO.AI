@@ -525,25 +525,108 @@ function readFile(file) {
 
 // ── BUILD SUMMARY ──
 function buildSummary(sheets, filename) {
-  let out = `Archivo: ${filename}\n\n`;
   const sheetNames = Object.keys(sheets);
-  out += `Hojas detectadas: ${sheetNames.join(', ')}\n\n`;
+  let out = 'Archivo: ' + filename + '\nHojas: ' + sheetNames.join(', ') + '\n\n';
+
+  // Función helper para detectar columna numérica de total/importe
+  function findNumCol(cols, keywords) {
+    return cols.find(c => keywords.some(k => c.toLowerCase().includes(k)));
+  }
+
+  // Función para sumar una columna numérica
+  function sumCol(rows, col) {
+    return rows.reduce((acc, r) => {
+      const v = parseFloat(String(r[col] || '').replace(/[^0-9.-]/g,''));
+      return acc + (isNaN(v) ? 0 : v);
+    }, 0);
+  }
+
+  // Función para contar valores únicos de una columna
+  function countUnique(rows, col) {
+    return new Set(rows.map(r => r[col]).filter(Boolean)).size;
+  }
+
+  // Función para agrupar y sumar por categoría
+  function groupSum(rows, groupCol, sumColName) {
+    const map = {};
+    rows.forEach(r => {
+      const key = r[groupCol] || 'Sin categoría';
+      const v = parseFloat(String(r[sumColName] || '').replace(/[^0-9.-]/g,''));
+      map[key] = (map[key] || 0) + (isNaN(v) ? 0 : v);
+    });
+    return Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  }
+
+  // Formatear número
+  function fmt(n) {
+    if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+    if (n >= 1000) return '$' + (n/1000).toFixed(0) + 'K';
+    return '$' + n.toFixed(0);
+  }
 
   sheetNames.forEach(name => {
     const rows = sheets[name];
     if (!rows || rows.length === 0) return;
     const cols = Object.keys(rows[0]);
-    out += `=== HOJA: ${name} ===\n`;
-    out += `Columnas (${cols.length}): ${cols.join(', ')}\n`;
-    out += `Total filas: ${rows.length}\n`;
-    // Primeras 8 filas como muestra
-    const sample = rows.slice(0, 8);
-    out += `Muestra de datos:\n${JSON.stringify(sample, null, 2)}\n\n`;
-    // Limitar output
-    if (out.length > 6000) return;
+
+    out += '=== HOJA: ' + name + ' ===\n';
+    out += 'Filas totales: ' + rows.length + '\n';
+    out += 'Columnas: ' + cols.join(', ') + '\n';
+
+    // Detectar columna de total/importe
+    const totalCol = findNumCol(cols, ['total','importe','monto','amount','factura','venta','precio','subtotal','valor']);
+    const qtyCol   = findNumCol(cols, ['cantidad','qty','quantity','unidad']);
+    const catCol   = findNumCol(cols, ['categoria','categoría','category','tipo','type','producto','rubro','familia']);
+    const clienteCol = findNumCol(cols, ['cliente','client','razon','razón','nombre']);
+    const fechaCol  = findNumCol(cols, ['fecha','date','periodo','mes']);
+
+    if (totalCol) {
+      const total = sumCol(rows, totalCol);
+      const avg   = total / rows.length;
+      out += 'TOTAL ' + totalCol + ': ' + fmt(total) + '\n';
+      out += 'PROMEDIO por fila: ' + fmt(avg) + '\n';
+      out += 'CANTIDAD de registros: ' + rows.length + '\n';
+
+      if (qtyCol) {
+        const totalQty = sumCol(rows, qtyCol);
+        out += 'TOTAL ' + qtyCol + ': ' + totalQty.toFixed(0) + '\n';
+      }
+
+      if (catCol) {
+        const grupos = groupSum(rows, catCol, totalCol);
+        const totalGral = grupos.reduce((a,b) => a+b[1], 0);
+        out += 'DISTRIBUCIÓN por ' + catCol + ':\n';
+        grupos.forEach(([k,v]) => {
+          const pct = totalGral > 0 ? ((v/totalGral)*100).toFixed(1) : '0';
+          out += '  ' + k + ': ' + fmt(v) + ' (' + pct + '%)\n';
+        });
+      }
+
+      if (clienteCol) {
+        const topClientes = groupSum(rows, clienteCol, totalCol).slice(0,5);
+        out += 'TOP 5 ' + clienteCol + ':\n';
+        topClientes.forEach(([k,v]) => out += '  ' + k + ': ' + fmt(v) + '\n');
+        out += 'Total clientes únicos: ' + countUnique(rows, clienteCol) + '\n';
+      }
+
+      // Fechas — detectar rango
+      if (fechaCol) {
+        const fechas = rows.map(r => r[fechaCol]).filter(Boolean);
+        if (fechas.length > 0) {
+          out += 'Período: desde ' + fechas[0] + ' hasta ' + fechas[fechas.length-1] + '\n';
+        }
+      }
+
+    } else {
+      // Hoja sin columna numérica — mandar muestra de 5 filas
+      out += 'Muestra (5 filas):\n' + JSON.stringify(rows.slice(0,5), null, 1) + '\n';
+    }
+
+    out += '\n';
+    if (out.length > 8000) return;
   });
 
-  return out.slice(0, 7000);
+  return out.slice(0, 9000);
 }
 
 // ── CALL CLAUDE API ──
@@ -601,7 +684,11 @@ async function callClaude(dataSummary) {
 Datos a analizar:
 ${dataSummary}
 
-IMPORTANTE: Devolvé SOLO el JSON, sin markdown, sin explicaciones, sin bloques de código.`;
+IMPORTANTE:
+- Devolvé SOLO el JSON, sin markdown, sin explicaciones, sin bloques de codigo.
+- Usa EXCLUSIVAMENTE los numeros calculados que te pase. NO estimes ni inventes valores.
+- Los valores de los KPIs deben coincidir con los totales calculados arriba.
+- Si un dato no esta disponible, pone "N/D".`;
 
   // Llamada al proxy serverless de Vercel (la API key queda segura en el servidor)
   const response = await fetch('/api/claude', {
