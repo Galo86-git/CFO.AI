@@ -109,27 +109,21 @@ async function sendChat() {
     const kpisStr = JSON.stringify(d.kpis || []).slice(0, 800);
     const insightsStr = JSON.stringify(d.insights || []).slice(0, 600);
 
-    const systemContext = `Sos un asistente financiero experto llamado CFO Assistant. 
-Estás analizando los datos de: ${d.titulo || 'un negocio'} (${d.tipo_negocio || ''}, ${d.periodo || ''}).
-KPIs actuales: ${kpisStr}
-Insights detectados: ${insightsStr}
-Respondé en español, de forma concisa y útil. Usá emojis con moderación. 
-Si te preguntan algo que no está en los datos, respondé con lo que sabés del sector.
-Máximo 3-4 párrafos cortos. Usá **negrita** para destacar datos importantes.`;
+    const systemContext = 'Sos CFO Assistant, asistente financiero experto. '
+      + 'Negocio: ' + (d.titulo || 'negocio') + ' - ' + (d.tipo_negocio || '') + ' - ' + (d.periodo || '') + '. '
+      + 'KPIs: ' + kpisStr + '. Insights: ' + insightsStr + '. '
+      + 'Responde en espanol, conciso, maximo 3 parrafos cortos. Usa **negrita** para datos clave.';
 
-    const messages = [
-      { role: 'user', content: systemContext + '
+    const primerMsg = chatHistory.length === 1
+      ? systemContext + ' Pregunta: ' + text
+      : text;
 
----
-
-Primera consulta: ' + chatHistory[0].content },
-      ...chatHistory.slice(1)
-    ];
+    const ctxMsgs = chatHistory.slice(0, -1);
 
     const response = await fetch('/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: messages[messages.length-1].content, context: messages.slice(0,-1), max_tokens: 600 })
+      body: JSON.stringify({ prompt: primerMsg, context: ctxMsgs, max_tokens: 600 })
     });
 
     hideTyping();
@@ -909,27 +903,21 @@ async function sendChat() {
     const kpisStr = JSON.stringify(d.kpis || []).slice(0, 800);
     const insightsStr = JSON.stringify(d.insights || []).slice(0, 600);
 
-    const systemContext = `Sos un asistente financiero experto llamado CFO Assistant. 
-Estás analizando los datos de: ${d.titulo || 'un negocio'} (${d.tipo_negocio || ''}, ${d.periodo || ''}).
-KPIs actuales: ${kpisStr}
-Insights detectados: ${insightsStr}
-Respondé en español, de forma concisa y útil. Usá emojis con moderación. 
-Si te preguntan algo que no está en los datos, respondé con lo que sabés del sector.
-Máximo 3-4 párrafos cortos. Usá **negrita** para destacar datos importantes.`;
+    const systemContext = 'Sos CFO Assistant, asistente financiero experto. '
+      + 'Negocio: ' + (d.titulo || 'negocio') + ' - ' + (d.tipo_negocio || '') + ' - ' + (d.periodo || '') + '. '
+      + 'KPIs: ' + kpisStr + '. Insights: ' + insightsStr + '. '
+      + 'Responde en espanol, conciso, maximo 3 parrafos cortos. Usa **negrita** para datos clave.';
 
-    const messages = [
-      { role: 'user', content: systemContext + '
+    const primerMsg = chatHistory.length === 1
+      ? systemContext + ' Pregunta: ' + text
+      : text;
 
----
-
-Primera consulta: ' + chatHistory[0].content },
-      ...chatHistory.slice(1)
-    ];
+    const ctxMsgs = chatHistory.slice(0, -1);
 
     const response = await fetch('/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: messages[messages.length-1].content, context: messages.slice(0,-1), max_tokens: 600 })
+      body: JSON.stringify({ prompt: primerMsg, context: ctxMsgs, max_tokens: 600 })
     });
 
     hideTyping();
