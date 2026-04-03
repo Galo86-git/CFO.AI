@@ -641,12 +641,17 @@ const COLORS = ['#3B7DD8','#06B6D4','#8B5CF6','#10B981','#F59E0B','#E07070'];
 
 function renderDashboard(d, filename) {
   window._dashData = d;
+  showChatToggle();
   document.getElementById('dash-title').textContent = d.titulo || 'Tu negocio';
   document.getElementById('dash-meta').textContent = (d.tipo_negocio||'') + ' · ' + (d.periodo||'') + ' · Generado por CFO.AI';
 
-  // Renderizar directo sin tabs — usar la data de kpis/grafico/insights del nivel raíz
-  // Claude puede devolver en nivel raíz o dentro de tab_kpis
-  const data = d.kpis ? d : (d.tab_kpis || d[Object.keys(d).find(k => typeof d[k] === 'object' && d[k]?.kpis)] || d);
+  // Buscar kpis en cualquier nivel del JSON
+  let data = d;
+  if (!d.kpis) {
+    const tabKey = Object.keys(d).find(k => d[k] && typeof d[k] === 'object' && Array.isArray(d[k].kpis));
+    if (tabKey) data = d[tabKey];
+  }
+  console.log('[CFO.AI] Usando data key:', data === d ? 'raiz' : 'tab', '| kpis:', !!(data.kpis));
 
   let html = renderTabContent(data);
 
