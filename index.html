@@ -979,37 +979,34 @@ function buildDrillChart() {
   const sheets = window._rawSheets;
   if (!sheets) return '';
 
-  // Buscar hoja de ventas
   const ventasKey = Object.keys(sheets).find(k =>
-    k.toLowerCase().includes('vent') || k.toLowerCase().includes('sale') || k.toLowerCase().includes('transacc')
+    /vent|sale|transacc/i.test(k)
   ) || Object.keys(sheets)[0];
 
   const rows = sheets[ventasKey];
   if (!rows || rows.length === 0) return '';
-
   const cols = Object.keys(rows[0]);
-  const yellowCol = window._yellowCols?.[ventasKey];
-
-  // Columna de valor
-  const valCol = yellowCol || cols.find(c => /^total/i.test(c.trim())) || cols.find(c => c.includes('($)') || c.includes('(€)'));
+  const yellowCol = (window._yellowCols || {})[ventasKey];
+  const valCol = yellowCol
+    || cols.find(c => /^total/i.test(c.trim()))
+    || cols.find(c => c.includes('($)') || c.includes('(€)'));
   if (!valCol) return '';
 
-  // Dimensiones disponibles
   const dimCandidates = [
-    {key: 'cat',  label: 'Categoría', col: cols.find(c => /categ|rubro|familia|tipo prod/i.test(c))},
-    {key: 'cli',  label: 'Cliente',   col: cols.find(c => /cliente|client|razon|razón/i.test(c))},
-    {key: 'mes',  label: 'Mes',       col: cols.find(c => /fecha|date/i.test(c))},
-    {key: 'vend', label: 'Vendedor',  col: cols.find(c => /vendedor|seller|vendor/i.test(c))},
-    {key: 'prod', label: 'Producto',  col: cols.find(c => /producto|product|articulo|artículo/i.test(c))},
+    {key:'cat',  label:'Categoría', col: cols.find(c => /categ|rubro|familia/i.test(c))},
+    {key:'cli',  label:'Cliente',   col: cols.find(c => /cliente|razon|razón/i.test(c))},
+    {key:'mes',  label:'Mes',       col: cols.find(c => /fecha|date/i.test(c))},
+    {key:'vend', label:'Vendedor',  col: cols.find(c => /vendedor/i.test(c))},
+    {key:'prod', label:'Producto',  col: cols.find(c => /^producto|^articulo|^artículo/i.test(c))},
   ].filter(d => d.col);
 
-  if (dimCandidates.length === 0) return '';
+  if (!dimCandidates.length) return '';
 
-  // Guardar para uso en JS
   window._drillConfig = { rows, valCol, dims: dimCandidates, activeDim: dimCandidates[0].key };
 
-  const dimsHTML = dimCandidates.map(d =>
-    '<button class="dim-btn' + (d.key === dimCandidates[0].key ? ' active' : '') + '" onclick="changeDim('' + d.key + '',this)">' + d.label + '</button>'
+  // Usar data-key para evitar problemas de escaping en onclick
+  const dimsHTML = dimCandidates.map((d, i) =>
+    '<button class="dim-btn' + (i === 0 ? ' active' : '') + '" data-dimkey="' + d.key + '" onclick="drillDimClick(this)">' + d.label + '</button>'
   ).join('');
 
   return '<div class="drill-card" id="drill-card">'
@@ -1021,7 +1018,8 @@ function buildDrillChart() {
     + '</div>';
 }
 
-function changeDim(key, btn) {
+function drillDimClick(btn) {
+  const key = btn.getAttribute('data-dimkey');
   document.querySelectorAll('.dim-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   window._drillConfig.activeDim = key;
@@ -1031,45 +1029,102 @@ function changeDim(key, btn) {
 }
 
 function renderDrillBars(dimKey) {
-  const {rows, valCol, dims} = window._drillConfig;
+  const cfg = window._drillConfig;
+  if (!cfg) return;
+  const {rows, valCol, dims} = cfg;
   const dim = dims.find(d => d.key === dimKey);
   if (!dim) return;
 
-  // Agrupar y sumar
-  const map = {};
-  const countMap = {};
+  const map = {}, countMap = {};
   rows.forEach(r => {
-    let key = dimKey === 'mes'
+    const k = dimKey === 'mes'
       ? extractMes(r[dim.col])
       : (String(r[dim.col] || '').trim() || 'Sin datos');
     const v = parseFloat(String(r[valCol]||'').replace(/[^0-9.-]/g,'')) || 0;
-    map[key] = (map[key] || 0) + v;
-    countMap[key] = (countMap[key] || 0) + 1;
+    map[k] = (map[k]||0) + v;
+    countMap[k] = (countMap[k]||0) + 1;
   });
 
-  const sorted = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0, 10);
-  const total = sorted.reduce((a,b) => a+b[1], 0);
+  const sorted = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const total  = sorted.reduce((a,b) => a+b[1], 0);
   const maxVal = sorted[0]?.[1] || 1;
+
+  // Guardar labels para el detalle
+  window._drillLabels = sorted.map(s => s[0]);
 
   const container = document.getElementById('drill-bars');
   if (!container) return;
 
-  container.innerHTML = sorted.map(([label, val], i) => {
-    const pct = total > 0 ? ((val/total)*100).toFixed(1) : '0';
-    const barW = Math.round((val/maxVal)*100);
-    const fmtVal = val >= 1e9 ? '$'+(val/1e9).toFixed(1)+'B' : val >= 1e6 ? '$'+(val/1e6).toFixed(1)+'M' : val >= 1e3 ? '$'+(val/1e3).toFixed(0)+'K' : '$'+val.toFixed(0);
-    const cnt = countMap[label] || 0;
-    const color = COLORS[i % COLORS.length];
+  const fmt = v => v>=1e9 ? '$'+(v/1e9).toFixed(1)+'B' : v>=1e6 ? '$'+(v/1e6).toFixed(1)+'M' : v>=1e3 ? '$'+(v/1e3).toFixed(0)+'K' : '$'+v.toFixed(0);
 
-    return '<div class="drill-bar-row" id="drow-' + i + '" onclick="toggleDrillDetail(' + i + ','' + label.replace(/'/g,"\'") + '',' + dimKey.replace(/[^a-z]/g,'') + ')">'
+  container.innerHTML = sorted.map(([label, val], i) => {
+    const pct  = total > 0 ? ((val/total)*100).toFixed(1) : '0';
+    const barW = Math.round((val/maxVal)*100);
+    const color = COLORS[i % COLORS.length];
+    return '<div class="drill-bar-row" id="drow-' + i + '" data-idx="' + i + '" onclick="drillBarClick(this)">'
       + '<div class="drill-bar-top">'
-      + '<div class="drill-bar-label"><span style="width:10px;height:10px;border-radius:3px;background:' + color + ';display:inline-block;flex-shrink:0"></span>' + label + '<span class="arrow">▶</span></div>'
-      + '<div class="drill-bar-nums"><span class="drill-bar-val">' + fmtVal + '</span><span class="drill-bar-pct">' + pct + '%</span></div>'
+      + '<div class="drill-bar-label">'
+      + '<span style="width:10px;height:10px;border-radius:3px;background:' + color + ';display:inline-block;flex-shrink:0"></span>'
+      + label
+      + '<span class="arrow">▶</span>'
+      + '</div>'
+      + '<div class="drill-bar-nums"><span class="drill-bar-val">' + fmt(val) + '</span><span class="drill-bar-pct">' + pct + '%</span></div>'
       + '</div>'
       + '<div class="drill-bar-bg"><div class="drill-bar-fill" style="width:' + barW + '%;background:' + color + '"></div></div>'
-      + '<div class="drill-detail" id="detail-' + i + '"><div style="font-size:12px;color:#8A9BB5">Cargando detalle...</div></div>'
+      + '<div class="drill-detail" id="detail-' + i + '"></div>'
       + '</div>';
   }).join('');
+}
+
+function drillBarClick(row) {
+  const idx   = parseInt(row.getAttribute('data-idx'));
+  const label = window._drillLabels?.[idx];
+  const wasSelected = row.classList.contains('selected');
+  document.querySelectorAll('.drill-bar-row').forEach(r => r.classList.remove('selected'));
+  if (wasSelected) return;
+  row.classList.add('selected');
+  renderDrillDetail(idx, label);
+}
+
+function renderDrillDetail(idx, label) {
+  const {rows, valCol, dims, activeDim} = window._drillConfig;
+  const dim = dims.find(d => d.key === activeDim);
+  const fmt = v => v>=1e6 ? '$'+(v/1e6).toFixed(1)+'M' : v>=1e3 ? '$'+(v/1e3).toFixed(0)+'K' : '$'+v.toFixed(0);
+
+  const groupRows = rows.filter(r => {
+    const k = activeDim === 'mes'
+      ? extractMes(r[dim.col])
+      : (String(r[dim.col]||'').trim() || 'Sin datos');
+    return k === label;
+  });
+
+  const total = groupRows.reduce((a,r) => a + (parseFloat(String(r[valCol]||'').replace(/[^0-9.-]/g,''))||0), 0);
+  const secDims = dims.filter(d => d.key !== activeDim).slice(0,2);
+
+  let html = '<div class="detail-grid">'
+    + '<div class="detail-item"><div class="detail-lbl">Operaciones</div><div class="detail-val">' + groupRows.length + '</div></div>'
+    + '<div class="detail-item"><div class="detail-lbl">Total</div><div class="detail-val">' + fmt(total) + '</div></div>'
+    + '<div class="detail-item"><div class="detail-lbl">Promedio</div><div class="detail-val">' + fmt(total/groupRows.length) + '</div></div>'
+    + '</div>';
+
+  secDims.forEach(sd => {
+    const secMap = {};
+    groupRows.forEach(r => {
+      const k = String(r[sd.col]||'').trim() || 'N/D';
+      const v = parseFloat(String(r[valCol]||'').replace(/[^0-9.-]/g,''))||0;
+      secMap[k] = (secMap[k]||0)+v;
+    });
+    const top = Object.entries(secMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    html += '<div style="margin-top:10px;font-size:11px;font-weight:600;color:#8A9BB5;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Top ' + sd.label + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px">'
+      + top.map(([k,v]) => '<div style="display:flex;justify-content:space-between;font-size:12px">'
+          + '<span style="color:#1E2A3A">' + k + '</span>'
+          + '<span style="font-weight:600;color:#3B7DD8">' + fmt(v) + '</span>'
+          + '</div>').join('')
+      + '</div>';
+  });
+
+  document.getElementById('detail-' + idx).innerHTML = html;
 }
 
 function extractMes(fecha) {
@@ -1080,9 +1135,8 @@ function extractMes(fecha) {
     const meses = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const m = parseInt(match[2]) || parseInt(match[1]);
     const y = match[3].length === 2 ? '20'+match[3] : match[3];
-    return (meses[m] || 'Mes'+m) + ' ' + y;
+    return (meses[m]||'Mes'+m) + ' ' + y;
   }
-  // Fecha de Excel (número)
   if (!isNaN(fecha)) {
     const d = new Date(Math.round((+fecha - 25569)*86400*1000));
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -1091,59 +1145,6 @@ function extractMes(fecha) {
   return s.slice(0,7);
 }
 
-function toggleDrillDetail(idx, label, _) {
-  const row = document.getElementById('drow-' + idx);
-  const detail = document.getElementById('detail-' + idx);
-  const wasSelected = row.classList.contains('selected');
-
-  // Cerrar todos
-  document.querySelectorAll('.drill-bar-row').forEach(r => r.classList.remove('selected'));
-
-  if (wasSelected) return; // toggle off
-
-  row.classList.add('selected');
-
-  // Calcular detalle de ese grupo
-  const {rows, valCol, dims, activeDim} = window._drillConfig;
-  const dim = dims.find(d => d.key === activeDim);
-
-  // Filtrar filas de este grupo
-  const groupRows = rows.filter(r => {
-    const key = activeDim === 'mes'
-      ? extractMes(r[dim.col])
-      : (String(r[dim.col]||'').trim() || 'Sin datos');
-    return key === label;
-  });
-
-  const total = groupRows.reduce((a,r) => a + (parseFloat(String(r[valCol]||'').replace(/[^0-9.-]/g,''))||0), 0);
-  const fmt = v => v >= 1e6 ? '$'+(v/1e6).toFixed(1)+'M' : v >= 1e3 ? '$'+(v/1e3).toFixed(0)+'K' : '$'+v.toFixed(0);
-
-  // Buscar una dimensión secundaria interesante
-  const secDims = dims.filter(d => d.key !== activeDim).slice(0, 2);
-  let detailHTML = '<div class="detail-grid">'
-    + '<div class="detail-item"><div class="detail-lbl">Operaciones</div><div class="detail-val">' + groupRows.length + '</div></div>'
-    + '<div class="detail-item"><div class="detail-lbl">Total</div><div class="detail-val">' + fmt(total) + '</div></div>'
-    + '<div class="detail-item"><div class="detail-lbl">Promedio</div><div class="detail-val">' + fmt(total/groupRows.length) + '</div></div>';
-
-  // Top 3 de dimensión secundaria
-  secDims.forEach(sd => {
-    const secMap = {};
-    groupRows.forEach(r => {
-      const k = String(r[sd.col]||'').trim() || 'N/D';
-      const v = parseFloat(String(r[valCol]||'').replace(/[^0-9.-]/g,''))||0;
-      secMap[k] = (secMap[k]||0)+v;
-    });
-    const top = Object.entries(secMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    detailHTML += '</div><div style="margin-top:10px;font-size:11px;font-weight:600;color:#8A9BB5;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Top ' + sd.label + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:4px">'
-      + top.map(([k,v]) => '<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#1E2A3A">' + k + '</span><span style="font-weight:600;color:#3B7DD8">' + fmt(v) + '</span></div>').join('')
-      + '</div><div class="detail-grid">';
-  });
-
-  detail.innerHTML = detailHTML + '</div>';
-}
-
-// Inicializar drill chart después de render
 function initDrillChart() {
   const cfg = window._drillConfig;
   if (!cfg) return;
