@@ -649,64 +649,61 @@ function drillDimClick(btn){
   renderDrillBars(key);
 }
 function calcMargenPorGrupo(metrics, dimKey) {
-  // Intenta calcular margen REAL por grupo cruzando con precios de compra/costo del producto
+  var resultado = {};
   var sheets = S.sheets || {};
-  var resultado = {}; // { label: { venta, costo, margen } }
+  var cols = metrics.cols || [];
 
-  // 1. Buscar precio de costo por producto en hoja de Stock/Inventario
-  var costoPorProducto = {};
+  // Columnas de la hoja de ventas
+  var subtotalCol = findCol(cols, [/subtotal/i]);
+  var ivaCol      = findCol(cols, [/^iva/i]);
+  var cantCol     = findCol(cols, [/cantidad|qty/i]);
+  var prodCol     = findCol(cols, [/^producto|^articulo/i]);
+
+  // Mapa costo por producto desde Stock (Precio Compra) y Precio Venta
+  var costoMap = {}, ventaMap = {};
   var stockKey = Object.keys(sheets).find(function(k){ return /stock|invent/i.test(k); });
   if (stockKey) {
-    var sr = sheets[stockKey];
-    var sc = Object.keys(sr[0]||{});
-    var pNomCol  = findCol(sc, [/producto|descrip|nombre|articulo/i]);
-    var pCostCol = findCol(sc, [/precio.comp|costo.unit|p\.?compra|precio.*compra/i]);
-    if (pNomCol && pCostCol) {
-      sr.forEach(function(r){
-        var nom  = String(r[pNomCol]||'').trim().toLowerCase().replace(/[().,]/g,'').replace(/\s+/g,' ');
-        var cost = parseFloat(String(r[pCostCol]||'').replace(/[^0-9.-]/g,''))||0;
-        if (nom && cost) costoPorProducto[nom] = cost;
-      });
-    }
+    var sr = sheets[stockKey], sc = Object.keys(sr[0]||{});
+    var pNom    = findCol(sc, [/producto|descrip|nombre|articulo/i]);
+    var pCompra = findCol(sc, [/precio.comp/i]);   // Precio Compra ($)
+    var pVenta  = findCol(sc, [/precio.vent/i]);   // Precio Venta ($)
+    if (pNom) sr.forEach(function(r){
+      var nom = String(r[pNom]||'').trim().toLowerCase();
+      if (!nom) return;
+      var pc = parseFloat(String(r[pCompra]||'').replace(/[^0-9.-]/g,''))||0;
+      var pv = parseFloat(String(r[pVenta] ||'').replace(/[^0-9.-]/g,''))||0;
+      if (pc > 0) costoMap[nom] = pc;
+      if (pv > 0) ventaMap[nom] = pv;
+    });
   }
 
-  // 2. Buscar precio de compra por producto en hoja de Compras
-  var comprasKey = Object.keys(sheets).find(function(k){ return /compra|purchase|proveedor/i.test(k); });
-  if (comprasKey) {
-    var cr = sheets[comprasKey];
-    var cc = Object.keys(cr[0]||{});
-    var cpNomCol  = findCol(cc, [/producto|descrip|articulo|nombre/i]);
-    var cpCostCol = findCol(cc, [/precio.unit|p\.?unit|precio.*\$/i]);
-    if (cpNomCol && cpCostCol) {
-      cr.forEach(function(r){
-        var nom  = String(r[cpNomCol]||'').trim().toLowerCase().replace(/[().,]/g,'').replace(/\s+/g,' ');
-        var cost = parseFloat(String(r[cpCostCol]||'').replace(/[^0-9.-]/g,''))||0;
-        if (nom && cost) {
-          if (costoPorProducto[nom]) costoPorProducto[nom] = (costoPorProducto[nom]+cost)/2;
-          else costoPorProducto[nom] = cost;
-        }
-      });
-    }
+  // Fuzzy match limpiando paréntesis y unidades
+  function normalizar(s) {
+    return s.toLowerCase()
+      .replace(/\([^)]*\)/g,'')  // quitar (1000u), (rollo), etc
+      .replace(/[^a-z0-9áéíóúñ ]/g,' ')
+      .replace(/ +/g,' ').trim();
+  }
+  function buscarCosto(nombre) {
+    var n = normalizar(nombre);
+    // Exacto
+    if (costoMap[n]) return {costo: costoMap[n], venta: ventaMap[n]||0};
+    // Primeras 2 palabras
+    var w = n.split(' ').slice(0,2).join(' ');
+    var found = null;
+    Object.keys(costoMap).forEach(function(k){
+      var kw = normalizar(k).split(' ').slice(0,2).join(' ');
+      if (!found && w.length > 3 && kw === w) found = k;
+      if (!found && w.length > 3 && (n.indexOf(normalizar(k)) !== -1 || normalizar(k).indexOf(n) !== -1)) found = k;
+    });
+    if (found) return {costo: costoMap[found], venta: ventaMap[found]||0};
+    return null;
   }
 
-  console.log('[CFO.AI] Stock cols:', stockKey ? Object.keys((S.sheets[stockKey]||[{}])[0]) : 'no stock');
-  console.log('[CFO.AI] Compras cols:', comprasKey ? Object.keys((S.sheets[comprasKey]||[{}])[0]) : 'no compras');
-  console.log('[CFO.AI] pCostCol detectado:', stockKey ? findCol(Object.keys((S.sheets[stockKey]||[{}])[0]),[/precio.comp|costo.unit|p\.?compra|precio.*compra/i]) : 'N/A');
-  console.log('[CFO.AI] cpCostCol detectado:', comprasKey ? findCol(Object.keys((S.sheets[comprasKey]||[{}])[0]),[/precio.unit|precio.*venta|p\.?unit/i]) : 'N/A');
-  console.log('[CFO.AI] costoPorProducto muestra:', Object.entries(costoPorProducto).slice(0,3));
-  var hayCostosUnitarios = Object.keys(costoPorProducto).length > 0;
-
-
-
-
-  // 3. Recorrer filas de ventas y calcular costo por grupo
   var dim = metrics.dims.find(function(d){ return d.key===dimKey; });
   if (!dim) return null;
 
-  var mapVenta = {}, mapCosto = {}, mapOps = {};
-  var prodCol = metrics.cols ? findCol(metrics.cols, [/^producto|^articulo|^artículo/i]) : null;
-  var cantCol = metrics.cols ? findCol(metrics.cols, [/cantidad|qty/i]) : null;
-  var precVentaCol = metrics.cols ? findCol(metrics.cols, [/precio.unit|precio.*venta|p\.?unit/i]) : null;
+  var mapVenta={}, mapCosto={}, mapOps={};
 
   metrics.rows.forEach(function(r){
     var k = dimKey==='mes'
@@ -716,76 +713,43 @@ function calcMargenPorGrupo(metrics, dimKey) {
     mapVenta[k] = (mapVenta[k]||0) + venta;
     mapOps[k]   = (mapOps[k]||0) + 1;
 
-    // Intentar calcular costo real
     var costoFila = 0;
-    if (hayCostosUnitarios && prodCol) {
-      if (mapOps[k] === 1) { // solo loggear primera vez por grupo
-        var nomTest = String(r[prodCol]||'').trim().toLowerCase();
-      
-      }
-      var nomProd = String(r[prodCol]||'').trim().toLowerCase();
-      var costUnit = costoPorProducto[nomProd];
-      if (costUnit) {
-        var cant = cantCol ? (parseFloat(String(r[cantCol]||'').replace(/[^0-9.-]/g,''))||1) : 1;
-        costoFila = costUnit * cant;
+
+    // MÉTODO 1: Subtotal + IVA en la fila de ventas
+    // Total ($) = Subtotal ($) + IVA 21% ($)
+    // El Subtotal es el precio de venta sin IVA, NO el costo.
+    // Costo real = Precio Compra ($) * Cantidad → buscar en stock
+
+    // MÉTODO 2: Cruzar con stock por nombre de producto
+    if (prodCol) {
+      var nomProd = String(r[prodCol]||'').trim();
+      var match = buscarCosto(nomProd);
+      if (match && match.costo > 0) {
+        var cant = cantCol ? parseFloat(String(r[cantCol]||'').replace(/[^0-9.-]/g,''))||1 : 1;
+        costoFila = match.costo * cant;
       }
     }
-    // Si no encontramos costo unitario, usamos precio de compra promedio como % de venta
-    // (solo si no hay datos de costo → fallback al final)
+
     mapCosto[k] = (mapCosto[k]||0) + costoFila;
   });
 
-  // 4. Si no hubo costos unitarios reales, prorratear costos totales PERO
-  //    intentar diferenciar por columna de costo/subtotal en la misma fila de venta
-  var subtotalCol = metrics.cols ? findCol(metrics.cols, [/subtotal|costo.venta|costo.*\$/i]) : null;
-  var ivaCol      = metrics.cols ? findCol(metrics.cols, [/^iva/i]) : null;
+  // Fallback si no encontramos costos unitarios
+  var totalCostoCalc = Object.values(mapCosto).reduce(function(a,b){return a+b;},0);
+  var totalVentaCalc = Object.values(mapVenta).reduce(function(a,b){return a+b;},0);
+  var totalCostoDisp = metrics.totalCompras > 0 ? metrics.totalCompras : metrics.totalCostos;
+  var esEstimado = totalCostoCalc === 0;
 
-  if (!hayCostosUnitarios && subtotalCol) {
-    // Usar subtotal (sin IVA) como proxy del costo
-    Object.keys(mapCosto).forEach(function(k){ mapCosto[k]=0; });
-    metrics.rows.forEach(function(r){
-      var k = dimKey==='mes'
-        ? (extractMes(r[dim.col])||'Sin fecha')
-        : (String(r[dim.col]||'').trim()||'Sin datos');
-      var sub = parseFloat(String(r[subtotalCol]||'').replace(/[^0-9.-]/g,''))||0;
-      var iva = ivaCol ? parseFloat(String(r[ivaCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
-      // costo estimado = venta - IVA (asumimos que el subtotal ya incluye margen)
-      // Usamos IVA como señal: costo = venta_sin_iva * factor_industria (no aplicable aquí)
-      // Mejor: si hay precio unitario de compra en la misma fila
-      if (precVentaCol && cantCol) {
-        var pv   = parseFloat(String(r[precVentaCol]||'').replace(/[^0-9.-]/g,''))||0;
-        var cant = parseFloat(String(r[cantCol]||'').replace(/[^0-9.-]/g,''))||1;
-        // buscar costo por nombre de producto
-        if (prodCol) {
-          var nom = String(r[prodCol]||'').trim().toLowerCase();
-          var cu  = costoPorProducto[nom];
-          if (cu) { mapCosto[k] = (mapCosto[k]||0) + cu*cant; }
-          else    { mapCosto[k] = (mapCosto[k]||0) + 0; } // sin info
-        }
-      }
-    });
-  }
-
-  // 5. Fallback final: si todos los costos son 0, prorratear IGUAL para todos
-  //    (comportamiento anterior — al menos es consistente)
-  var totalCostoCalculado = Object.values(mapCosto).reduce(function(a,b){return a+b;},0);
-  var totalVentaTotal     = Object.values(mapVenta).reduce(function(a,b){return a+b;},0);
-  var totalCostoDisponible= metrics.totalCompras>0 ? metrics.totalCompras : metrics.totalCostos;
-
-  if (totalCostoCalculado === 0 && totalCostoDisponible > 0) {
-    // Prorratear pero marcar como estimado
+  if (esEstimado && totalCostoDisp > 0) {
     Object.keys(mapVenta).forEach(function(k){
-      var part = totalVentaTotal>0 ? mapVenta[k]/totalVentaTotal : 0;
-      mapCosto[k] = totalCostoDisponible * part;
+      var part = totalVentaCalc > 0 ? mapVenta[k]/totalVentaCalc : 0;
+      mapCosto[k] = totalCostoDisp * part;
     });
   }
 
-  // 6. Armar resultado final
   Object.keys(mapVenta).forEach(function(k){
-    var v = mapVenta[k], c = mapCosto[k]||0;
-    var mg = v>0 ? ((v-c)/v*100) : null;
-    resultado[k] = { venta:v, costo:c, margen:mg, ops:mapOps[k]||0,
-                     esEstimado: (totalCostoCalculado===0) };
+    var v=mapVenta[k], c=mapCosto[k]||0;
+    var mg = (v > 0 && c > 0) ? ((v-c)/v*100) : null;
+    resultado[k] = {venta:v, costo:c, margen:mg, ops:mapOps[k]||0, esEstimado:esEstimado};
   });
 
   return resultado;
