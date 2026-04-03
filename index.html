@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -368,6 +369,7 @@ input[type=file]{display:none;}
       <button class="btn-action" onclick="toggleResumen()">📋 Resumen</button>
       <button class="btn-action" onclick="exportImg()">📸 Compartir</button>
       <button class="btn-action" onclick="exportPPTX()">📊 PowerPoint</button>
+      <button class="btn-action" onclick="generarAnalisisMercado()">🌐 Análisis de mercado</button>
       <button class="btn-reset" onclick="resetAll()">← Nuevo archivo</button>
     </div>
   </div>
@@ -1400,25 +1402,24 @@ async function exportPPTX() {
   const frases = ['📊 Armando slides...','🎨 Diseñando...','✍️ Redactando...'];
   let fi = 0;
   btn.innerHTML = frases[0];
-  const interval = setInterval(() => { fi=(fi+1)%frases.length; btn.innerHTML = frases[fi]; }, 1500);
+  const interval = setInterval(() => { fi=(fi+1)%frases.length; btn.innerHTML=frases[fi]; }, 1500);
 
   try {
     const d = S.dashData || {};
     const kpisStr = (d.kpis||[]).map(k => k.label + ': ' + k.valor).join(', ');
     const insStr  = (d.insights||[]).map(i => i.texto).join('\n');
-    const prompt = 'Generá el contenido para una presentación ejecutiva de 5 slides para este negocio. '
-      + 'Devolvé SOLO un JSON con este formato exacto:\n'
+
+    const prompt = 'Generá contenido para presentación ejecutiva de 5 slides. Devolvé SOLO JSON sin markdown:'
       + '{"slides":['
-      + '{"titulo":"titulo","subtitulo":"subtitulo","puntos":["p1","p2","p3"]},'
-      + '{"titulo":"titulo","subtitulo":"subtitulo","puntos":["p1","p2","p3"]},'
-      + '{"titulo":"titulo","subtitulo":"subtitulo","puntos":["p1","p2","p3"]},'
-      + '{"titulo":"titulo","subtitulo":"subtitulo","puntos":["p1","p2","p3"]},'
-      + '{"titulo":"titulo","subtitulo":"subtitulo","puntos":["p1","p2","p3"]}'
-      + ']}\n\n'
-      + 'Slides sugeridas: 1) Resumen ejecutivo, 2) KPIs principales, 3) Análisis de ventas, 4) Alertas y riesgos, 5) Próximos pasos\n\n'
-      + 'Negocio: ' + (d.titulo||'') + ' | ' + (d.tipo_negocio||'') + ' | ' + (d.periodo||'') + '\n'
-      + 'KPIs: ' + kpisStr + '\n'
-      + 'Insights: ' + insStr;
+      + '{"titulo":"str","subtitulo":"str","puntos":["str","str","str"]},'
+      + '{"titulo":"str","subtitulo":"str","puntos":["str","str","str"]},'
+      + '{"titulo":"str","subtitulo":"str","puntos":["str","str","str"]},'
+      + '{"titulo":"str","subtitulo":"str","puntos":["str","str","str"]},'
+      + '{"titulo":"str","subtitulo":"str","puntos":["str","str","str"]}'
+      + ']} '
+      + 'Slides: 1)Resumen ejecutivo 2)KPIs 3)Ventas 4)Alertas y riesgos 5)Próximos pasos. '
+      + 'Negocio: ' + (d.titulo||'') + ' ' + (d.tipo_negocio||'') + ' ' + (d.periodo||'') + '. '
+      + 'KPIs: ' + kpisStr + '. Insights: ' + insStr;
 
     const raw = await callClaude(prompt, [], 2000);
     const cleanJson = raw.replace(/```json|```/g,'').trim();
@@ -1426,45 +1427,77 @@ async function exportPPTX() {
     try { pptData = JSON.parse(cleanJson); }
     catch { const m = cleanJson.match(/\{[\s\S]*\}/); pptData = m ? JSON.parse(m[0]) : {slides:[]}; }
 
-    // Generar HTML del PPT para imprimir
-    const slides = pptData.slides || [];
-    const pptHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-      + '<style>'
-      + 'body{margin:0;font-family:\'Segoe UI\',Arial,sans-serif;background:#fff;}'
-      + '.slide{width:100%;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:60px 80px;page-break-after:always;box-sizing:border-box;position:relative;overflow:hidden;}'
-      + '.slide:nth-child(odd){background:linear-gradient(135deg,#1E2A3A,#2E3E54);color:#fff;}'
-      + '.slide:nth-child(even){background:#fff;color:#1E2A3A;border-left:8px solid #3B7DD8;}'
-      + '.slide-num{font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;opacity:0.4;margin-bottom:16px;}'
-      + '.slide-title{font-size:42px;font-weight:800;line-height:1.1;margin-bottom:10px;letter-spacing:-0.02em;}'
-      + '.slide-sub{font-size:18px;opacity:0.65;margin-bottom:36px;}'
-      + '.slide-points{list-style:none;padding:0;display:flex;flex-direction:column;gap:14px;}'
-      + '.slide-points li{font-size:16px;line-height:1.5;padding:14px 20px;border-radius:8px;position:relative;}'
-      + '.slide:nth-child(odd) .slide-points li{background:rgba(255,255,255,0.08);border-left:3px solid rgba(255,255,255,0.3);}'
-      + '.slide:nth-child(even) .slide-points li{background:#F8FAFF;border-left:3px solid #3B7DD8;}'
-      + '.brand{position:absolute;bottom:24px;right:32px;font-size:12px;opacity:0.35;font-weight:700;letter-spacing:0.1em;}'
-      + '@media print{.slide{page-break-after:always;min-height:100vh;}}'
-      + '</style></head><body>'
-      + slides.map((s, i) =>
-          '<div class="slide">'
-          + '<div class="slide-num">CFO.AI · ' + (d.titulo||'Negocio') + ' · Slide ' + (i+1) + ' de ' + slides.length + '</div>'
-          + '<div class="slide-title">' + (s.titulo||'') + '</div>'
-          + '<div class="slide-sub">' + (s.subtitulo||'') + '</div>'
-          + '<ul class="slide-points">' + (s.puntos||[]).map(p => '<li>' + p + '</li>').join('') + '</ul>'
-          + '<div class="brand">CFO.AI</div>'
-          + '</div>'
-        ).join('')
-      + '<script>window.onload=function(){setTimeout(function(){window.print();},800);}<\/script>'
-      + '</body></html>';
-
     clearInterval(interval);
-    const blob = new Blob([pptHtml], {type:'text/html;charset=utf-8'});
-    window.open(URL.createObjectURL(blob), '_blank');
+    btn.innerHTML = '📊 Generando .pptx...';
+
+    // Generar PPTX real con PptxGenJS
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+
+    const DARK  = '1E2A3A';
+    const BLUE  = '3B7DD8';
+    const WHITE = 'FFFFFF';
+    const LIGHT = 'F0F6FF';
+
+    (pptData.slides || []).forEach((s, i) => {
+      const slide = pptx.addSlide();
+      const isDark = i % 2 === 0;
+      slide.background = {color: isDark ? DARK : 'F8FAFF'};
+
+      // Barra lateral decorativa
+      slide.addShape(pptx.ShapeType.rect, {
+        x:0, y:0, w:0.15, h:'100%',
+        fill:{color: BLUE}, line:{type:'none'}
+      });
+
+      // Número de slide + branding
+      slide.addText('CFO.AI  ·  Slide ' + (i+1) + ' / ' + (pptData.slides.length), {
+        x:0.25, y:0.15, w:12, h:0.3,
+        fontSize:9, color: isDark ? 'FFFFFF' : '8A9BB5',
+        bold:false, transparency:40
+      });
+
+      // Título
+      slide.addText(s.titulo || '', {
+        x:0.25, y:0.55, w:12, h:1.0,
+        fontSize:32, bold:true,
+        color: isDark ? WHITE : DARK,
+        fontFace:'Segoe UI'
+      });
+
+      // Subtítulo
+      slide.addText(s.subtitulo || '', {
+        x:0.25, y:1.5, w:12, h:0.5,
+        fontSize:14,
+        color: isDark ? 'A0B4C8' : '6B7E96',
+        fontFace:'Segoe UI'
+      });
+
+      // Puntos
+      (s.puntos || []).forEach((p, j) => {
+        const yPos = 2.1 + (j * 0.85);
+        slide.addShape(pptx.ShapeType.rect, {
+          x:0.25, y:yPos, w:12.5, h:0.7,
+          fill:{color: isDark ? '2A3A4E' : 'EBF3FD'},
+          line:{color: isDark ? '3B7DD8' : 'C8DFF6', pt:1},
+          rectRadius:0.05
+        });
+        slide.addText('  ' + p, {
+          x:0.35, y:yPos + 0.05, w:12.2, h:0.6,
+          fontSize:12, color: isDark ? 'D0E4F7' : DARK,
+          fontFace:'Segoe UI', valign:'middle'
+        });
+      });
+    });
+
+    const nombre = (d.titulo || 'reporte').toLowerCase().replace(/[\s]+/g,'-');
+    await pptx.writeFile({fileName: 'CFO-AI-' + nombre + '.pptx'});
     btn.innerHTML = orig;
 
   } catch(e) {
     clearInterval(interval);
     btn.innerHTML = orig;
-    alert('Error al generar PowerPoint: ' + e.message);
+    alert('Error: ' + e.message);
   }
 }
 
@@ -1596,6 +1629,97 @@ function getSuggestions(userText, reply) {
   if (/stock|inventar/.test(t)) return ['¿Con qué frecuencia debería reponer?','¿Qué productos eliminarías?'];
   if (/cliente/.test(t)) return ['¿Qué clientes tienen mayor riesgo?','¿Cómo mejorar la cobranza?'];
   return [];
+}
+
+
+// ════════════════════════════════════════════════════
+// ANÁLISIS DE MERCADO
+// ════════════════════════════════════════════════════
+async function generarAnalisisMercado() {
+  const btn = document.querySelector('[onclick="generarAnalisisMercado()"]');
+  const orig = btn.innerHTML;
+  const frases = [
+    '🔍 Buscando en la web...',
+    '🏪 Analizando competidores...',
+    '📊 Relevando precios...',
+    '📈 Detectando tendencias...',
+    '✍️ Redactando informe...'
+  ];
+  let fi = 0;
+  btn.innerHTML = frases[0];
+  btn.disabled = true;
+  const interval = setInterval(() => { fi=(fi+1)%frases.length; btn.innerHTML=frases[fi]; }, 2000);
+
+  try {
+    const d = S.dashData || {};
+    const rubro = d.tipo_negocio || 'comercio minorista';
+    const titulo = d.titulo || 'negocio';
+
+    const prompt = 'Sos un analista de mercado senior especializado en PyMEs latinoamericanas. '
+      + 'Generá un informe de mercado completo y detallado para: ' + titulo + ' (' + rubro + '). '
+      + 'El informe debe incluir: '
+      + '1. RESUMEN EJECUTIVO DEL SECTOR '
+      + '2. TENDENCIAS ACTUALES DEL MERCADO (2024-2025) con datos concretos '
+      + '3. ANÁLISIS DE COMPETIDORES TÍPICOS del rubro (nombres, estrategias, precios orientativos) '
+      + '4. RANGOS DE PRECIOS HABITUALES del sector en Argentina '
+      + '5. OPORTUNIDADES DE CRECIMIENTO específicas para este tipo de negocio '
+      + '6. AMENAZAS Y RIESGOS del sector '
+      + '7. BENCHMARKS: qué métricas debería tener un negocio saludable en este rubro (margen, rotación, ticket medio) '
+      + '8. RECOMENDACIONES ESTRATÉGICAS concretas y accionables '
+      + 'Usá datos reales y actualizados. Sé específico con números cuando sea posible. '
+      + 'Formato HTML limpio con h2, h3, p, ul, table donde corresponda. Sin DOCTYPE ni html/body tags.';
+
+    const html = await callClaude(prompt, [], 4000);
+    clearInterval(interval);
+
+    // Armar PDF en nueva pestaña
+    const cleanHtml = html.replace(/```html|```/g,'').trim();
+    const fullHtml = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+      + '<title>Análisis de Mercado — ' + titulo + '</title>'
+      + '<style>'
+      + 'body{font-family:"Segoe UI",Arial,sans-serif;color:#1E2A3A;padding:48px 60px;max-width:860px;margin:0 auto;line-height:1.7;}'
+      + 'h1{font-size:28px;font-weight:800;color:#1E2A3A;border-bottom:4px solid #3B7DD8;padding-bottom:12px;margin-bottom:8px;}'
+      + 'h2{font-size:20px;font-weight:700;color:#1E2A3A;margin-top:36px;margin-bottom:8px;padding-left:12px;border-left:4px solid #3B7DD8;}'
+      + 'h3{font-size:16px;font-weight:600;color:#3B7DD8;margin-top:20px;margin-bottom:6px;}'
+      + 'p{color:#3B4A5A;margin-bottom:12px;}'
+      + 'ul{padding-left:20px;margin-bottom:16px;}'
+      + 'li{margin-bottom:6px;color:#3B4A5A;line-height:1.6;}'
+      + 'table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}'
+      + 'th{background:#1E2A3A;color:#fff;padding:10px 14px;text-align:left;font-weight:600;}'
+      + 'td{padding:9px 14px;border-bottom:1px solid #E8EEF8;color:#3B4A5A;}'
+      + 'tr:nth-child(even) td{background:#F8FAFF;}'
+      + 'strong{color:#1E2A3A;}'
+      + '.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;}'
+      + '.brand{font-size:13px;color:#8A9BB5;font-weight:600;letter-spacing:0.05em;}'
+      + '.date{font-size:12px;color:#8A9BB5;margin-top:4px;}'
+      + '@page{margin:20mm;}'
+      + '@media print{'
+      + 'body{padding:0;}'
+      + 'h2{page-break-before:auto;}'
+      + '}'
+      + '</style></head><body>'
+      + '<div class="header">'
+      + '<div><h1>Análisis de Mercado</h1><div style="font-size:16px;color:#6B7E96;margin-top:4px;">' + titulo + ' · ' + rubro + '</div></div>'
+      + '<div style="text-align:right"><div class="brand">CFO.AI</div><div class="date">Generado el ' + new Date().toLocaleDateString('es-AR', {year:'numeric',month:'long',day:'numeric'}) + '</div></div>'
+      + '</div>'
+      + cleanHtml
+      + '<div style="margin-top:48px;padding-top:20px;border-top:1px solid #E8EEF8;font-size:11px;color:#8A9BB5;text-align:center">'
+      + 'Informe generado por CFO.AI · Análisis basado en datos del sector · www.cfo.ai'
+      + '</div>'
+      + '<script>window.onload=function(){setTimeout(function(){window.print();},800);}<\/script>'
+      + '</body></html>';
+
+    const blob = new Blob([fullHtml], {type:'text/html;charset=utf-8'});
+    window.open(URL.createObjectURL(blob), '_blank');
+    btn.innerHTML = orig;
+    btn.disabled = false;
+
+  } catch(e) {
+    clearInterval(interval);
+    btn.innerHTML = orig;
+    btn.disabled = false;
+    alert('Error al generar análisis: ' + e.message);
+  }
 }
 
 // ════════════════════════════════════════════════════
