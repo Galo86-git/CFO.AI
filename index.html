@@ -190,23 +190,6 @@ tr:last-child td{border-bottom:none;}
 <!-- ── DASHBOARD ── -->
 <div id="screen-dashboard">
   <div id="error-container"></div>
-
-  <!-- BANNER REPORTE -->
-  <div class="reporte-banner" id="reporte-banner">
-    <div class="reporte-banner-left">
-      <div class="reporte-banner-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      </div>
-      <div>
-        <div class="reporte-banner-title">Reporte de mercado con IA</div>
-        <div class="reporte-banner-sub">Análisis de competidores, precios, tendencias y oportunidades específicas para tu negocio</div>
-      </div>
-    </div>
-    <button class="btn-reporte" id="btn-reporte" onclick="generarReporte()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-      Generar PDF
-    </button>
-  </div>
   <div class="dash-header">
     <div>
       <div class="dash-title" id="dash-title">Dashboard</div>
@@ -396,8 +379,6 @@ const COLORS = ['#3B7DD8','#06B6D4','#8B5CF6','#10B981','#F59E0B','#E07070'];
 function renderDashboard(d, filename) {
   window._dashData = d;
   document.getElementById('dash-title').textContent = d.titulo || 'Tu negocio';
-  const banner = document.getElementById('reporte-banner');
-  if (banner) banner.classList.add('visible');
   document.getElementById('dash-meta').textContent = (d.tipo_negocio||'') + ' · ' + (d.periodo||'') + ' · Generado por CFO.AI';
 
   // Renderizar directo sin tabs — usar la data de kpis/grafico/insights del nivel raíz
@@ -538,8 +519,6 @@ function show(screen) {
 function resetAll() {
   document.getElementById('dash-content').innerHTML = '';
   document.getElementById('error-container').innerHTML = '';
-  const banner = document.getElementById('reporte-banner');
-  if (banner) banner.classList.remove('visible');
   document.getElementById('file-in').value = '';
   window._dashData = null;
   ['ps0','ps1','ps2','ps3','ps4'].forEach((id,i) => {
@@ -550,110 +529,7 @@ function resetAll() {
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-async function generarReporte() {
-  const btn = document.getElementById('btn-reporte');
-  const d = window._dashData;
-  if (!d) return;
 
-  const iconSVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
-
-  const frases = [
-    '🔍 Analizando el mercado...',
-    '🏪 Buscando competidores...',
-    '📊 Calculando tendencias de precios...',
-    '🏗️ Evaluando oportunidades del sector...',
-    '✍️ Redactando el reporte...'
-  ];
-  let faseIdx = 0;
-  btn.disabled = true;
-  btn.innerHTML = frases[0];
-  const interval = setInterval(() => {
-    faseIdx = (faseIdx + 1) % frases.length;
-    btn.innerHTML = frases[faseIdx];
-  }, 1800);
-
-  const prompt = `Sos un consultor de negocios senior especializado en análisis de mercado para PyMEs latinoamericanas.
-
-Tu tarea es generar un REPORTE DE CONTEXTO DE MERCADO completo y accionable para el siguiente negocio.
-
-DATOS DEL NEGOCIO:
-- Nombre: ${d.titulo}
-- Tipo: ${d.tipo_negocio}
-- Período analizado: ${d.periodo}
-- KPIs principales: ${JSON.stringify(d[Object.keys(d).find(k=>k.toLowerCase().includes('kpi')||k.toLowerCase().includes('general'))||'']?.kpis||[])}
-
-Generá un reporte HTML completo con el siguiente contenido (3-4 páginas al imprimir):
-
-1. RESUMEN EJECUTIVO — situación actual del negocio en 3-4 párrafos
-2. CONTEXTO DEL MERCADO — análisis del sector (materiales de construcción, hostelería, retail, etc. según corresponda), tendencias 2024-2025, impacto inflacionario en los precios del sector
-3. COMPETIDORES PRINCIPALES — lista los principales competidores del rubro en la zona (Argentina/España según corresponda), sus fortalezas y debilidades. Para un corralón en zona norte de Buenos Aires mencionar competidores reales como Materiales Yrigoyen, otros corralones de la zona
-4. ANÁLISIS DE PRECIOS — cómo están los precios del negocio vs el mercado, si están ajustando por debajo o encima de la inflación, oportunidades de pricing
-5. OPORTUNIDADES DE NEGOCIO — mínimo 4 oportunidades concretas y accionables específicas para este tipo de negocio y su zona geográfica
-6. RIESGOS Y AMENAZAS — mínimo 3 riesgos concretos del sector
-7. RECOMENDACIONES ESTRATÉGICAS — 5 acciones concretas priorizadas para los próximos 90 días
-
-IMPORTANTE:
-- Usá datos reales del mercado argentino/español 2024-2025
-- Sé muy específico con números, porcentajes y nombres reales
-- El reporte debe verse profesional en HTML con estilos inline
-- Devolvé SOLO el HTML del reporte (desde <html> hasta </html>), sin explicaciones
-- Incluí en el HTML estilos para impresión (page-break, márgenes, etc.)
-- Usá la paleta de colores: azul #3B7DD8, navy #1E2A3A, gris #6B7E96, fondo blanco
-- Incluí el nombre CFO.AI como generador del reporte y la fecha actual`;
-
-  try {
-    const response = await fetch('/api/claude', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ prompt, max_tokens: 4000 })
-    });
-
-    clearInterval(interval);
-
-    if (!response.ok) throw new Error('Error al generar el reporte');
-
-    const data = await response.json();
-    let htmlContent = data.content?.[0]?.text || '';
-
-    // Limpiar markdown si Claude lo envolvió
-    htmlContent = htmlContent.replace(/```html/gi,'').replace(/```/g,'').trim();
-
-    // Si no tiene DOCTYPE, envolver en HTML completo
-    if (!htmlContent.includes('<!DOCTYPE') && !htmlContent.includes('<html')) {
-      htmlContent = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-        <style>body{font-family:Arial,sans-serif;color:#1E2A3A;padding:40px;max-width:800px;margin:0 auto;}
-        h1{color:#1E2A3A;border-bottom:3px solid #3B7DD8;padding-bottom:10px;}
-        h2{color:#3B7DD8;margin-top:28px;}
-        p{line-height:1.7;color:#444;}
-        ul{padding-left:20px;} li{margin-bottom:8px;line-height:1.6;}
-        .kpi-row{display:flex;gap:16px;margin:16px 0;}
-        .kpi{background:#F0F7FF;border-left:4px solid #3B7DD8;padding:12px 16px;border-radius:6px;flex:1;}
-        table{width:100%;border-collapse:collapse;margin:16px 0;}
-        th{background:#1E2A3A;color:#fff;padding:10px;text-align:left;}
-        td{padding:9px 10px;border-bottom:1px solid #E8EEF8;}
-        @media print{body{padding:20px;} h2{page-break-before:always;} h2:first-of-type{page-break-before:avoid;}}
-        </style></head><body>${htmlContent}</body></html>`;
-    }
-
-    // Abrir en nueva pestaña con instrucción de imprimir
-    const blob = new Blob([htmlContent], {type:'text/html;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-    // Auto-print después de cargar
-    if (win) {
-      win.onload = () => setTimeout(() => win.print(), 800);
-    }
-
-    btn.disabled = false;
-    btn.innerHTML = iconSVG + ' Reporte de mercado';
-
-  } catch(err) {
-    clearInterval(interval);
-    btn.disabled = false;
-    btn.innerHTML = iconSVG + ' Reporte de mercado';
-    alert('Error: ' + err.message);
-  }
-}
 </script>
 </body>
 </html>
