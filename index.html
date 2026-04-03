@@ -663,7 +663,7 @@ function calcMargenPorGrupo(metrics, dimKey) {
     var pCostCol = findCol(sc, [/precio.comp|costo.unit|p\.?compra|precio.*compra/i]);
     if (pNomCol && pCostCol) {
       sr.forEach(function(r){
-        var nom  = String(r[pNomCol]||'').trim().toLowerCase();
+        var nom  = String(r[pNomCol]||'').trim().toLowerCase().replace(/[().,]/g,'').replace(/\s+/g,' ');
         var cost = parseFloat(String(r[pCostCol]||'').replace(/[^0-9.-]/g,''))||0;
         if (nom && cost) costoPorProducto[nom] = cost;
       });
@@ -679,10 +679,9 @@ function calcMargenPorGrupo(metrics, dimKey) {
     var cpCostCol = findCol(cc, [/precio.unit|p\.?unit|precio.*\$/i]);
     if (cpNomCol && cpCostCol) {
       cr.forEach(function(r){
-        var nom  = String(r[cpNomCol]||'').trim().toLowerCase();
+        var nom  = String(r[cpNomCol]||'').trim().toLowerCase().replace(/[().,]/g,'').replace(/\s+/g,' ');
         var cost = parseFloat(String(r[cpCostCol]||'').replace(/[^0-9.-]/g,''))||0;
         if (nom && cost) {
-          // Promediar si hay múltiples compras
           if (costoPorProducto[nom]) costoPorProducto[nom] = (costoPorProducto[nom]+cost)/2;
           else costoPorProducto[nom] = cost;
         }
@@ -691,9 +690,9 @@ function calcMargenPorGrupo(metrics, dimKey) {
   }
 
   var hayCostosUnitarios = Object.keys(costoPorProducto).length > 0;
-  console.log('[CFO.AI] Costos unitarios encontrados:', Object.keys(costoPorProducto).length, '| Muestra:', Object.keys(costoPorProducto).slice(0,3));
-  console.log('[CFO.AI] prodCol:', metrics.cols ? findCol(metrics.cols,[/^producto|^articulo|^artículo/i]) : 'N/A');
-  console.log('[CFO.AI] cantCol:', metrics.cols ? findCol(metrics.cols,[/cantidad|qty/i]) : 'N/A');
+
+
+
 
   // 3. Recorrer filas de ventas y calcular costo por grupo
   var dim = metrics.dims.find(function(d){ return d.key===dimKey; });
@@ -717,7 +716,7 @@ function calcMargenPorGrupo(metrics, dimKey) {
     if (hayCostosUnitarios && prodCol) {
       if (mapOps[k] === 1) { // solo loggear primera vez por grupo
         var nomTest = String(r[prodCol]||'').trim().toLowerCase();
-        console.log('[CFO.AI] Cruzando producto:', nomTest, '| Costo encontrado:', costoPorProducto[nomTest]||'NO ENCONTRADO');
+      
       }
       var nomProd = String(r[prodCol]||'').trim().toLowerCase();
       var costUnit = costoPorProducto[nomProd];
