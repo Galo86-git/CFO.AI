@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CFO.AI — Demo</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
 // ── CHAT JS ──
 let chatHistory = [];
 let chatOpen = false;
@@ -469,6 +470,86 @@ tr:last-child td{border-bottom:none;}
 .ins-expand p { margin-bottom: 8px; }
 .ins-expand p:last-child { margin-bottom: 0; }
 .ins-expand strong { color: #1E2A3A; }
+
+/* ── NUEVAS FEATURES ── */
+:root {
+  --dm-bg: #0F1520; --dm-bg2: #161E2E; --dm-card: #1A2438;
+  --dm-cream: #E2E8F4; --dm-muted: #64748B; --dm-border: rgba(255,255,255,0.08);
+}
+body.dark { background: var(--dm-bg); color: var(--dm-cream); }
+body.dark .kpi, body.dark .drill-card, body.dark .insights-card,
+body.dark .chart-card, body.dark .table-card, body.dark .resumen-panel
+  { background: var(--dm-card); border-color: var(--dm-border); }
+body.dark .kpi-lbl, body.dark .dash-meta, body.dark .bar-lbl,
+body.dark .bar-val, body.dark .ins-text, body.dark td
+  { color: #94A3B8; }
+body.dark .kpi-val, body.dark .dash-title, body.dark .drill-title,
+body.dark .ins-head, body.dark td:first-child, body.dark th
+  { color: var(--dm-cream); }
+body.dark #screen-dashboard { background: var(--dm-bg); }
+body.dark .drill-bar-row:hover { background: rgba(59,125,216,0.12); }
+body.dark .drill-detail, body.dark .ins-expand { background: rgba(59,125,216,0.1); }
+body.dark nav { background: rgba(15,21,32,0.97); border-color: var(--dm-border); }
+body.dark .btn-reset { background: var(--dm-card); color: #94A3B8; border-color: var(--dm-border); }
+
+.stock-alert {
+  background: #FEF2F2; border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 500; color: #B91C1C;
+}
+body.dark .stock-alert { background: rgba(239,68,68,0.1); color: #FCA5A5; }
+
+.btn-dark-toggle {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: #F0F6FF; border: 1.5px solid var(--border2);
+  cursor: pointer; font-size: 16px; display: flex;
+  align-items: center; justify-content: center; transition: all 0.2s;
+}
+.btn-dark-toggle:hover { background: var(--blue-pale); }
+body.dark .btn-dark-toggle { background: var(--dm-card); border-color: var(--dm-border); }
+
+.btn-action {
+  padding: 9px 16px; border-radius: 8px;
+  background: #F0F6FF; border: 1.5px solid var(--border2);
+  color: var(--blue); font-family: var(--font-h);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.18s; white-space: nowrap;
+}
+.btn-action:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+body.dark .btn-action { background: var(--dm-card); border-color: var(--dm-border); color: #60A5FA; }
+
+.resumen-panel {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px 22px; margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(59,125,216,0.1);
+}
+.resumen-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.resumen-body {
+  font-size: 14px; line-height: 1.75; color: #3B4A5A;
+}
+body.dark .resumen-body { color: #94A3B8; }
+.btn-copy {
+  font-size: 12px; font-weight: 600; padding: 6px 14px;
+  border-radius: 6px; background: var(--blue); color: #fff;
+  border: none; cursor: pointer; transition: all 0.15s; font-family: var(--font-b);
+}
+.btn-copy:hover { background: var(--blue-lt); }
+.btn-copy.copied { background: var(--green); }
+
+.hist-chip {
+  font-size: 11px; font-weight: 500; padding: 5px 12px;
+  border-radius: 100px; background: #F0F6FF;
+  border: 1px solid var(--border2); color: #3B7DD8;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  font-family: var(--font-b);
+}
+.hist-chip:hover { background: var(--blue); color: #fff; }
+body.dark .hist-chip { background: var(--dm-card); border-color: var(--dm-border); }
 </style>
 </head>
 <body>
@@ -516,12 +597,47 @@ tr:last-child td{border-bottom:none;}
 <!-- ── DASHBOARD ── -->
 <div id="screen-dashboard">
   <div id="error-container"></div>
+  <!-- BANNER STOCK CRÍTICO -->
+  <div class="stock-alert" id="stock-alert" style="display:none">
+    <span>⚠️</span>
+    <span id="stock-alert-msg">Productos con stock bajo mínimo detectados</span>
+    <button onclick="document.getElementById('stock-alert').style.display='none'" style="background:none;border:none;color:inherit;cursor:pointer;font-size:16px;margin-left:auto">✕</button>
+  </div>
+
   <div class="dash-header">
     <div>
       <div class="dash-title" id="dash-title">Dashboard</div>
       <div class="dash-meta" id="dash-meta"></div>
     </div>
-    <button class="btn-reset" onclick="resetAll()">← Analizar otro archivo</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn-dark-toggle" id="dark-toggle" onclick="toggleDarkMode()" title="Modo oscuro">🌙</button>
+      <button class="btn-action" onclick="exportarImagen()">📸 Compartir</button>
+      <button class="btn-action" onclick="generarResumen()">📋 Resumen</button>
+      <button class="btn-reset" onclick="resetAll()">← Analizar otro archivo</button>
+    </div>
+  </div>
+
+  <!-- PANEL RESUMEN EJECUTIVO -->
+  <div class="resumen-panel" id="resumen-panel" style="display:none">
+    <div class="resumen-head">
+      <span style="font-family:var(--font-h);font-weight:700;color:#1E2A3A">📋 Resumen ejecutivo</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn-copy" id="btn-copy" onclick="copiarResumen()">Copiar texto</button>
+        <button onclick="document.getElementById('resumen-panel').style.display='none'" style="background:none;border:none;color:#8A9BB5;cursor:pointer;font-size:16px">✕</button>
+      </div>
+    </div>
+    <div class="resumen-body" id="resumen-body">
+      <div style="display:flex;align-items:center;gap:8px;color:#8A9BB5;font-size:13px">
+        <div style="width:14px;height:14px;border:2px solid #D0E4F7;border-top-color:#3B7DD8;border-radius:50%;animation:spin 0.7s linear infinite"></div>
+        Generando resumen...
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div id="historial-bar" style="display:none;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#8A9BB5;margin-bottom:8px">Análisis recientes</div>
+    <div id="historial-list" style="display:flex;gap:8px;flex-wrap:wrap"></div>
   </div>
   <div id="dash-content"></div>
 </div>
@@ -556,6 +672,7 @@ async function handleFile(file) {
 
     // Guardar datos crudos para drill-down local
     window._rawSheets = sheets;
+    window._currentFile = file.name;
     window._yellowCols = yellowCols;
 
     // Renderizar
@@ -902,6 +1019,33 @@ function renderDashboard(d, filename) {
 
   document.getElementById('dash-content').innerHTML = html;
   setTimeout(initDrillChart, 50);
+
+  // Nuevas features
+  checkStockCritico(window._rawSheets);
+  const comp = calcPeriodComparison(window._rawSheets, window._yellowCols);
+  if (comp) enrichKpisWithDelta(comp);
+  saveToHistorial(window._currentFile || 'archivo.xlsx', d.titulo || 'Negocio',
+    (d.kpis||[]).slice(0,2).map(k=>k.label+': '+k.valor).join(' · '));
+  renderHistorial();
+  resumenGenerado = false;
+}
+
+function enrichKpisWithDelta(comp) {
+  const fmt = v => v>=1e6 ? '$'+(v/1e6).toFixed(1)+'M' : v>=1e3 ? '$'+(v/1e3).toFixed(0)+'K' : '$'+v.toFixed(0);
+  // Buscar el KPI de ingresos/ventas y enriquecerlo
+  const kpiCards = document.querySelectorAll('.kpi');
+  kpiCards.forEach(card => {
+    const lbl = card.querySelector('.kpi-lbl');
+    if (!lbl) return;
+    if (/ingreso|venta|factur/i.test(lbl.textContent)) {
+      const sub = card.querySelector('.kpi-sub');
+      if (!sub || !comp.delta) return;
+      const arrow = parseFloat(comp.delta) >= 0 ? '▲' : '▼';
+      const cls   = parseFloat(comp.delta) >= 0 ? 'up' : 'dn';
+      sub.innerHTML = sub.innerHTML
+        + ' &nbsp;<span class="' + cls + '">' + arrow + ' ' + Math.abs(comp.delta) + '% vs ' + comp.anterior + '</span>';
+    }
+  });
 }
 
 function renderTabContent(data) {
@@ -1188,6 +1332,212 @@ async function toggleInsightDetail(btn) {
   } catch(err) {
     panel.innerHTML = '<p style="color:#B45454">Error al cargar el detalle. Intentá de nuevo.</p>';
   }
+}
+
+
+// ══════════════════════════════════════════
+// MODO OSCURO
+// ══════════════════════════════════════════
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark');
+  document.getElementById('dark-toggle').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('cfoai-dark', isDark ? '1' : '0');
+}
+// Aplicar modo guardado
+if (localStorage.getItem('cfoai-dark') === '1') {
+  document.body.classList.add('dark');
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('dark-toggle');
+    if (btn) btn.textContent = '☀️';
+  });
+}
+
+// ══════════════════════════════════════════
+// EXPORTAR A IMAGEN
+// ══════════════════════════════════════════
+async function exportarImagen() {
+  const btn = document.querySelector('.btn-action');
+  const original = btn.textContent;
+  btn.textContent = '⏳ Capturando...';
+
+  try {
+    const el = document.getElementById('dash-content');
+    const canvas = await html2canvas(el, {
+      backgroundColor: document.body.classList.contains('dark') ? '#0F1520' : '#F8FAFF',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+
+    const link = document.createElement('a');
+    const nombre = (window._dashData?.titulo || 'dashboard').toLowerCase().replace(/\s+/g,'-');
+    link.download = 'CFO-AI-' + nombre + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    alert('Error al exportar: ' + e.message);
+  }
+  btn.textContent = original;
+}
+
+// ══════════════════════════════════════════
+// RESUMEN EJECUTIVO
+// ══════════════════════════════════════════
+let resumenGenerado = false;
+
+async function generarResumen() {
+  const panel = document.getElementById('resumen-panel');
+  const body  = document.getElementById('resumen-body');
+
+  // Toggle
+  if (panel.style.display !== 'none') {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  if (resumenGenerado) return;
+
+  const d = window._dashData || {};
+  const kpisStr = (d.kpis || []).map(k => k.label + ': ' + k.valor).join(', ');
+  const insStr  = (d.insights || []).map(i => i.texto).join('. ');
+
+  const prompt = 'Escribí un resumen ejecutivo de 4-5 oraciones en español para este negocio. '
+    + 'Debe ser claro, directo y útil para compartir con un contador, socio o directivo por WhatsApp o mail. '
+    + 'Sin bullets, en prosa fluida. Comenzá con el nombre del negocio. '
+    + 'Negocio: ' + (d.titulo||'') + ' (' + (d.tipo_negocio||'') + ', ' + (d.periodo||'') + '). '
+    + 'KPIs: ' + kpisStr + '. '
+    + 'Situación: ' + insStr
+    + '. Al final agregá una línea: "Análisis generado por CFO.AI."';
+
+  try {
+    const response = await fetch('/api/claude', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt, max_tokens: 400 })
+    });
+    const data = await response.json();
+    const texto = data.content?.[0]?.text || 'No se pudo generar el resumen.';
+    body.innerHTML = '<p>' + texto.replace(/
+/g, '</p><p>') + '</p>';
+    body.dataset.texto = texto;
+    resumenGenerado = true;
+  } catch(e) {
+    body.innerHTML = '<p style="color:#B45454">Error al generar. Intentá de nuevo.</p>';
+  }
+}
+
+function copiarResumen() {
+  const texto = document.getElementById('resumen-body').dataset.texto || '';
+  navigator.clipboard.writeText(texto).then(() => {
+    const btn = document.getElementById('btn-copy');
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar texto'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ══════════════════════════════════════════
+// ALERTA STOCK CRÍTICO
+// ══════════════════════════════════════════
+function checkStockCritico(sheets) {
+  if (!sheets) return;
+  const stockKey = Object.keys(sheets).find(k => /stock|invent/i.test(k));
+  if (!stockKey) return;
+
+  const rows = sheets[stockKey];
+  const cols = Object.keys(rows[0] || {});
+  const stockActCol = cols.find(c => /stock.act|actual|existencia/i.test(c));
+  const stockMinCol = cols.find(c => /m[ií]nimo|min.stock|stock.min/i.test(c));
+  const prodCol     = cols.find(c => /producto|product|descrip|nombre/i.test(c));
+
+  if (!stockActCol || !stockMinCol) return;
+
+  const criticos = rows.filter(r => {
+    const act = parseFloat(String(r[stockActCol]||'').replace(/[^0-9.-]/g,''));
+    const min = parseFloat(String(r[stockMinCol]||'').replace(/[^0-9.-]/g,''));
+    return !isNaN(act) && !isNaN(min) && act <= min;
+  });
+
+  if (criticos.length === 0) return;
+
+  const nombres = criticos.slice(0,3).map(r => r[prodCol] || 'Producto').join(', ');
+  const extra = criticos.length > 3 ? ' y ' + (criticos.length-3) + ' más' : '';
+
+  document.getElementById('stock-alert-msg').textContent =
+    criticos.length + ' producto' + (criticos.length>1?'s':'') + ' con stock bajo mínimo: ' + nombres + extra + '.';
+  document.getElementById('stock-alert').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════
+// COMPARACIÓN DE PERÍODOS EN KPIs
+// ══════════════════════════════════════════
+function calcPeriodComparison(sheets, yellowCols) {
+  const ventasKey = Object.keys(sheets).find(k => /vent|sale/i.test(k)) || Object.keys(sheets)[0];
+  const rows = sheets[ventasKey];
+  if (!rows || rows.length < 2) return null;
+
+  const cols = Object.keys(rows[0]);
+  const fechaCol = cols.find(c => /fecha|date/i.test(c));
+  const valCol = (yellowCols||{})[ventasKey]
+    || cols.find(c => /^total/i.test(c.trim()))
+    || cols.find(c => c.includes('($)') || c.includes('(€)'));
+
+  if (!fechaCol || !valCol) return null;
+
+  // Agrupar por mes
+  const byMonth = {};
+  rows.forEach(r => {
+    const mes = extractMes(r[fechaCol]);
+    if (mes === 'Sin fecha') return;
+    const v = parseFloat(String(r[valCol]||'').replace(/[^0-9.-]/g,'')) || 0;
+    byMonth[mes] = (byMonth[mes]||0) + v;
+  });
+
+  const meses = Object.keys(byMonth);
+  if (meses.length < 2) return null;
+
+  // Últimos 2 meses
+  const ultimo    = meses[meses.length-1];
+  const anterior  = meses[meses.length-2];
+  const vUltimo   = byMonth[ultimo];
+  const vAnterior = byMonth[anterior];
+  const delta     = vAnterior > 0 ? ((vUltimo-vAnterior)/vAnterior*100).toFixed(1) : null;
+
+  return { ultimo, anterior, vUltimo, vAnterior, delta };
+}
+
+// ══════════════════════════════════════════
+// HISTORIAL DE UPLOADS
+// ══════════════════════════════════════════
+function saveToHistorial(filename, titulo, kpisResumen) {
+  try {
+    const hist = JSON.parse(localStorage.getItem('cfoai-hist') || '[]');
+    const nuevo = {
+      filename, titulo, kpisResumen,
+      fecha: new Date().toLocaleDateString('es-AR'),
+      ts: Date.now()
+    };
+    // Evitar duplicados del mismo archivo
+    const filtrado = hist.filter(h => h.filename !== filename);
+    const actualizado = [nuevo, ...filtrado].slice(0, 3);
+    localStorage.setItem('cfoai-hist', JSON.stringify(actualizado));
+  } catch(e) {}
+}
+
+function renderHistorial() {
+  try {
+    const hist = JSON.parse(localStorage.getItem('cfoai-hist') || '[]');
+    if (hist.length === 0) return;
+    const bar = document.getElementById('historial-bar');
+    const list = document.getElementById('historial-list');
+    if (!bar || !list) return;
+    bar.style.display = 'block';
+    list.innerHTML = hist.map(h =>
+      '<div class="hist-chip" title="' + h.filename + '">'
+      + h.titulo + ' · ' + h.fecha
+      + '</div>'
+    ).join('');
+  } catch(e) {}
 }
 
 // ── STEPS ANIMATION ──
