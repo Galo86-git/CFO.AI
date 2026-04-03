@@ -710,8 +710,14 @@ function calcMetrics(sheets, yellowCols) {
   // Por categoría
   const byCat = catCol ? groupSum(rows, catCol, valCol) : [];
 
-  // Comparación último mes vs anterior
-  const meses = Object.keys(byMes);
+  // Período real desde fechas
+  let periodoReal = '';
+  if (fechCol && Object.keys(byMes).length > 0) {
+    const mesesKeys = Object.keys(byMes);
+    const primero = mesesKeys[0];
+    const ultimo  = mesesKeys[mesesKeys.length - 1];
+    periodoReal = primero === ultimo ? primero : primero + ' – ' + ultimo;
+  }
   let periodoComp = null;
   if (meses.length >= 2) {
     const last = meses[meses.length-1];
@@ -792,7 +798,7 @@ function calcMetrics(sheets, yellowCols) {
     byMes, byMesCount, byCat, periodoComp,
     stockCriticos, totalStock,
     totalCompras, totalCostos,
-    dims
+    dims, periodoReal
   };
 }
 
@@ -1020,7 +1026,8 @@ async function startUpload(file) {
 // ════════════════════════════════════════════════════
 function renderDashboard(d, metrics, alerts, compareMetrics) {
   document.getElementById('dash-title').textContent = d.titulo || 'Tu negocio';
-  document.getElementById('dash-meta').textContent = (d.tipo_negocio||'') + ' · ' + (d.periodo||'') + ' · Generado por CFO.AI';
+  const periodo = metrics.periodoReal || d.periodo || '';
+  document.getElementById('dash-meta').textContent = (d.tipo_negocio||'') + ' · ' + periodo + ' · Generado por CFO.AI';
 
   // KPIs
   renderKPIs(d.kpis || [], metrics);
