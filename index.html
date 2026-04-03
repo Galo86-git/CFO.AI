@@ -697,19 +697,50 @@ window.open(URL.createObjectURL(new Blob([full],{type:'text/html;charset=utf-8'}
 }
 
 
+var urlTimer = null;
 function validateURL(input) {
   var val = input.value.trim();
   var ok = document.getElementById('url-ok');
-  if (!val) { ok.className='url-ok'; ok.textContent=''; S.empresaURL=''; return; }
+  S.empresaURL = '';
+  if (!val) { ok.className='url-ok'; ok.textContent=''; return; }
+
+  // Formato básico
+  var href;
   try {
-    var url = new URL(val.startsWith('http') ? val : 'https://'+val);
-    S.empresaURL = url.href;
-    ok.className='url-ok valid'; ok.textContent='✓';
-    input.value = url.href;
+    href = new URL(val.startsWith('http') ? val : 'https://'+val).href;
   } catch(e) {
-    S.empresaURL='';
     ok.className='url-ok invalid'; ok.textContent='✕';
+    return;
   }
+
+  // Mostrar verificando...
+  ok.className='url-ok'; ok.textContent='⏳';
+
+  // Debounce: esperar 800ms antes de verificar
+  clearTimeout(urlTimer);
+  urlTimer = setTimeout(function() {
+    fetch('/api/validate-url', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url: href})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.valid) {
+        S.empresaURL = href;
+        input.value = href;
+        ok.className='url-ok valid'; ok.textContent='✓';
+      } else {
+        S.empresaURL = '';
+        ok.className='url-ok invalid'; ok.textContent='✕';
+      }
+    })
+    .catch(function() {
+      // Si falla el servidor, aceptar igual con formato válido
+      S.empresaURL = href;
+      ok.className='url-ok valid'; ok.textContent='✓';
+    });
+  }, 800);
 }
 
 function saveHistory(filename,titulo){try{var h=JSON.parse(localStorage.getItem('cfoai-hist')||'[]');var upd=[{filename:filename,titulo:titulo,fecha:new Date().toLocaleDateString('es-AR'),ts:Date.now()}].concat(h.filter(function(x){return x.filename!==filename;})).slice(0,3);localStorage.setItem('cfoai-hist',JSON.stringify(upd));}catch(e){}}
