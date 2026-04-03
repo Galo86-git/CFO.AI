@@ -255,16 +255,20 @@ input[type=file]{display:none;}
       <div class="dash-title" id="dash-title">Dashboard</div>
       <div class="dash-meta" id="dash-meta"></div>
     </div>
-    <div class="dash-actions">
-      <button class="btn-action" id="btn-resumen" onclick="toggleResumen()">📋 Resumen</button>
-      <button class="btn-action" id="btn-img" onclick="exportImg()">📸 Compartir</button>
-      <button class="btn-action" id="btn-pptx" onclick="exportPPTX()">📊 PowerPoint</button>
-      <button class="btn-action" id="btn-mercado" onclick="genMercado()">🌐 Análisis de mercado</button>
-      <button class="btn-reset" onclick="resetAll()">← Nuevo archivo</button>
-      <div class="url-input-wrap" id="url-wrap" style="display:none">
-        <div class="url-icon">🌐</div>
-        <input class="url-field" id="url-field" type="url" placeholder="web del negocio (opcional)" oninput="validateURL(this)">
-        <div class="url-ok" id="url-ok"></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+      <!-- Fila izquierda/derecha superior -->
+      <div class="dash-actions">
+        <button class="btn-action" id="btn-resumen" onclick="toggleResumen()">📋 Resumen</button>
+        <button class="btn-action" id="btn-pptx" onclick="exportPPTX()">📊 PPT</button>
+        <div class="url-input-wrap" id="url-wrap" style="display:none">
+          <div class="url-icon">🌐</div>
+          <input class="url-field" id="url-field" type="url" placeholder="web del negocio (opcional)" oninput="validateURL(this)">
+          <div class="url-ok" id="url-ok"></div>
+        </div>
+      </div>
+      <!-- Fila inferior -->
+      <div class="dash-actions">
+        <button class="btn-action" id="btn-mercado" onclick="genMercado()">🌐 Análisis de mercado</button>
       </div>
     </div>
   </div>
@@ -724,8 +728,15 @@ function validateURL(input) {
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({url: href})
     })
-    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if (!r.ok) { // endpoint no existe, aceptar URL con formato válido
+        S.empresaURL = href; input.value = href;
+        ok.className='url-ok valid'; ok.textContent='✓'; return null;
+      }
+      return r.json();
+    })
     .then(function(data) {
+      if (!data) return;
       if (data.valid) {
         S.empresaURL = href;
         input.value = href;
@@ -736,8 +747,9 @@ function validateURL(input) {
       }
     })
     .catch(function() {
-      // Si falla el servidor, aceptar igual con formato válido
+      // Si el endpoint no existe o falla, aceptar con formato válido
       S.empresaURL = href;
+      input.value = href;
       ok.className='url-ok valid'; ok.textContent='✓';
     });
   }, 800);
