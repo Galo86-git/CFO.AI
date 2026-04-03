@@ -464,10 +464,253 @@ input[type=file]{display:none;}
 </div>
 
 <script>
+// ════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ════════════════════════════════════════════════════
+const S = {
+  sheets: null, yellowCols: {}, dashData: null,
+  compareSheets: null, compareFile: null, currentFile: null,
+  chatHistory: [], chatOpen: false, chatInit: false,
+  drillConfig: null, drillLabels: [],
+  resumenDone: false, resumenTexto: ''
+};
+
+const COLORS = ['#3B7DD8','#06B6D4','#8B5CF6','#10B981','#F59E0B','#E07070','#EC4899','#0EA5E9'];
+const MESES  = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
 // ════════════════════════════════════════════════════
-// TIMELINE
+// PANTALLAS
 // ════════════════════════════════════════════════════
+function showScreen(name) {
+  ['upload','processing','dashboard'].forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    if (s === name) {
+      el.classList.remove('hidden');
+      el.style.display = s === 'dashboard' ? 'block' : 'flex';
+    } else {
+      el.classList.add('hidden');
+      el.style.display = 'none';
+    }
+  });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
+// ════════════════════════════════════════════════════
+// DRAG & DROP
+// ════════════════════════════════════════════════════
+function onDrag(e, over) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.toggle('over', over);
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) startUpload(f);
+}
+
+// ════════════════════════════════════════════════════
+// ARCHIVO COMPARACIÓN
+// ════════════════════════════════════════════════════
+function setCompareFile(file) {
+  if (!file) return;
+  S.compareFile = file;
+  document.getElementById('compare-btn-wrap').style.display = 'none';
+  document.getElementById('compare-name').textContent = file.name;
+  document.getElementById('compare-active').style.display = 'flex';
+}
+function clearCompare() {
+  S.compareFile = null; S.compareSheets = null;
+  document.getElementById('compare-btn-wrap').style.display = 'block';
+  document.getElementById('compare-active').style.display = 'none';
+  document.getElementById('file-compare').value = '';
+}
+
+// ════════════════════════════════════════════════════
+// LEER EXCEL
+// ════════════════════════════════════════════════════
+function readExcel(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, {type:'binary', cellDates:true, cellNF:false, cellText:false, cellStyles:true});
+        const sheets = {}, yellowCols = {};
+        wb.SheetNames.forEach(name => {
+          const ws = wb.Sheets[name];
+          const json = XLSX.utils.sheet_to_json(ws, {defval:''});
+          if (!json.length) return;
+          sheets[name] = json;
+          const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+          for (let col = range.s.c; col <= range.e.c; col++) {
+            const cell = ws[XLSX.utils.encode_cell({r:0, c:col})];
+            if (!cell) continue;
+            const rgb = (cell.s && (cell.s.fgColor?.rgb || cell.s.bgColor?.rgb)) || '';
+            if (/^FF(FF|D9|C0)/i.test(rgb) || rgb.toUpperCase() === 'FFFF00') {
+              yellowCols[name] = String(cell.v || ''); break;
+            }
+          }
+        });
+        res({sheets, yellowCols});
+      } catch(err) { rej(new Error('No se pudo leer el archivo.')); }
+    };
+    reader.onerror = () => rej(new Error('Error al leer el archivo.'));
+    reader.readAsBinaryString(file);
+  });
+}
+
+// ════════════════════════════════════════════════════
+// DETECCIÓN DE COLUMNAS
+// ════════════════════════════════════════════════════
+function findTotalCol(cols, yellowCol) {
+  if (yellowCol && cols.includes(yellowCol)) return yellowCol;
+  const money = cols.filter(c => c.includes('($)') || c.includes('(€)'));
+  const last = money[money.length - 1];
+  if (last) return last;
+  return cols.find(c => /^total/i.test(c.trim())) || null;
+}
+function findCol(cols, patterns) {
+  return cols.find(c => patterns.some(p => p.test(c)));
+}
+function sumCol(rows, col) {
+  if (!col) return 0;
+  let total = rows.reduce((a,r) => {
+    const v = parseFloat(String(r[col]||'').replace(/[^0-9.-]/g,''));
+    return a + (isNaN(v) ? 0 : v);
+  }, 0);
+  if (total === 0) {
+    const cols = Object.keys(rows[0]||{});
+    const sub = cols.find(c => /subtotal/i.test(c));
+    const iva = cols.find(c => /^iva/i.test(c));
+    if (sub) total = rows.reduce((a,r) => {
+      const s = parseFloat(String(r[sub]||'').replace(/[^0-9.-]/g,''))||0;
+      const t = iva ? parseFloat(String(r[iva]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+      return a + s + t;
+    }, 0);
+    if (total === 0) {
+      const pc = cols.find(c => /precio|price/i.test(c) && /\$/i.test(c));
+      const qc = cols.find(c => /cantidad|qty/i.test(c));
+      if (pc && qc) total = rows.reduce((a,r) => {
+        const p = parseFloat(String(r[pc]||'').replace(/[^0-9.-]/g,''))||0;
+        const q = parseFloat(String(r[qc]||'').replace(/[^0-9.-]/g,''))||0;
+        return a + p*q;
+      }, 0);
+    }
+  }
+  return total;
+}
+function groupSum(rows, groupCol, valCol) {
+  const map = {};
+  rows.forEach(r => {
+    const k = String(r[groupCol]||'').trim() || 'Sin datos';
+    const v = parseFloat(String(r[valCol]||'').replace(/[^0-9.-]/g,''))||0;
+    map[k] = (map[k]||0) + v;
+  });
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+}
+function extractMes(fecha) {
+  if (!fecha) return null;
+  const s = String(fecha);
+  const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (m) {
+    const mon = parseInt(m[2]) || parseInt(m[1]);
+    const yr  = m[3].length === 2 ? '20'+m[3] : m[3];
+    return (MESES[mon]||'M'+mon) + ' ' + yr;
+  }
+  if (!isNaN(fecha) && +fecha > 1) {
+    const d = new Date(Math.round((+fecha - 25569)*86400*1000));
+    return MESES[d.getMonth()+1] + ' ' + d.getFullYear();
+  }
+  return null;
+}
+function fmt(v) {
+  if (v >= 1e9) return '$'+(v/1e9).toFixed(1)+'B';
+  if (v >= 1e6) return '$'+(v/1e6).toFixed(1)+'M';
+  if (v >= 1e3) return '$'+(v/1e3).toFixed(0)+'K';
+  return '$'+v.toFixed(0);
+}
+
+// ════════════════════════════════════════════════════
+// STEP ANIMATION
+// ════════════════════════════════════════════════════
+function stepDone(idx) {
+  return new Promise(res => setTimeout(() => {
+    const el = document.getElementById('ps'+idx);
+    if (el) el.className = 'done';
+    const nx = document.getElementById('ps'+(idx+1));
+    if (nx) nx.className = 'active';
+    res();
+  }, 600));
+}
+
+// ════════════════════════════════════════════════════
+// MAIN UPLOAD FLOW
+// ════════════════════════════════════════════════════
+async function startUpload(file) {
+  if (!file) return;
+  S.currentFile = file.name;
+  showScreen('processing');
+  document.getElementById('proc-filename').textContent = file.name;
+  try {
+    await stepDone(0);
+    const {sheets, yellowCols} = await readExcel(file);
+    S.sheets = sheets; S.yellowCols = yellowCols;
+    if (S.compareFile) {
+      const cr = await readExcel(S.compareFile);
+      S.compareSheets = cr.sheets;
+    }
+    await stepDone(1);
+    const metrics = calcMetrics(sheets, yellowCols);
+    const compareMetrics = S.compareSheets ? calcMetrics(S.compareSheets, {}) : null;
+    const summary = buildSummary(sheets, file.name, yellowCols, metrics);
+    await stepDone(2);
+    const alerts = buildSmartAlerts(metrics, compareMetrics);
+    await stepDone(3);
+    const prompt = 'Sos un analista financiero. Con estos datos devolvé SOLO un JSON sin markdown:\n'
+      + '{"titulo":"nombre negocio","tipo_negocio":"tipo 2-3 palabras","periodo":"período","kpis":['
+      + '{"label":"KPI","valor":"valor","sub":"desc","trend":"up|down|neu"},'
+      + '{"label":"KPI","valor":"valor","sub":"desc","trend":"up|down|neu"},'
+      + '{"label":"KPI","valor":"valor","sub":"desc","trend":"up|down|neu"},'
+      + '{"label":"KPI","valor":"valor","sub":"desc","trend":"up|down|neu"}'
+      + '],"insights":['
+      + '{"icon":"🟢","texto":"insight positivo con número"},'
+      + '{"icon":"🔴","texto":"alerta con número"},'
+      + '{"icon":"🔵","texto":"dato informativo"},'
+      + '{"icon":"💡","texto":"recomendación accionable"}'
+      + ']}\n\nUSA SOLO estos números, no inventes:\n' + summary;
+    const raw = await callClaude(prompt, [], 1800);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    let dashJson;
+    try { dashJson = JSON.parse(clean); }
+    catch { const m2 = clean.match(/\{[\s\S]*\}/); dashJson = m2 ? JSON.parse(m2[0]) : {titulo:file.name,tipo_negocio:'',periodo:'',kpis:[],insights:[]}; }
+    await stepDone(4);
+    S.dashData = dashJson;
+    renderDashboard(dashJson, metrics, alerts);
+    showScreen('dashboard');
+    saveHistory(file.name, dashJson.titulo || file.name);
+    renderHistory();
+  } catch(err) {
+    document.getElementById('error-container').innerHTML = '<div class="error-box">⚠️ ' + err.message + '</div>';
+    renderFallback();
+    showScreen('dashboard');
+  }
+}
+
+// ════════════════════════════════════════════════════
+// LLAMADA A CLAUDE
+// ════════════════════════════════════════════════════
+async function callClaude(prompt, context, maxTokens) {
+  const resp = await fetch('/api/claude', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({prompt, context:context||[], max_tokens:maxTokens||1800})
+  });
+  if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error||'Error API '+resp.status); }
+  const data = await resp.json();
+  return data.content?.[0]?.text || '';
+}
+
+
 function renderTimeline(metrics) {
   const card = document.getElementById('timeline-card');
   const bars = document.getElementById('timeline-bars');
