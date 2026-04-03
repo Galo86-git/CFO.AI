@@ -711,30 +711,164 @@ async function exportImg(){
 
 async function exportPPTX(){
   var btn=document.getElementById('btn-pptx'),orig=btn.innerHTML;
-  var frases=['📊 Armando slides...','🎨 Diseñando...','✍️ Redactando...'];var fi=0;btn.innerHTML=frases[0];btn.disabled=true;
-  var iv=setInterval(function(){fi=(fi+1)%frases.length;btn.innerHTML=frases[fi];},1500);
-  try{
-    var d=S.dashData||{};
-    var kStr=(d.kpis||[]).map(function(k){return k.label+': '+k.valor;}).join(', ');
-    var iStr=(d.insights||[]).map(function(i){return i.texto;}).join('\n');
-    var prompt='Presentación 5 slides. SOLO JSON sin markdown: {"slides":[{"titulo":"t","subtitulo":"s","puntos":["p1","p2","p3"]},{"titulo":"t","subtitulo":"s","puntos":["p1","p2","p3"]},{"titulo":"t","subtitulo":"s","puntos":["p1","p2","p3"]},{"titulo":"t","subtitulo":"s","puntos":["p1","p2","p3"]},{"titulo":"t","subtitulo":"s","puntos":["p1","p2","p3"]}]}\nSlides: 1)Resumen 2)KPIs 3)Ventas 4)Alertas 5)Próximos pasos\nNegocio: '+(d.titulo||'')+' '+(d.tipo_negocio||'')+'\nKPIs: '+kStr+'\nInsights: '+iStr;
-    var raw=await callClaude(prompt,[],2000);var cj=raw.replace(/```json|```/g,'').trim();
-    var pd;try{pd=JSON.parse(cj);}catch(e){var mm=cj.match(/\{[\s\S]*\}/);pd=mm?JSON.parse(mm[0]):{slides:[]};}
-    clearInterval(iv);btn.innerHTML='📊 Generando .pptx...';
-    var pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';
-    (pd.slides||[]).forEach(function(s,i){
-      var slide=pptx.addSlide(),isDark=i%2===0;
-      slide.background={color:isDark?'1E2A3A':'F8FAFF'};
-      slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.12,h:'100%',fill:{color:'3B7DD8'},line:{type:'none'}});
-      slide.addText('CFO.AI · Slide '+(i+1)+' / '+(pd.slides.length),{x:0.22,y:0.15,w:12,h:0.3,fontSize:9,color:isDark?'FFFFFF':'8A9BB5',transparency:40});
-      slide.addText(s.titulo||'',{x:0.22,y:0.55,w:12,h:1.0,fontSize:30,bold:true,color:isDark?'FFFFFF':'1E2A3A',fontFace:'Segoe UI'});
-      slide.addText(s.subtitulo||'',{x:0.22,y:1.5,w:12,h:0.5,fontSize:13,color:isDark?'A0B4C8':'6B7E96',fontFace:'Segoe UI'});
-      (s.puntos||[]).forEach(function(p,j){var yp=2.1+j*0.82;slide.addShape(pptx.ShapeType.rect,{x:0.22,y:yp,w:12.5,h:0.68,fill:{color:isDark?'2A3A4E':'EBF3FD'},line:{color:isDark?'3B7DD8':'C8DFF6',pt:1},rectRadius:0.05});slide.addText('  '+p,{x:0.32,y:yp+0.04,w:12.2,h:0.6,fontSize:12,color:isDark?'D0E4F7':'1E2A3A',fontFace:'Segoe UI',valign:'middle'});});
+  btn.innerHTML='⏳ Generando...'; btn.disabled=true;
+
+  try {
+    var d    = S.dashData || {};
+    var m    = calcMetrics(S.sheets, S.yellowCols);
+    var kpis = d.kpis || [];
+    var titulo = d.titulo || 'Negocio';
+    var periodo = m.periodoReal || d.periodo || '';
+
+    // ── Colores de marca ──
+    var C = { dark:'1E2A3A', blue:'3B7DD8', lightBg:'EEF6FF', white:'FFFFFF',
+              muted:'6B7E96', green:'059669', red:'DC2626',
+              colors:['3B7DD8','06B6D4','8B5CF6','10B981','F59E0B','E07070'] };
+
+    var pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE'; // 33.87 x 19.05 cm
+    var W = 33.87, H = 19.05;
+
+    var slide = pptx.addSlide();
+
+    // ── FONDO ──
+    slide.background = { color: C.lightBg };
+
+    // Barra superior oscura
+    slide.addShape(pptx.ShapeType.rect, { x:0, y:0, w:W, h:2.2, fill:{color:C.dark}, line:{type:'none'} });
+
+    // Acento azul izquierdo
+    slide.addShape(pptx.ShapeType.rect, { x:0, y:0, w:0.35, h:H, fill:{color:C.blue}, line:{type:'none'} });
+
+    // ── HEADER ──
+    slide.addText(titulo, { x:0.6, y:0.22, w:20, h:0.9, fontSize:28, bold:true, color:C.white, fontFace:'Segoe UI' });
+    slide.addText(periodo + '  ·  Generado por CFO.AI', { x:0.6, y:1.1, w:22, h:0.5, fontSize:11, color:'94A3B8', fontFace:'Segoe UI' });
+
+    // ── KPIs (4 tarjetas en fila) ──
+    var kpiData = kpis.slice(0,4);
+    if(!kpiData.length && m.totalVentas>0){
+      kpiData=[
+        {label:'Ventas Totales', valor:fmtN(m.totalVentas), sub: m.nTrans+' transacciones', trend:'up'},
+        {label:'Ticket Medio',   valor:fmtN(m.ticketMed),   sub:'por operación',             trend:'neu'},
+        {label:'Total Compras',  valor:fmtN(m.totalCompras), sub:'período',                   trend:'neu'},
+        {label:'Valor Stock',    valor:fmtN(m.totalStock),   sub:'inventario',                trend:'neu'}
+      ];
+    }
+
+    var kW=7.4, kH=2.8, kY=2.5, kGap=0.35, kX0=0.55;
+    kpiData.forEach(function(k,i){
+      var x = kX0 + i*(kW+kGap);
+      // Tarjeta
+      slide.addShape(pptx.ShapeType.rect,{x:x,y:kY,w:kW,h:kH,fill:{color:C.white},line:{color:'E2E8F0',pt:1},rectRadius:0.12});
+      // Label
+      slide.addText((k.label||'').toUpperCase(),{x:x+0.3,y:kY+0.28,w:kW-0.6,h:0.4,fontSize:8,bold:true,color:C.muted,fontFace:'Segoe UI',charSpacing:1.5});
+      // Valor
+      slide.addText(k.valor||'',{x:x+0.3,y:kY+0.7,w:kW-0.6,h:1.1,fontSize:28,bold:true,color:C.dark,fontFace:'Segoe UI'});
+      // Sub
+      var subColor = k.trend==='up'?C.green : k.trend==='down'?C.red : C.muted;
+      slide.addText(k.sub||'',{x:x+0.3,y:kY+1.85,w:kW-0.6,h:0.5,fontSize:10,color:subColor,fontFace:'Segoe UI'});
+      // Línea inferior color
+      slide.addShape(pptx.ShapeType.rect,{x:x,y:kY+kH-0.12,w:kW,h:0.12,fill:{color:C.blue},line:{type:'none'},rectRadius:0});
     });
-    await pptx.writeFile({fileName:'CFO-AI-'+((d.titulo||'reporte')).toLowerCase().replace(/[ ]+/g,'-')+'.pptx'});
-    btn.innerHTML=orig;btn.disabled=false;
-  }catch(e){clearInterval(iv);btn.innerHTML=orig;btn.disabled=false;alert('Error: '+e.message);}
+
+    // ── GRÁFICO DE BARRAS — Ventas mensuales ──
+    var byMes = m.byMes;
+    var mesKeys = Object.keys(byMes);
+    var chartX=0.55, chartY=6.1, chartW=18.5, chartH=7.0;
+
+    if(mesKeys.length > 0){
+      var barData = [{
+        name:'Ventas',
+        labels: mesKeys,
+        values: mesKeys.map(function(k){ return Math.round(byMes[k]); })
+      }];
+
+      slide.addChart(pptx.ChartType.bar, barData, {
+        x:chartX, y:chartY, w:chartW, h:chartH,
+        chartColors:[C.blue],
+        barGrouping:'clustered',
+        dataLabelFontSize:8,
+        showValue:true,
+        dataLabelColor:C.muted,
+        dataLabelFontBold:false,
+        catAxisLabelColor:C.muted,
+        catAxisLabelFontSize:9,
+        valAxisLabelColor:C.muted,
+        valAxisLabelFontSize:9,
+        valAxisLineColor:'E2E8F0',
+        catAxisLineColor:'E2E8F0',
+        plotAreaBorderColor:'E2E8F0',
+        showLegend:false,
+        border:{pt:0},
+        fill:C.lightBg,
+        chartArea:{fill:{color:C.lightBg}},
+        plotArea:{fill:{color:C.white}},
+        title:'Evolución de Ventas',
+        titleFontSize:11,
+        titleColor:C.dark,
+        titleFontBold:true
+      });
+    }
+
+    // ── GRÁFICO DE TORTA — Composición de ventas por categoría ──
+    var pieX=20.2, pieY=6.1, pieW=13.0, pieH=7.0;
+
+    if(m.byCat && m.byCat.length > 0){
+      // Top 4 + Others
+      var topCats = m.byCat.slice(0,4);
+      var othersVal = m.byCat.slice(4).reduce(function(a,b){return a+b[1];},0);
+      var pieLabels = topCats.map(function(c){return c[0];});
+      var pieVals   = topCats.map(function(c){return Math.round(c[1]);});
+      if(othersVal > 0){ pieLabels.push('Otros'); pieVals.push(Math.round(othersVal)); }
+
+      var pieData = [{ name:'Composición', labels:pieLabels, values:pieVals }];
+
+      slide.addChart(pptx.ChartType.pie, pieData, {
+        x:pieX, y:pieY, w:pieW, h:pieH,
+        chartColors: C.colors,
+        dataLabelFontSize:9,
+        dataLabelColor:C.white,
+        dataLabelFontBold:true,
+        showPercent:true,
+        showValue:false,
+        showLegend:true,
+        legendPos:'b',
+        legendFontSize:9,
+        legendColor:C.muted,
+        border:{pt:0},
+        fill:C.lightBg,
+        chartArea:{fill:{color:C.lightBg}},
+        title:'Composición de Ventas',
+        titleFontSize:11,
+        titleColor:C.dark,
+        titleFontBold:true
+      });
+    }
+
+    // ── FOOTER ──
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:H-0.55,w:W,h:0.55,fill:{color:C.dark},line:{type:'none'}});
+    slide.addText('CFO.AI  ·  '+titulo+'  ·  '+periodo,{x:0.6,y:H-0.48,w:W-1.2,h:0.38,fontSize:9,color:'94A3B8',fontFace:'Segoe UI',align:'left'});
+    slide.addText('Confidencial',{x:0.6,y:H-0.48,w:W-1.2,h:0.38,fontSize:9,color:'94A3B8',fontFace:'Segoe UI',align:'right'});
+
+    var nombre = titulo.toLowerCase().replace(/[ ]+/g,'-');
+    await pptx.writeFile({fileName:'CFO-AI-'+nombre+'.pptx'});
+    btn.innerHTML=orig; btn.disabled=false;
+
+  } catch(e){
+    btn.innerHTML=orig; btn.disabled=false;
+    alert('Error al generar PPT: '+e.message);
+    console.error(e);
+  }
 }
+
+function fmtN(v){
+  if(!v||isNaN(v))return '$0';
+  if(v>=1e9)return '$'+(v/1e9).toFixed(1)+'B';
+  if(v>=1e6)return '$'+(v/1e6).toFixed(1)+'M';
+  if(v>=1e3)return '$'+(v/1e3).toFixed(0)+'K';
+  return '$'+v.toFixed(0);
+}
+
 
 async function genMercado(){
   var btn=document.getElementById('btn-mercado'),orig=btn.innerHTML;
