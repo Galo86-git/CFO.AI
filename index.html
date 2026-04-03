@@ -6,6 +6,7 @@
 <title>CFO.AI — Demo</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 :root {
   --bg:      #F8FAFF;
@@ -196,8 +197,11 @@ tr:last-child td{border-bottom:none;}
       <div class="dash-meta" id="dash-meta"></div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <button class="btn-reporte" id="btn-reporte" onclick="generarReporte()">📄 Generar reporte de mercado</button>
       <button class="btn-reset" onclick="resetAll()">← Analizar otro archivo</button>
+      <button class="btn-reporte" id="btn-reporte" onclick="generarReporte()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Generar reporte PDF
+      </button>
     </div>
   </div>
   <div id="dash-content"></div>
@@ -537,8 +541,9 @@ async function generarReporte() {
   const d = window._dashData;
   if (!d) return;
 
+  const iconSVGload = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
   btn.disabled = true;
-  btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">⟳</span> Generando reporte...';
+  btn.innerHTML = '<span style="display:inline-block;animation:spin 0.8s linear infinite">⟳</span> Analizando mercado...';
 
   const prompt = `Sos un consultor de negocios senior especializado en análisis de mercado para PyMEs latinoamericanas.
 
@@ -569,6 +574,8 @@ IMPORTANTE:
 - Usá la paleta de colores: azul #3B7DD8, navy #1E2A3A, gris #6B7E96, fondo blanco
 - Incluí el nombre CFO.AI como generador del reporte y la fecha actual`;
 
+  const iconSVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
+
   try {
     const response = await fetch('/api/claude', {
       method: 'POST',
@@ -579,19 +586,43 @@ IMPORTANTE:
     if (!response.ok) throw new Error('Error al generar el reporte');
 
     const data = await response.json();
-    const html = data.content?.[0]?.text || '';
+    const htmlContent = data.content?.[0]?.text || '';
 
-    // Abrir en nueva pestaña
-    const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    // Limpiar posible markdown del HTML
+    const cleanHtml = htmlContent.replace(/```html|```/g,'').trim();
+
+    // Crear elemento temporal para renderizar
+    btn.innerHTML = iconSVG + ' Preparando PDF...';
+    
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;background:white;';
+    container.innerHTML = cleanHtml.includes('<body') 
+      ? cleanHtml.replace(/<html[^>]*>|<\/html>|<!DOCTYPE[^>]*>/gi,'')
+      : cleanHtml;
+    document.body.appendChild(container);
+
+    const nombreArchivo = (d.titulo || 'reporte').toLowerCase().replace(/\s+/g,'-');
+    
+    await html2pdf()
+      .set({
+        margin:        [12, 12, 12, 12],
+        filename:      `CFO-AI-Reporte-${nombreArchivo}.pdf`,
+        image:         { type: 'jpeg', quality: 0.95 },
+        html2canvas:   { scale: 2, useCORS: true, logging: false },
+        jsPDF:         { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:     { mode: ['avoid-all', 'css', 'legacy'] }
+      })
+      .from(container)
+      .save();
+
+    document.body.removeChild(container);
 
     btn.disabled = false;
-    btn.innerHTML = '📄 Generar reporte de mercado';
+    btn.innerHTML = iconSVG + ' Generar reporte PDF';
 
   } catch(err) {
     btn.disabled = false;
-    btn.innerHTML = '📄 Generar reporte de mercado';
+    btn.innerHTML = iconSVG + ' Generar reporte PDF';
     alert('Error al generar el reporte: ' + err.message);
   }
 }
