@@ -622,7 +622,7 @@ async function toggleResumen(){
   var d=S.dashData||{};
   var kStr=(d.kpis||[]).map(function(k){return k.label+': '+k.valor;}).join(', ');
   var iStr=(d.insights||[]).map(function(i){return i.texto;}).join('. ');
-  var prompt='Resumen ejecutivo 4-5 oraciones en español para compartir con contador/socio. Sin bullets, prosa. Negocio: '+(d.titulo||'')+' ('+(d.tipo_negocio||'')+', '+(d.periodo||'')+''). KPIs: '+kStr+'. Situación: '+iStr+'. Terminá con: "Análisis generado por CFO.AI."';
+  var prompt='Resumen ejecutivo 4-5 oraciones en espanol para compartir con contador/socio. Sin bullets, prosa. Negocio: '+(d.titulo||'')+' ('+(d.tipo_negocio||'')+', '+(d.periodo||'')+('). KPIs: ')+kStr+'. Situacion: '+iStr+'. Termina con: Analisis generado por CFO.AI.';
   try{var texto=await callClaude(prompt,[],400);S.resumenTexto=texto;S.resumenDone=true;var body=document.getElementById('resumen-body');body.innerHTML='<p>'+texto.replace(/[*][*](.*?)[*][*]/g,'<strong>$1</strong>').split('\n').filter(function(l){return l.trim();}).join('</p><p>')+'</p>';body.dataset.texto=texto;}
   catch(e){document.getElementById('resumen-body').innerHTML='<p style="color:#B45454">Error. Intentá de nuevo.</p>';}
 }
@@ -706,7 +706,7 @@ async function sendChat(){
   S.chatHistory.push({role:'user',content:text});showTyping();
   try{
     var d=S.dashData||{};
-    var ctx='Sos CFO Assistant para '+(d.titulo||'un negocio')+' ('+(d.tipo_negocio||'')+', '+(d.periodo||'')+''). KPIs: '+(d.kpis||[]).map(function(k){return k.label+': '+k.valor;}).join(', ')+'. Respondé en español, conciso, máximo 3 párrafos. Usa **negrita** para datos clave.';
+    var ctx='Sos CFO Assistant para '+(d.titulo||'un negocio')+' ('+(d.tipo_negocio||'')+', '+(d.periodo||'')+('). KPIs:'+ '+(d.kpis||[]).map(function(k){return k.label+': '+k.valor;}).join(', ')+'. Respondé en español, conciso, máximo 3 párrafos. Usa **negrita** para datos clave.';
     var firstMsg=S.chatHistory.length===1?ctx+' Pregunta: '+text:text;
     var reply=await callClaude(firstMsg,S.chatHistory.slice(0,-1),600);
     hideTyping();S.chatHistory.push({role:'assistant',content:reply});addBotMsg(reply);
