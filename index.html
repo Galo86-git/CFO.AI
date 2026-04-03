@@ -6,7 +6,6 @@
 <title>CFO.AI — Demo</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 :root {
   --bg:      #F8FAFF;
@@ -556,9 +555,22 @@ async function generarReporte() {
   const d = window._dashData;
   if (!d) return;
 
-  const iconSVGload = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
+  const iconSVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
+
+  const frases = [
+    '🔍 Analizando el mercado...',
+    '🏪 Buscando competidores...',
+    '📊 Calculando tendencias de precios...',
+    '🏗️ Evaluando oportunidades del sector...',
+    '✍️ Redactando el reporte...'
+  ];
+  let faseIdx = 0;
   btn.disabled = true;
-  btn.innerHTML = '<span style="display:inline-block;animation:spin 0.8s linear infinite">⟳</span> Analizando mercado...';
+  btn.innerHTML = frases[0];
+  const interval = setInterval(() => {
+    faseIdx = (faseIdx + 1) % frases.length;
+    btn.innerHTML = frases[faseIdx];
+  }, 1800);
 
   const prompt = `Sos un consultor de negocios senior especializado en análisis de mercado para PyMEs latinoamericanas.
 
@@ -589,8 +601,6 @@ IMPORTANTE:
 - Usá la paleta de colores: azul #3B7DD8, navy #1E2A3A, gris #6B7E96, fondo blanco
 - Incluí el nombre CFO.AI como generador del reporte y la fecha actual`;
 
-  const iconSVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
-
   try {
     const response = await fetch('/api/claude', {
       method: 'POST',
@@ -598,47 +608,50 @@ IMPORTANTE:
       body: JSON.stringify({ prompt, max_tokens: 4000 })
     });
 
+    clearInterval(interval);
+
     if (!response.ok) throw new Error('Error al generar el reporte');
 
     const data = await response.json();
-    const htmlContent = data.content?.[0]?.text || '';
+    let htmlContent = data.content?.[0]?.text || '';
 
-    // Limpiar posible markdown del HTML
-    const cleanHtml = htmlContent.replace(/```html|```/g,'').trim();
+    // Limpiar markdown si Claude lo envolvió
+    htmlContent = htmlContent.replace(/```html/gi,'').replace(/```/g,'').trim();
 
-    // Crear elemento temporal para renderizar
-    btn.innerHTML = iconSVG + ' Preparando PDF...';
-    
-    const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;background:white;';
-    container.innerHTML = cleanHtml.includes('<body') 
-      ? cleanHtml.replace(/<html[^>]*>|<\/html>|<!DOCTYPE[^>]*>/gi,'')
-      : cleanHtml;
-    document.body.appendChild(container);
+    // Si no tiene DOCTYPE, envolver en HTML completo
+    if (!htmlContent.includes('<!DOCTYPE') && !htmlContent.includes('<html')) {
+      htmlContent = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+        <style>body{font-family:Arial,sans-serif;color:#1E2A3A;padding:40px;max-width:800px;margin:0 auto;}
+        h1{color:#1E2A3A;border-bottom:3px solid #3B7DD8;padding-bottom:10px;}
+        h2{color:#3B7DD8;margin-top:28px;}
+        p{line-height:1.7;color:#444;}
+        ul{padding-left:20px;} li{margin-bottom:8px;line-height:1.6;}
+        .kpi-row{display:flex;gap:16px;margin:16px 0;}
+        .kpi{background:#F0F7FF;border-left:4px solid #3B7DD8;padding:12px 16px;border-radius:6px;flex:1;}
+        table{width:100%;border-collapse:collapse;margin:16px 0;}
+        th{background:#1E2A3A;color:#fff;padding:10px;text-align:left;}
+        td{padding:9px 10px;border-bottom:1px solid #E8EEF8;}
+        @media print{body{padding:20px;} h2{page-break-before:always;} h2:first-of-type{page-break-before:avoid;}}
+        </style></head><body>${htmlContent}</body></html>`;
+    }
 
-    const nombreArchivo = (d.titulo || 'reporte').toLowerCase().replace(/\s+/g,'-');
-    
-    await html2pdf()
-      .set({
-        margin:        [12, 12, 12, 12],
-        filename:      `CFO-AI-Reporte-${nombreArchivo}.pdf`,
-        image:         { type: 'jpeg', quality: 0.95 },
-        html2canvas:   { scale: 2, useCORS: true, logging: false },
-        jsPDF:         { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:     { mode: ['avoid-all', 'css', 'legacy'] }
-      })
-      .from(container)
-      .save();
-
-    document.body.removeChild(container);
+    // Abrir en nueva pestaña con instrucción de imprimir
+    const blob = new Blob([htmlContent], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    // Auto-print después de cargar
+    if (win) {
+      win.onload = () => setTimeout(() => win.print(), 800);
+    }
 
     btn.disabled = false;
-    btn.innerHTML = iconSVG + ' Generar reporte PDF';
+    btn.innerHTML = iconSVG + ' Reporte de mercado';
 
   } catch(err) {
+    clearInterval(interval);
     btn.disabled = false;
-    btn.innerHTML = iconSVG + ' Generar reporte PDF';
-    alert('Error al generar el reporte: ' + err.message);
+    btn.innerHTML = iconSVG + ' Reporte de mercado';
+    alert('Error: ' + err.message);
   }
 }
 </script>
