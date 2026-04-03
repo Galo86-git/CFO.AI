@@ -689,6 +689,11 @@ function calcMargenPorGrupo(metrics, dimKey) {
     }
   }
 
+  console.log('[CFO.AI] Stock cols:', stockKey ? Object.keys((S.sheets[stockKey]||[{}])[0]) : 'no stock');
+  console.log('[CFO.AI] Compras cols:', comprasKey ? Object.keys((S.sheets[comprasKey]||[{}])[0]) : 'no compras');
+  console.log('[CFO.AI] pCostCol detectado:', stockKey ? findCol(Object.keys((S.sheets[stockKey]||[{}])[0]),[/precio.comp|costo.unit|p\.?compra|precio.*compra/i]) : 'N/A');
+  console.log('[CFO.AI] cpCostCol detectado:', comprasKey ? findCol(Object.keys((S.sheets[comprasKey]||[{}])[0]),[/precio.unit|precio.*venta|p\.?unit/i]) : 'N/A');
+  console.log('[CFO.AI] costoPorProducto muestra:', Object.entries(costoPorProducto).slice(0,3));
   var hayCostosUnitarios = Object.keys(costoPorProducto).length > 0;
 
 
