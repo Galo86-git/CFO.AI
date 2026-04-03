@@ -393,14 +393,26 @@ function renderDashboard(d, filename) {
   document.getElementById('dash-meta').textContent = `${d.tipo_negocio || ''} · ${d.periodo || ''} · Generado por CFO.AI`;
 
   // Tabs
-  // Buscar keys de forma flexible — Claude puede nombrarlas diferente
-  const findKey = (obj, keywords) => Object.keys(obj).find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
-  
-  const keyKpis  = findKey(d, ['kpi','general','resumen','ventas']) || 'tab_kpis';
-  const keyProv  = findKey(d, ['provee','compra','supplier']) || 'tab_proveedores';
-  const keyCtas  = findKey(d, ['cta','corriente','cliente','cobro']) || 'tab_ctas_ctes';
-  console.log('[CFO.AI] Tab keys → KPIs:', keyKpis, '| Proveedores:', keyProv, '| Ctas:', keyCtas);
-  console.log('[CFO.AI] Datos KPIs:', !!d[keyKpis], '| Proveedores:', !!d[keyProv], '| Ctas:', !!d[keyCtas]);
+  // Buscar keys de forma exhaustiva
+  const allKeys = Object.keys(d);
+  console.log('[CFO.AI] Todas las keys:', allKeys);
+
+  // Búsqueda exacta primero, luego parcial
+  const findKey = (exactas, parciales) => {
+    const exactMatch = exactas.find(k => allKeys.includes(k));
+    if (exactMatch) return exactMatch;
+    return allKeys.find(k => parciales.some(kw => k.toLowerCase().includes(kw)));
+  };
+
+  const keyKpis = findKey(['tab_kpis','tab_kpi'], ['kpi','general','resumen','ventas']) || allKeys[3];
+  const keyProv = findKey(['tab_proveedores','tab_proveedor'], ['provee','compra','supplier']) || allKeys[4];
+  const keyCtas = findKey(['tab_ctas_ctes','tab_cuentas','tab_clientes'], ['cta','corriente','cliente','cobro']) || allKeys[5];
+
+  console.log('[CFO.AI] Keys encontradas → KPIs:', keyKpis, '| Proveedores:', keyProv, '| Ctas:', keyCtas);
+  console.log('[CFO.AI] Datos → KPIs:', !!d[keyKpis], '| Proveedores:', !!d[keyProv], '| Ctas:', !!d[keyCtas]);
+  console.log('[CFO.AI] Valor keyProv:', d[keyProv]);
+  console.log('[CFO.AI] Valor keyCtas:', d[keyCtas]);
+  console.log('[CFO.AI] JSON completo:', JSON.stringify(d).slice(0,500));
 
   const tabs = [
     { data: d[keyKpis],  id: 'kpis',        label: '📊 KPIs generales' },
