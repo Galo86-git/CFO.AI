@@ -528,9 +528,19 @@ function buildSummary(sheets, filename) {
   const sheetNames = Object.keys(sheets);
   let out = 'Archivo: ' + filename + '\nHojas: ' + sheetNames.join(', ') + '\n\n';
 
-  // Función helper para detectar columna numérica de total/importe
+  // Detectar columna numérica — buscar primero match exacto de palabras clave de importe
   function findNumCol(cols, keywords) {
-    return cols.find(c => keywords.some(k => c.toLowerCase().includes(k)));
+    // Primero buscar columnas que claramente son numéricas (contienen $ o €)
+    const moneyCol = cols.find(c => (c.includes('($)') || c.includes('(€)') || c.includes('$') || c.includes('€')) 
+      && keywords.some(k => c.toLowerCase().includes(k)));
+    if (moneyCol) return moneyCol;
+    // Luego buscar por keyword pero evitar columnas de texto obvias
+    const skipWords = ['tipo','forma','estado','nombre','razon','razón','descripcion','descripción','codigo','código','cuit','email','telefono','dirección','direccion','patente','proveedor','cliente','vendedor','obra'];
+    return cols.find(c => {
+      const cl = c.toLowerCase();
+      if (skipWords.some(s => cl.startsWith(s))) return false;
+      return keywords.some(k => cl.includes(k));
+    });
   }
 
   // Función para sumar una columna numérica
