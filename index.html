@@ -478,11 +478,11 @@ async function handleFile(file) {
   try {
     // Leer archivo
     await stepDone(0);
-    const data = await readFile(file);
+    const {sheets, yellowCols} = await readFile(file);
 
     await stepDone(1);
-    // Preparar resumen de datos para la IA (máximo ~4000 chars)
-    const summary = buildSummary(data, file.name);
+    // Preparar resumen de datos para la IA
+    const summary = buildSummary(sheets, file.name, yellowCols);
 
     await stepDone(2);
     // Llamar a Claude API
@@ -508,14 +508,37 @@ function readFile(file) {
     const reader = new FileReader();
     reader.onload = e => {
       try {
-        const wb = XLSX.read(e.target.result, {type:'binary', cellDates:true, cellNF:false, cellText:false});
+        const wb = XLSX.read(e.target.result, {type:'binary', cellDates:true, cellNF:false, cellText:false, cellStyles:true});
         const sheets = {};
+        const yellowCols = {}; // { sheetName: 'nombreColumna' }
+
         wb.SheetNames.forEach(name => {
           const ws = wb.Sheets[name];
           const json = XLSX.utils.sheet_to_json(ws, {defval:''});
-          if (json.length > 0) sheets[name] = json;
+          if (json.length === 0) return;
+          sheets[name] = json;
+
+          // Detectar columna amarilla en la fila de headers (fila 1)
+          // Amarillo estándar Excel = FFFF00, también variantes como FFFF99, FFD966
+          const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+          for (let col = range.s.c; col <= range.e.c; col++) {
+            const headerCell = ws[XLSX.utils.encode_cell({r: 0, c: col})];
+            if (!headerCell) continue;
+            const fill = headerCell.s?.fgColor?.rgb || headerCell.s?.bgColor?.rgb || '';
+            const isYellow = /^FF(FF[0-9A-F]{2}|D9[0-9A-F]{2}|C[0-9A-F]{3})/i.test(fill) 
+                          || fill.toUpperCase().startsWith('FFFF')
+                          || fill.toUpperCase() === 'FFFF00'
+                          || fill.toUpperCase() === 'FFD966'
+                          || fill.toUpperCase() === 'FFFF99';
+            if (isYellow && headerCell.v) {
+              yellowCols[name] = String(headerCell.v);
+              console.log('[CFO.AI] Columna amarilla detectada en', name, ':', headerCell.v, '| color:', fill);
+              break;
+            }
+          }
         });
-        res(sheets);
+
+        res({sheets, yellowCols});
       } catch(err) { rej(new Error('No se pudo leer el archivo. Asegurate que sea .xlsx o .csv válido.')); }
     };
     reader.onerror = () => rej(new Error('Error al leer el archivo.'));
@@ -524,7 +547,7 @@ function readFile(file) {
 }
 
 // ── BUILD SUMMARY ──
-function buildSummary(sheets, filename) {
+function buildSummary(sheets, filename, yellowCols = {}) {
   const sheetNames = Object.keys(sheets);
   let out = 'Archivo: ' + filename + '\nHojas: ' + sheetNames.join(', ') + '\n\n';
 
@@ -634,7 +657,9 @@ function buildSummary(sheets, filename) {
     console.log('[CFO.AI] totalCol detectado:', findNumCol(cols, ['total','importe','monto','amount','factura','venta','precio','subtotal','valor','ingreso','revenue','sales','neto','bruto','($)','(€)']));
 
     // Detectar columna de total/importe
-    const totalCol = findNumCol(cols, ['total','importe','monto','amount','factura','venta','precio','subtotal','valor','ingreso','revenue','sales','neto','bruto','($)','(€)']);
+    // Columna amarilla = prioridad absoluta para el total
+    const totalCol = yellowCols[name] || findNumCol(cols, ['total','importe','monto','amount','factura','venta','precio','subtotal','valor','ingreso','revenue','sales','neto','bruto','($)','(€)']);
+    if (yellowCols[name]) console.log('[CFO.AI] Usando columna amarilla:', yellowCols[name]);
     const qtyCol   = findNumCol(cols, ['cantidad','qty','quantity','unidad']);
     const catCol   = findNumCol(cols, ['categoria','categoría','category','tipo','type','producto','rubro','familia']);
     const clienteCol = findNumCol(cols, ['cliente','client','razon','razón','nombre']);
