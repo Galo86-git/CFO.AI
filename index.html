@@ -648,24 +648,139 @@ function drillDimClick(btn){
   document.getElementById('drill-dim-label').textContent=S.drillConfig.metrics.dims.find(function(d){return d.key===key;}).label;
   renderDrillBars(key);
 }
+function calcCostoProrrateado(metrics, filtroKey, filtroVal, dimKey) {
+  // Si hay datos de compras con fecha, prorratear costos del mismo mes
+  var totalVentas = metrics.totalVentas;
+  var totalCostos = metrics.totalCompras > 0 ? metrics.totalCompras : metrics.totalCostos;
+  if (!totalCostos || !totalVentas) return null; // sin datos de costos
+
+  // Calcular venta de este grupo
+  var dim = metrics.dims.find(function(d){return d.key===dimKey;});
+  if (!dim) return null;
+  var grupoRows = metrics.rows.filter(function(r){
+    var k = dimKey==='mes'?(extractMes(r[dim.col])||'Sin fecha'):(String(r[dim.col]||'').trim()||'Sin datos');
+    return k === filtroVal;
+  });
+  var grupoVenta = grupoRows.reduce(function(a,r){return a+(parseFloat(String(r[metrics.valCol]||'').replace(/[^0-9.-]/g,''))||0);},0);
+  if (!grupoVenta) return null;
+
+  // Si filtramos por mes, intentar usar costos del mismo mes
+  var costoGrupo = 0;
+  if (dimKey === 'mes' && metrics.totalCostos > 0) {
+    // Buscar hoja de costos con ese mes
+    var sheets = S.sheets;
+    var costKey = Object.keys(sheets||{}).find(function(k){return /costo|cost|gasto|operativ/i.test(k);});
+    if (costKey) {
+      var cr = sheets[costKey], cc = Object.keys(cr[0]||{});
+      var fCol = findCol(cc,[/fecha|date|mes/i]);
+      var vCol = findCol(cc,[/total.cost|total.mes|total.gasto/i])||findTotalCol(cc,null);
+      if (fCol && vCol) {
+        var mesRows = cr.filter(function(r){return extractMes(r[fCol])===filtroVal;});
+        costoGrupo = mesRows.reduce(function(a,r){return a+(parseFloat(String(r[vCol]||'').replace(/[^0-9.-]/g,''))||0);},0);
+      }
+    }
+  }
+
+  // Fallback: prorratear costos totales por participación de venta
+  if (!costoGrupo) {
+    var participacion = grupoVenta / totalVentas;
+    costoGrupo = totalCostos * participacion;
+  }
+
+  var margen = grupoVenta > 0 ? ((grupoVenta - costoGrupo) / grupoVenta * 100) : null;
+  return { costoGrupo: costoGrupo, margen: margen, grupoVenta: grupoVenta };
+}
+
 function renderDrillBars(dk){
   var metrics=S.drillConfig.metrics,dim=metrics.dims.find(function(d){return d.key===dk;});if(!dim)return;
   var map={};
-  metrics.rows.forEach(function(r){var k=dk==='mes'?(extractMes(r[dim.col])||'Sin fecha'):(String(r[dim.col]||'').trim()||'Sin datos');var v=parseFloat(String(r[metrics.valCol]||'').replace(/[^0-9.-]/g,''))||0;map[k]=(map[k]||0)+v;});
+  metrics.rows.forEach(function(r){
+    var k=dk==='mes'?(extractMes(r[dim.col])||'Sin fecha'):(String(r[dim.col]||'').trim()||'Sin datos');
+    var v=parseFloat(String(r[metrics.valCol]||'').replace(/[^0-9.-]/g,''))||0;
+    map[k]=(map[k]||0)+v;
+  });
   var sorted=Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
   var total=sorted.reduce(function(a,b){return a+b[1];},0),maxVal=sorted[0]?sorted[0][1]:1;
+  var hayCostos=(metrics.totalCompras>0||metrics.totalCostos>0);
   S.drillLabels=sorted.map(function(s){return s[0];});
-  document.getElementById('drill-bars').innerHTML=sorted.map(function(e,i){var label=e[0],val=e[1],pct=total>0?((val/total)*100).toFixed(1):'0',bw=Math.round(val/maxVal*100),col=COLORS[i%COLORS.length];return '<div class="dbar-row" data-idx="'+i+'" onclick="dbarClick(this)"><div class="dbar-top"><div class="dbar-lbl"><span style="width:10px;height:10px;border-radius:3px;background:'+col+';display:inline-block;flex-shrink:0"></span>'+label+'<span class="dbar-arr">▶</span></div><div class="dbar-nums"><span class="dbar-val">'+fmt(val)+'</span><span class="dbar-pct">'+pct+'%</span></div></div><div class="dbar-bg"><div class="dbar-fill" style="width:'+bw+'%;background:'+col+'"></div></div><div class="dbar-detail" id="dd-'+i+'"></div></div>';}).join('');
+  document.getElementById('drill-bars').innerHTML=sorted.map(function(e,i){
+    var label=e[0],val=e[1];
+    var pct=total>0?((val/total)*100).toFixed(1):'0';
+    var bw=Math.round(val/maxVal*100);
+    var col=COLORS[i%COLORS.length];
+    // Calcular margen prorrateado
+    var margenHtml='';
+    if(hayCostos){
+      var cData=calcCostoProrrateado(metrics,dk,label,dk);
+      if(cData&&cData.margen!==null){
+        var mg=cData.margen.toFixed(1);
+        var mgCol=cData.margen<20?'#DC2626':cData.margen<35?'#D97706':'#059669';
+        margenHtml='<span style="font-size:11px;font-weight:700;color:'+mgCol+';background:'+mgCol+'18;padding:2px 8px;border-radius:100px;margin-left:8px">'+mg+'% mg</span>';
+      }
+    }
+    return '<div class="dbar-row" data-idx="'+i+'" onclick="dbarClick(this)">'
+      +'<div class="dbar-top">'
+      +'<div class="dbar-lbl"><span style="width:10px;height:10px;border-radius:3px;background:'+col+';display:inline-block;flex-shrink:0"></span>'+label+'<span class="dbar-arr">▶</span></div>'
+      +'<div class="dbar-nums"><span class="dbar-val">'+fmt(val)+'</span>'+margenHtml+'<span class="dbar-pct" style="margin-left:6px">'+pct+'%</span></div>'
+      +'</div>'
+      +'<div class="dbar-bg"><div class="dbar-fill" style="width:'+bw+'%;background:'+col+'"></div></div>'
+      +'<div class="dbar-detail" id="dd-'+i+'"></div>'
+      +'</div>';
+  }).join('');
 }
 function dbarClick(row){
   var idx=parseInt(row.getAttribute('data-idx')),was=row.classList.contains('sel');
-  document.querySelectorAll('.dbar-row').forEach(function(r){r.classList.remove('sel');});if(was)return;row.classList.add('sel');
-  var label=S.drillLabels[idx],metrics=S.drillConfig.metrics,ak=S.drillConfig.activeDim,dim=metrics.dims.find(function(d){return d.key===ak;});
-  var gR=metrics.rows.filter(function(r){var k=ak==='mes'?(extractMes(r[dim.col])||'Sin fecha'):(String(r[dim.col]||'').trim()||'Sin datos');return k===label;});
+  document.querySelectorAll('.dbar-row').forEach(function(r){r.classList.remove('sel');});
+  if(was)return;
+  row.classList.add('sel');
+  var label=S.drillLabels[idx];
+  var metrics=S.drillConfig.metrics,ak=S.drillConfig.activeDim;
+  var dim=metrics.dims.find(function(d){return d.key===ak;});
+  var gR=metrics.rows.filter(function(r){
+    var k=ak==='mes'?(extractMes(r[dim.col])||'Sin fecha'):(String(r[dim.col]||'').trim()||'Sin datos');
+    return k===label;
+  });
   var total=gR.reduce(function(a,r){return a+(parseFloat(String(r[metrics.valCol]||'').replace(/[^0-9.-]/g,''))||0);},0);
+
+  // Calcular margen
+  var cData=calcCostoProrrateado(metrics,ak,label,ak);
+  var margenHtml='';
+  if(cData&&cData.margen!==null){
+    var mg=cData.margen.toFixed(1);
+    var mgCol=cData.margen<20?'#DC2626':cData.margen<35?'#D97706':'#059669';
+    margenHtml='<div class="detail-item"><div class="detail-lbl">Margen estimado</div><div class="detail-val" style="color:'+mgCol+'">'+mg+'%</div></div>'
+      +'<div class="detail-item"><div class="detail-lbl">Costo estimado</div><div class="detail-val">'+fmt(cData.costoGrupo)+'</div></div>';
+  }
+
   var secs=metrics.dims.filter(function(d){return d.key!==ak;}).slice(0,2);
-  var html='<div class="detail-grid"><div class="detail-item"><div class="detail-lbl">Operaciones</div><div class="detail-val">'+gR.length+'</div></div><div class="detail-item"><div class="detail-lbl">Total</div><div class="detail-val">'+fmt(total)+'</div></div><div class="detail-item"><div class="detail-lbl">Promedio</div><div class="detail-val">'+(gR.length>0?fmt(total/gR.length):'$0')+'</div></div></div>';
-  secs.forEach(function(sd){var sm={};gR.forEach(function(r){var k=String(r[sd.col]||'').trim()||'N/D';var v=parseFloat(String(r[metrics.valCol]||'').replace(/[^0-9.-]/g,''))||0;sm[k]=(sm[k]||0)+v;});var top=Object.entries(sm).sort(function(a,b){return b[1]-a[1];}).slice(0,3);html+='<div style="margin-top:8px;font-size:10px;font-weight:700;color:var(--muted-lt);text-transform:uppercase;margin-bottom:5px">Top '+sd.label+'</div><div style="display:flex;flex-direction:column;gap:3px">'+top.map(function(e){return '<div style="display:flex;justify-content:space-between;font-size:12px"><span>'+e[0]+'</span><span style="font-weight:700;color:var(--blue)">'+fmt(e[1])+'</span></div>';}).join('')+'</div>';});
+  var html='<div class="detail-grid">'
+    +'<div class="detail-item"><div class="detail-lbl">Operaciones</div><div class="detail-val">'+gR.length+'</div></div>'
+    +'<div class="detail-item"><div class="detail-lbl">Venta Total</div><div class="detail-val">'+fmt(total)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-lbl">Ticket Medio</div><div class="detail-val">'+(gR.length>0?fmt(total/gR.length):'$0')+'</div></div>'
+    +margenHtml
+    +'</div>';
+
+  secs.forEach(function(sd){
+    var sm={};
+    gR.forEach(function(r){
+      var k=String(r[sd.col]||'').trim()||'N/D';
+      var v=parseFloat(String(r[metrics.valCol]||'').replace(/[^0-9.-]/g,''))||0;
+      sm[k]=(sm[k]||0)+v;
+    });
+    var top=Object.entries(sm).sort(function(a,b){return b[1]-a[1];}).slice(0,4);
+    if(!top.length)return;
+    html+='<div style="margin-top:10px;font-size:10px;font-weight:700;color:var(--muted-lt);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Top '+sd.label+'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px">'
+      +top.map(function(e){
+        var pctSec=total>0?((e[1]/total)*100).toFixed(0):'0';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)">'
+          +'<span style="color:var(--ink)">'+e[0]+'</span>'
+          +'<span style="display:flex;gap:8px;align-items:center"><span style="font-weight:700;color:var(--blue)">'+fmt(e[1])+'</span>'
+          +'<span style="font-size:10px;color:var(--muted-lt)">'+pctSec+'%</span></span>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  });
   document.getElementById('dd-'+idx).innerHTML=html;
 }
 
