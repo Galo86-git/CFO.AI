@@ -712,10 +712,10 @@ function calcMetrics(sheets, yellowCols) {
 
   // Período real desde fechas
   let periodoReal = '';
-  if (fechCol && Object.keys(byMes).length > 0) {
-    const mesesKeys = Object.keys(byMes);
-    const primero = mesesKeys[0];
-    const ultimo  = mesesKeys[mesesKeys.length - 1];
+  const meses = Object.keys(byMes);
+  if (fechCol && meses.length > 0) {
+    const primero = meses[0];
+    const ultimo  = meses[meses.length - 1];
     periodoReal = primero === ultimo ? primero : primero + ' – ' + ultimo;
   }
   let periodoComp = null;
