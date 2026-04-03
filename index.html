@@ -435,6 +435,40 @@ tr:last-child td{border-bottom:none;}
 .detail-lbl{font-size:10px;color:#8A9BB5;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.05em;}
 .detail-val{font-size:13px;font-weight:700;color:#1E2A3A;}
 @media(max-width:600px){.detail-grid{grid-template-columns:1fr 1fr;}}
+
+/* ── INSIGHT DETAIL ── */
+.ins-item { position: relative; }
+.ins-link {
+  font-size: 11px; font-weight: 600; color: var(--blue);
+  background: none; border: none; cursor: pointer;
+  padding: 0; margin-left: auto; white-space: nowrap;
+  font-family: var(--font-b); text-decoration: none;
+  display: flex; align-items: center; gap: 4px;
+  flex-shrink: 0; transition: color 0.15s;
+}
+.ins-link:hover { color: #1E55B8; }
+.ins-link .ins-arr { transition: transform 0.2s; font-size: 10px; }
+.ins-link.open .ins-arr { transform: rotate(90deg); }
+.ins-expand {
+  display: none; margin-top: 10px;
+  background: #F0F7FF; border-radius: 8px;
+  padding: 12px 14px; border-left: 3px solid var(--blue);
+  font-size: 12px; color: #3B4A5A; line-height: 1.7;
+}
+.ins-expand.visible { display: block; }
+.ins-expand .exp-loading {
+  display: flex; align-items: center; gap: 8px;
+  color: #8A9BB5; font-size: 12px;
+}
+.ins-expand .exp-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid #D0E4F7; border-top-color: var(--blue);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+.ins-expand p { margin-bottom: 8px; }
+.ins-expand p:last-child { margin-bottom: 0; }
+.ins-expand strong { color: #1E2A3A; }
 </style>
 </head>
 <body>
@@ -889,11 +923,22 @@ function renderTabContent(data) {
   // Gráfico interactivo drill-down (si hay datos crudos)
   html += buildDrillChart();
 
-  // Insights
+  // Insights con detalle expandible
   if (data.insights?.length) {
     html += '<div class="insights-card"><div class="ins-head">🤖 Insights generados por IA</div>';
-    data.insights.forEach(ins => {
-      html += `<div class="ins-item"><div class="ins-icon">${ins.icon}</div><div class="ins-text">${ins.texto}</div></div>`;
+    data.insights.forEach((ins, i) => {
+      html += '<div class="ins-item">'
+        + '<div class="ins-icon">' + ins.icon + '</div>'
+        + '<div style="flex:1">'
+        + '<div class="ins-text">' + ins.texto + '</div>'
+        + '<div class="ins-expand" id="ins-exp-' + i + '">'
+        + '<div class="exp-loading"><div class="exp-spinner"></div> Generando análisis detallado...</div>'
+        + '</div>'
+        + '</div>'
+        + '<button class="ins-link" data-idx="' + i + '" data-texto="' + ins.texto.replace(/"/g,"&quot;") + '" onclick="toggleInsightDetail(this)">'
+        + 'Ver detalle <span class="ins-arr">▶</span>'
+        + '</button>'
+        + '</div>';
     });
     html += '</div>';
   }
@@ -1097,6 +1142,54 @@ function initDrillChart() {
   const cfg = window._drillConfig;
   if (!cfg) return;
   renderDrillBars(cfg.activeDim);
+}
+
+
+// ── INSIGHT DETAIL ──
+async function toggleInsightDetail(btn) {
+  const idx   = btn.getAttribute('data-idx');
+  const texto = btn.getAttribute('data-texto');
+  const panel = document.getElementById('ins-exp-' + idx);
+  const isOpen = btn.classList.contains('open');
+
+  // Toggle
+  btn.classList.toggle('open');
+  panel.classList.toggle('visible');
+
+  // Si ya tiene contenido real (no el spinner), no volver a llamar
+  if (isOpen || panel.dataset.loaded === '1') return;
+
+  // Llamar a Claude para el detalle
+  try {
+    const d = window._dashData || {};
+    const prompt = 'Sos un analista financiero. Explicá este insight de negocio de forma clara y detallada en 3-4 oraciones cortas. '
+      + 'Incluí el impacto concreto, la causa probable y una recomendación accionable. '
+      + 'Contexto del negocio: ' + (d.titulo||'') + ' - ' + (d.tipo_negocio||'') + '. '
+      + 'Insight a explicar: ' + texto
+      + '. Respondé en español, sin listas, en párrafos cortos. Usá **negrita** para los datos clave.';
+
+    const response = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, max_tokens: 300 })
+    });
+
+    const data = await response.json();
+    const reply = data.content?.[0]?.text || 'No se pudo generar el detalle.';
+
+    // Formatear: negrita y párrafos
+    const formatted = reply
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .split('
+').filter(p => p.trim())
+      .map(p => '<p>' + p + '</p>').join('');
+
+    panel.innerHTML = formatted;
+    panel.dataset.loaded = '1';
+
+  } catch(err) {
+    panel.innerHTML = '<p style="color:#B45454">Error al cargar el detalle. Intentá de nuevo.</p>';
+  }
 }
 
 // ── STEPS ANIMATION ──
