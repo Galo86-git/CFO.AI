@@ -691,6 +691,9 @@ function calcMargenPorGrupo(metrics, dimKey) {
   }
 
   var hayCostosUnitarios = Object.keys(costoPorProducto).length > 0;
+  console.log('[CFO.AI] Costos unitarios encontrados:', Object.keys(costoPorProducto).length, '| Muestra:', Object.keys(costoPorProducto).slice(0,3));
+  console.log('[CFO.AI] prodCol:', metrics.cols ? findCol(metrics.cols,[/^producto|^articulo|^artículo/i]) : 'N/A');
+  console.log('[CFO.AI] cantCol:', metrics.cols ? findCol(metrics.cols,[/cantidad|qty/i]) : 'N/A');
 
   // 3. Recorrer filas de ventas y calcular costo por grupo
   var dim = metrics.dims.find(function(d){ return d.key===dimKey; });
@@ -712,6 +715,10 @@ function calcMargenPorGrupo(metrics, dimKey) {
     // Intentar calcular costo real
     var costoFila = 0;
     if (hayCostosUnitarios && prodCol) {
+      if (mapOps[k] === 1) { // solo loggear primera vez por grupo
+        var nomTest = String(r[prodCol]||'').trim().toLowerCase();
+        console.log('[CFO.AI] Cruzando producto:', nomTest, '| Costo encontrado:', costoPorProducto[nomTest]||'NO ENCONTRADO');
+      }
       var nomProd = String(r[prodCol]||'').trim().toLowerCase();
       var costUnit = costoPorProducto[nomProd];
       if (costUnit) {
