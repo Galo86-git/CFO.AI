@@ -1,22 +1,27 @@
 export default async function handler(req, res) {
-  // Solo POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // CORS — permitir desde tu dominio
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
   try {
-    const { prompt } = req.body;
+    const { prompt, context, max_tokens } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: 'Falta el campo prompt' });
     }
 
-    const maxTokens = req.body.max_tokens || 1800;
+    const maxTokens = Math.min(max_tokens || 1800, 4000);
+
+    // Armar mensajes con historial opcional para el chat
+    const messages = context?.length
+      ? [...context, { role: 'user', content: prompt }]
+      : [{ role: 'user', content: prompt }];
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -27,8 +32,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: Math.min(maxTokens, 4000), // máximo 4000
-        messages: [{ role: 'user', content: prompt }]
+        max_tokens: maxTokens,
+        messages
       })
     });
 
