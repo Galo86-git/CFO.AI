@@ -690,22 +690,8 @@ async function genMercado(){
     var urlCtx=S.empresaURL?(' Sitio web del negocio para analizar: '+S.empresaURL+'. Usá esta información real del sitio para enriquecer el análisis.'):''; var prompt='Sos analista de mercado. Informe completo para: '+titulo+' ('+rubro+').'+urlCtx+' Incluí: 1)Resumen del sector 2)Tendencias 2024-2025 con datos concretos 3)Competidores típicos con estrategias y precios 4)Rangos de precios en Argentina 5)Oportunidades 6)Amenazas y riesgos 7)Benchmarks del sector (margen, rotación, ticket medio) 8)Recomendaciones accionables. Formato HTML con h2,h3,p,ul,table. Sin DOCTYPE ni html/body.';
     var html=await callClaude(prompt,[],4000);clearInterval(iv);
     var clean=html.replace(/```html|```/g,'').trim();
-    var full='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Análisis de Mercado</title><style>body{font-family:"Segoe UI",Arial,sans-serif;color:#1E2A3A;padding:48px 60px;max-width:860px;margin:0 auto;line-height:1.7;}h1{font-size:28px;font-weight:800;border-bottom:4px solid #3B7DD8;padding-bottom:12px;margin-bottom:8px;}h2{font-size:20px;font-weight:700;margin-top:36px;margin-bottom:8px;padding-left:12px;border-left:4px solid #3B7DD8;}h3{font-size:16px;font-weight:600;color:#3B7DD8;margin-top:20px;}p{color:#3B4A5A;margin-bottom:12px;}ul{padding-left:20px;margin-bottom:16px;}li{margin-bottom:6px;color:#3B4A5A;}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}th{background:#1E2A3A;color:#fff;padding:10px 14px;text-align:left;}td{padding:9px 14px;border-bottom:1px solid #E8EEF8;color:#3B4A5A;}tr:nth-child(even) td{background:#F8FAFF;}@media print{body{padding:20px;}}
-.url-input-wrap{display:flex;align-items:center;gap:0;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff;overflow:hidden;box-shadow:0 1px 4px rgba(59,125,216,0.08);transition:border-color 0.18s;}
-.url-input-wrap:focus-within{border-color:var(--blue);}
-.url-icon{padding:0 10px;font-size:14px;color:var(--muted-lt);background:#F8FAFF;border-right:1px solid #E2E8F0;height:100%;display:flex;align-items:center;}
-.url-field{border:none;outline:none;padding:9px 12px 9px 8px;font-family:var(--font-b);font-size:12px;color:var(--ink);background:#fff;width:220px;}
-.url-field::placeholder{color:#94A3B8;}
-.url-ok{padding:0 10px;font-size:13px;display:none;}
-.url-ok.valid{display:flex;align-items:center;color:var(--green);}
-.url-ok.invalid{display:flex;align-items:center;color:var(--red);}
-</style></head><body>'
-      +'<h1>Análisis de Mercado</h1><div style="font-size:15px;color:#6B7E96;margin-bottom:6px;">'+titulo+' · '+rubro+'</div>'
-      +'<div style="font-size:12px;color:#8A9BB5;margin-bottom:32px;">Generado el '+new Date().toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'})+' por CFO.AI</div>'
-      +clean
-      +'<div style="margin-top:48px;padding-top:20px;border-top:1px solid #E8EEF8;font-size:11px;color:#8A9BB5;text-align:center;">Análisis generado por CFO.AI</div>'
-      +'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},800);}<'+'/script></body></html>';
-    window.open(URL.createObjectURL(new Blob([full],{type:'text/html;charset=utf-8'})),'_blank');
+    var full='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Analisis de Mercado</title><style>body{font-family:"Segoe UI",Arial,sans-serif;color:#1E2A3A;padding:48px 60px;max-width:860px;margin:0 auto;line-height:1.7;}h1{font-size:28px;font-weight:800;border-bottom:4px solid #3B7DD8;padding-bottom:12px;margin-bottom:8px;}h2{font-size:20px;font-weight:700;margin-top:36px;margin-bottom:8px;padding-left:12px;border-left:4px solid #3B7DD8;}h3{font-size:16px;font-weight:600;color:#3B7DD8;margin-top:20px;}p{color:#3B4A5A;margin-bottom:12px;}ul{padding-left:20px;margin-bottom:16px;}li{margin-bottom:6px;color:#3B4A5A;}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}th{background:#1E2A3A;color:#fff;padding:10px 14px;text-align:left;}td{padding:9px 14px;border-bottom:1px solid #E8EEF8;color:#3B4A5A;}tr:nth-child(even) td{background:#F8FAFF;}@media print{body{padding:20px;}}</style></head><body>'+'<h1>Analisis de Mercado</h1><div style="font-size:15px;color:#6B7E96;margin-bottom:6px;">'+titulo+' · '+rubro+'</div>'+'<div style="font-size:12px;color:#8A9BB5;margin-bottom:32px;">Generado el '+new Date().toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'})+' por CFO.AI</div>'+clean+'<div style="margin-top:48px;padding-top:20px;border-top:1px solid #E8EEF8;font-size:11px;color:#8A9BB5;text-align:center;">Analisis generado por CFO.AI</div>'+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},800);};<'+'/script></body></html>';
+window.open(URL.createObjectURL(new Blob([full],{type:'text/html;charset=utf-8'})),'_blank');
     btn.innerHTML=orig;btn.disabled=false;
   }catch(e){clearInterval(iv);btn.innerHTML=orig;btn.disabled=false;alert('Error: '+e.message);}
 }
