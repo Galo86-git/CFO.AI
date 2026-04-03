@@ -728,11 +728,13 @@ function calcMetrics(sheets, yellowCols) {
   if (stockKey) {
     const sr = sheets[stockKey];
     const sc = Object.keys(sr[0]||{});
-    const actCol = findCol(sc, [/stock.act|actual|existencia/i]);
-    const minCol = findCol(sc, [/m[ií]nimo|min.stock|stock.min/i]);
-    const pvCol  = findCol(sc, [/precio.vent|p[.]?venta|precio.venta/i]);
-    const prodSCol = findCol(sc, [/producto|product|descrip|nombre/i]);
-    const actValCol = findCol(sc, [/valor.stock|valor.inv/i]);
+    console.log('[CFO.AI] Stock cols:', sc);
+    const actCol   = findCol(sc, [/stock.act|actual|existencia|stock$/i]);
+    const minCol   = findCol(sc, [/m[ií]nimo|min/i]);
+    const pvCol    = findCol(sc, [/precio.vent|p\.?venta|venta.*\$|precio.*venta/i]);
+    const prodSCol = findCol(sc, [/producto|descrip|nombre|articulo/i]) || sc[1];
+    const actValCol= findCol(sc, [/valor.*stock|valor.*inv|stock.*\$|\$.*stock/i]);
+    console.log('[CFO.AI] actCol:', actCol, '| minCol:', minCol, '| prodSCol:', prodSCol);
 
     if (actValCol) totalStock = sumCol(sr, actValCol);
     else if (actCol && pvCol) totalStock = sr.reduce((a,r) => {
@@ -740,13 +742,18 @@ function calcMetrics(sheets, yellowCols) {
       const pv  = parseFloat(String(r[pvCol]||'').replace(/[^0-9.-]/g,''))||0;
       return a + act * pv;
     }, 0);
+    // Fallback valor stock: buscar cualquier col con ($)
+    if (totalStock === 0) {
+      const valCol2 = sc.find(c => c.includes('($)') || c.includes('(€)'));
+      if (valCol2) totalStock = sumCol(sr, valCol2);
+    }
 
     if (actCol && minCol) {
       stockCriticos = sr.filter(r => {
         const a = parseFloat(String(r[actCol]||'').replace(/[^0-9.-]/g,''));
         const m = parseFloat(String(r[minCol]||'').replace(/[^0-9.-]/g,''));
-        return !isNaN(a) && !isNaN(m) && a <= m;
-      }).map(r => r[prodSCol] || 'Producto');
+        return !isNaN(a) && !isNaN(m) && a < m;
+      }).map(r => String(r[prodSCol]||'').trim() || 'Producto').filter(Boolean);
     }
   }
 
@@ -1020,12 +1027,15 @@ function renderDashboard(d, metrics, alerts, compareMetrics) {
 
   // Stock alert banner
   if (metrics.stockCriticos.length > 0) {
+    const nombres = metrics.stockCriticos.filter(n => n && n !== 'Producto');
     const a = document.getElementById('alert-stock');
-    document.getElementById('alert-stock-msg').textContent =
-      metrics.stockCriticos.length + ' producto' + (metrics.stockCriticos.length>1?'s':'') +
-      ' con stock bajo mínimo: ' + metrics.stockCriticos.slice(0,3).join(', ') +
-      (metrics.stockCriticos.length>3?' y más':'') + '.';
-    a.style.display = 'flex';
+    if (nombres.length > 0) {
+      document.getElementById('alert-stock-msg').textContent =
+        nombres.length + ' producto' + (nombres.length>1?'s':'') +
+        ' con stock bajo mínimo: ' + nombres.slice(0,3).join(', ') +
+        (nombres.length>3?' y más':'') + '.';
+      a.style.display = 'flex';
+    }
   }
 
   // Comparación
