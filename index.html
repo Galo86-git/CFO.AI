@@ -630,6 +630,54 @@ input[type=file] { display: none; }
 .btn-new:hover { color: var(--navy); border-color: #8090A8; }
 
 /* KPI ROW */
+/* SEMÁFORO DE SUPERVIVENCIA */
+.semaforo {
+  border-radius: 8px; padding: 20px 24px;
+  margin-bottom: 20px; display: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative; overflow: hidden;
+}
+.semaforo.verde  { background: rgba(46,125,82,0.15); border-color: rgba(94,189,138,0.3); }
+.semaforo.amarillo { background: rgba(183,121,31,0.15); border-color: rgba(232,200,122,0.3); }
+.semaforo.rojo   { background: rgba(192,57,43,0.18); border-color: rgba(220,80,60,0.4); }
+.sem-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.sem-left { display: flex; align-items: center; gap: 14px; }
+.sem-dot {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  animation: sem-pulse 2s ease-in-out infinite;
+}
+.verde  .sem-dot { background: #5EBD8A; box-shadow: 0 0 0 4px rgba(94,189,138,0.2); }
+.amarillo .sem-dot { background: #E8C87A; box-shadow: 0 0 0 4px rgba(232,200,122,0.2); }
+.rojo   .sem-dot { background: #E05040; box-shadow: 0 0 0 4px rgba(220,80,60,0.25); animation: sem-pulse-fast 1s ease-in-out infinite; }
+@keyframes sem-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(1.15)} }
+@keyframes sem-pulse-fast { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.2)} }
+.sem-label {
+  font-family: var(--fm); font-size: 10px; font-weight: 600;
+  letter-spacing: .15em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 2px;
+}
+.sem-msg {
+  font-family: var(--fh); font-size: 18px; font-weight: 800;
+  color: var(--white); line-height: 1.2;
+}
+.verde  .sem-msg { color: #7DDBA8; }
+.amarillo .sem-msg { color: #E8C87A; }
+.rojo   .sem-msg { color: #FF7060; }
+.sem-dias {
+  font-family: var(--fh); font-size: 48px; font-weight: 900;
+  line-height: 1; text-align: right;
+}
+.verde  .sem-dias { color: rgba(94,189,138,0.5); }
+.amarillo .sem-dias { color: rgba(232,200,122,0.4); }
+.rojo   .sem-dias { color: rgba(220,80,60,0.5); }
+.sem-dias span { font-size: 13px; font-family: var(--fb); font-weight: 400; color: var(--muted); display: block; text-align: right; margin-top: -4px; }
+.sem-sub {
+  font-size: 12px; color: var(--muted); margin-top: 10px;
+  font-family: var(--fm); padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.sem-sub strong { color: var(--white); font-weight: 600; }
+
 .kpi-row {
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 12px; margin-bottom: 14px;
@@ -2003,6 +2051,20 @@ input[type=file] { display: none; }
 
       <!-- TAB: OVERVIEW -->
       <div id="pane-overview">
+        <!-- SEMÁFORO DE SUPERVIVENCIA -->
+        <div class="semaforo" id="semaforo-card">
+          <div class="sem-top">
+            <div class="sem-left">
+              <div class="sem-dot"></div>
+              <div>
+                <div class="sem-label">Semáforo de supervivencia</div>
+                <div class="sem-msg" id="sem-msg">Calculando...</div>
+              </div>
+            </div>
+            <div class="sem-dias" id="sem-dias">—<span>días de caja</span></div>
+          </div>
+          <div class="sem-sub" id="sem-sub"></div>
+        </div>
         <!-- KPIs -->
         <div class="kpi-row" id="kpi-row"></div>
         <!-- Alertas -->
@@ -2734,6 +2796,7 @@ function renderDash(d, m) {
     if(bb&&!S.chatOpen) bb.style.display='block';
   },3000);
   S.resDone = false;
+  renderSemaforo(m);
   // Cards bloqueadas: solo en plan free
   var proCards = document.getElementById('pro-cards');
   if (proCards) proCards.style.display = !isPro() ? 'block' : 'none';
@@ -2745,6 +2808,63 @@ function renderDash(d, m) {
     var cb = document.getElementById('chat-btn');
     if (cb) cb.style.display = 'none';
   }
+}
+
+
+// ══════════════════════════════════════════
+// SEMÁFORO DE SUPERVIVENCIA
+// ══════════════════════════════════════════
+function renderSemaforo(m) {
+  var card = document.getElementById('semaforo-card');
+  if (!card) return;
+
+  // Ventas mensuales promedio
+  var meses = Object.keys(m.byMes||{});
+  if (!meses.length) { card.style.display='none'; return; }
+  var ventasMes = m.tv / Math.max(meses.length, 1);
+
+  // Costos fijos estimados (costo de ventas promedio mensual)
+  var costosMes = m.tc > 0 ? (m.tc / Math.max(meses.length,1)) : ventasMes * 0.6;
+
+  // Margen operativo mensual
+  var margenMes = ventasMes - costosMes;
+
+  // Días de caja estimados: si el margen es positivo, cuántos meses aguanta
+  // Si negativo, cuántos días hasta quedarse sin caja
+  var diasCaja, estado, msg, sub;
+
+  if (margenMes > 0) {
+    // Negocio sano: proyectamos runway en base al margen
+    diasCaja = Math.round((margenMes / ventasMes) * 30 * 3); // 3 meses de runway
+    if (diasCaja > 90) {
+      estado = 'verde';
+      msg = 'Tu negocio está en zona segura';
+      sub = 'Margen operativo positivo de <strong>' + fmt(margenMes) + '/mes</strong>. Seguí monitoreando para mantener la tendencia.';
+    } else {
+      estado = 'amarillo';
+      msg = 'Zona de atención — margen ajustado';
+      sub = 'Tu margen mensual es <strong>' + fmt(margenMes) + '</strong>. Con inflación sostenida, podría erosionarse en las próximas semanas.';
+    }
+  } else {
+    // Negocio en pérdida: calculamos días hasta crisis
+    diasCaja = Math.round(Math.abs(margenMes / (ventasMes / 30)));
+    diasCaja = Math.min(diasCaja, 89); // máximo 89 si está en rojo
+    estado = 'rojo';
+    msg = 'Alerta: costos superan ingresos';
+    sub = 'Al ritmo actual, en <strong>' + diasCaja + ' días</strong> no cubrís los costos operativos. Revisá precios o reducí costos urgente.';
+  }
+
+  // Ajuste por cantidad de meses de datos
+  if (meses.length < 2) {
+    // Con 1 solo mes de datos, mostramos advertencia
+    sub += ' <em style="color:var(--muted)">(Basado en 1 mes de datos — subí más meses para mayor precisión)</em>';
+  }
+
+  card.className = 'semaforo ' + estado;
+  card.style.display = 'block';
+  document.getElementById('sem-msg').textContent = msg;
+  document.getElementById('sem-dias').innerHTML = diasCaja + '<span>días de caja</span>';
+  document.getElementById('sem-sub').innerHTML = sub;
 }
 
 function renderKPIs(kpis, m) {
