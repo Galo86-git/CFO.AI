@@ -1875,6 +1875,88 @@ input[type=file] { display: none; }
         <p id="upload-pro-label" style="font-size:11px;color:#8090A8;font-family:var(--fm);text-align:center">Plan Pro · Archivos ilimitados · Múltiples hojas · .xlsx .xls .csv</p>
       </div>
 
+      <!-- PLAN FULL: 9 slots — P&L + Cash Flow completo -->
+      <div id="upload-full" style="display:none">
+        <div style="margin-bottom:14px">
+          <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--navy);margin-bottom:4px">Centro financiero completo</div>
+          <div style="font-size:12px;color:#8090A8;font-family:var(--fm)">Subí todos tus archivos — CFO.AI arma el P&L y el Cash Flow automáticamente</div>
+        </div>
+
+        <!-- Fila 1: Los 5 de Pro -->
+        <div style="font-family:var(--fm);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;opacity:.8">Base Pro</div>
+        <div class="pro-files-row" style="margin-bottom:16px">
+          <div class="pro-file-card" id="pfc-f-ventas" onclick="document.getElementById('fi-f-ventas').click()">
+            <div class="pro-file-ico">📈</div>
+            <div class="pro-file-name">Ventas</div>
+            <div class="pro-file-sub">Base del análisis</div>
+            <div class="pro-file-status pending" id="pfs-f-ventas">Pendiente</div>
+            <input type="file" id="fi-f-ventas" accept=".xlsx,.xls,.csv" onchange="goProFile('f-ventas',this.files[0])">
+          </div>
+          <div class="pro-file-card" id="pfc-f-compras" onclick="document.getElementById('fi-f-compras').click()">
+            <div class="pro-file-ico">🛒</div>
+            <div class="pro-file-name">Compras / Costos</div>
+            <div class="pro-file-sub">Costo mercadería</div>
+            <div class="pro-file-status pending" id="pfs-f-compras">Pendiente</div>
+            <input type="file" id="fi-f-compras" accept=".xlsx,.xls,.csv" onchange="goProFile('f-compras',this.files[0])">
+          </div>
+          <div class="pro-file-card" id="pfc-f-stock" onclick="document.getElementById('fi-f-stock').click()">
+            <div class="pro-file-ico">📦</div>
+            <div class="pro-file-name">Stock / Inventario</div>
+            <div class="pro-file-sub">Rotación e inmovilización</div>
+            <div class="pro-file-status pending" id="pfs-f-stock">Pendiente</div>
+            <input type="file" id="fi-f-stock" accept=".xlsx,.xls,.csv" onchange="goProFile('f-stock',this.files[0])">
+          </div>
+          <div class="pro-file-card" id="pfc-f-cobrar" onclick="document.getElementById('fi-f-cobrar').click()">
+            <div class="pro-file-ico">📥</div>
+            <div class="pro-file-name">Cuentas por Cobrar</div>
+            <div class="pro-file-sub">Lo que te deben</div>
+            <div class="pro-file-status pending" id="pfs-f-cobrar">Pendiente</div>
+            <input type="file" id="fi-f-cobrar" accept=".xlsx,.xls,.csv" onchange="goProFile('f-cobrar',this.files[0])">
+          </div>
+          <div class="pro-file-card" id="pfc-f-pagar" onclick="document.getElementById('fi-f-pagar').click()">
+            <div class="pro-file-ico">📤</div>
+            <div class="pro-file-name">Cuentas por Pagar</div>
+            <div class="pro-file-sub">Lo que debés</div>
+            <div class="pro-file-status pending" id="pfs-f-pagar">Pendiente</div>
+            <input type="file" id="fi-f-pagar" accept=".xlsx,.xls,.csv" onchange="goProFile('f-pagar',this.files[0])">
+          </div>
+        </div>
+
+        <!-- Fila 2: Los 4 exclusivos Full -->
+        <div style="font-family:var(--fm);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#5EBD8A;margin-bottom:8px;opacity:.8">Exclusivo Full — P&L y Cash Flow</div>
+        <div class="pro-files-row">
+          <div class="pro-file-card" id="pfc-f-gastos" onclick="document.getElementById('fi-f-gastos').click()">
+            <div class="pro-file-ico">🏢</div>
+            <div class="pro-file-name">Gastos Operativos</div>
+            <div class="pro-file-sub">Alquiler, servicios, etc.</div>
+            <div class="pro-file-status pending" id="pfs-f-gastos">Pendiente</div>
+            <input type="file" id="fi-f-gastos" accept=".xlsx,.xls,.csv" onchange="goProFile('f-gastos',this.files[0])">
+          </div>
+          <div class="pro-file-card" id="pfc-f-nomina" onclick="document.getElementById('fi-f-nomina').click()">
+            <div class="pro-file-ico">👥</div>
+            <div class="pro-file-name">Nómina / Sueldos</div>
+            <div class="pro-file-sub">Masa salarial</div>
+            <div class="pro-file-status pending" id="pfs-f-nomina">Pendiente</div>
+            <input type="file" id="fi-f-nomina" accept=".xlsx,.xls,.csv" onchange="goProFile('f-nomina',this.files[0])">
+          </div>
+          <div class="pro-file-card" id="pfc-f-impuestos" onclick="document.getElementById('fi-f-impuestos').click()">
+            <div class="pro-file-ico">🧾</div>
+            <div class="pro-file-name">Impuestos / IVA</div>
+            <div class="pro-file-sub">Posición fiscal</div>
+            <div class="pro-file-status pending" id="pfs-f-impuestos">Pendiente</div>
+            <input type="file" id="fi-f-impuestos" accept=".xlsx,.xls,.csv" onchange="goProFile('f-impuestos',this.files[0])">
+          </div>
+          <div class="pro-file-card" id="pfc-f-banco" onclick="document.getElementById('fi-f-banco').click()">
+            <div class="pro-file-ico">🏦</div>
+            <div class="pro-file-name">Extracto Bancario</div>
+            <div class="pro-file-sub">Movimientos de caja</div>
+            <div class="pro-file-status pending" id="pfs-f-banco">Pendiente</div>
+            <input type="file" id="fi-f-banco" accept=".xlsx,.xls,.csv" onchange="goProFile('f-banco',this.files[0])">
+          </div>
+        </div>
+        <p style="font-size:11px;color:#5EBD8A;font-family:var(--fm);text-align:center;margin-top:12px">Plan Full · P&L + Cash Flow automáticos · Archivos ilimitados · .xlsx .xls .csv</p>
+      </div>
+
     </div>
 
     <!-- PROCESSING -->
@@ -3347,13 +3429,18 @@ function initUploadZone() {
   if (!isPro()) {
     document.getElementById('upload-free').style.display = 'block';
     document.getElementById('upload-pro').style.display  = 'none';
+  } else if (isFull()) {
+    document.getElementById('upload-free').style.display = 'none';
+    document.getElementById('upload-pro').style.display  = 'none';
+    document.getElementById('upload-full').style.display = 'block';
+    document.getElementById('pro-cards').style.display   = 'none';
+    document.getElementById('pro-sections').style.display = 'block';
   } else {
     document.getElementById('upload-free').style.display = 'none';
     document.getElementById('upload-pro').style.display  = 'block';
+    document.getElementById('upload-full').style.display = 'none';
     document.getElementById('pro-cards').style.display   = 'none';
     document.getElementById('pro-sections').style.display = 'block';
-    var lbl = document.getElementById('upload-pro-label');
-    if (lbl) lbl.textContent = (isFull() ? 'Plan Full' : 'Plan Pro') + ' · Archivos ilimitados · Múltiples hojas · .xlsx .xls .csv';
   }
 }
 
@@ -3792,6 +3879,14 @@ function doReset(){
     var st=document.getElementById('pfs-'+t);
     if(st){st.className='pro-file-status pending';st.textContent='Pendiente';}
   });
+  ['f-ventas','f-compras','f-stock','f-cobrar','f-pagar','f-gastos','f-nomina','f-impuestos','f-banco'].forEach(function(t){
+    var fi=document.getElementById('fi-'+t); if(fi) fi.value='';
+    var card=document.getElementById('pfc-'+t);
+    if(card){card.classList.remove('loaded');card.onclick=function(){document.getElementById('fi-'+t).click();};}
+    var st=document.getElementById('pfs-'+t);
+    if(st){st.className='pro-file-status pending';st.textContent='Pendiente';}
+  });
+  document.getElementById('upload-full').style.display='none';
   document.getElementById('dash-content').style.display='none';
   document.getElementById('upload-area').style.display='block';
   document.getElementById('pro-sections').style.display='none';
