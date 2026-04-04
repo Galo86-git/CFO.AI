@@ -2130,6 +2130,34 @@ if (history.scrollRestoration) history.scrollRestoration = 'manual';
 window.scrollTo(0,0);
 
 // ══════════════════════════════════════════
+// CONFIGURACIÓN DE PLANES — fuente de verdad
+// ══════════════════════════════════════════
+var PLANS = {
+  free: {
+    maxSheets: 1,
+    multiFile: false,
+    features: ['dashboard','chat','export']
+  },
+  pro: {
+    maxSheets: null,
+    multiFile: true,
+    features: ['dashboard','chat','export','margen','alertas','capital','historial','multiarchivo']
+  },
+  full: {
+    maxSheets: null,
+    multiFile: true,
+    features: ['*']
+  }
+};
+function canUse(feature) {
+  var f = PLANS[S.plan] && PLANS[S.plan].features;
+  if (!f) return false;
+  return f[0] === '*' || f.indexOf(feature) !== -1;
+}
+function isPro()  { return S.plan === 'pro' || S.plan === 'full'; }
+function isFull() { return S.plan === 'full'; }
+
+// ══════════════════════════════════════════
 // ESTADO
 // ══════════════════════════════════════════
 var S = {
@@ -2166,12 +2194,12 @@ function loginGoogle() {
   // TODO: Conectar Supabase Auth con Google
   // Por ahora: demo user — cambiar S.plan a 'free' o 'pro' para probar
   S.user = { name: 'Demo', email: 'demo@cfoai.com', avatar: 'D' };
-  S.plan = 'pro'; // ← 'free' | 'pro' para testear
+  S.plan = 'pro'; // ← 'free' | 'pro' | 'full' para testear
   document.getElementById('user-av').textContent = 'D';
   document.getElementById('user-name').textContent = 'Demo';
   // Mostrar/ocultar botón upgrade según plan
   var ub = document.getElementById('btn-upgrade-nav');
-  if (ub) ub.style.display = S.plan === 'free' ? 'block' : 'none';
+  if (ub) ub.style.display = !isPro() ? 'block' : 'none';
   initUploadZone();
   showScreen('s-dash');
   document.getElementById('chat-btn').style.display = 'flex';
@@ -2209,7 +2237,7 @@ function readExcel(file) {
       try {
         var wb = XLSX.read(e.target.result, {type:'binary', cellDates:true, cellNF:false, cellText:false, cellStyles:true, cellFormula:false});
         // PLAN GRATIS: validar que tenga solo 1 hoja
-        if (S.plan === 'free' && wb.SheetNames.length > 1) {
+        if (!isPro() && wb.SheetNames.length > PLANS[S.plan].maxSheets) {
           rej(new Error('Tu archivo tiene ' + wb.SheetNames.length + ' hojas. El plan Gratis acepta solo 1 hoja de ventas. Actualizá al Plan Pro para analizar múltiples hojas.'));
           return;
         }
@@ -2953,7 +2981,7 @@ function toggleLang(){
 // PLAN PRO: INICIALIZACIÓN UI
 // ══════════════════════════════════════════
 function initPlanUI() {
-  if (S.plan === 'free') {
+  if (!isPro()) {
     document.getElementById('pro-panel').classList.remove('on');
   } else {
     document.getElementById('pro-panel').classList.add('on');
@@ -3311,7 +3339,7 @@ function toggleChatMobile() {
 // ══════════════════════════════════════════
 
 function initUploadZone() {
-  if (S.plan === 'free') {
+  if (!isPro()) {
     document.getElementById('upload-free').style.display = 'block';
     document.getElementById('upload-pro').style.display  = 'none';
   } else {
