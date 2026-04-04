@@ -2686,7 +2686,14 @@ input[type=file] { display: none; }
 
 <script>
 // Scroll to top siempre al cargar
-window.onbeforeunload = function(){ window.scrollTo(0,0); };
+window.onbeforeunload = function(){ window.scrollTo(0,0);
+// goAuth stub — real definition below, this ensures onclick works during parse
+function goAuth(plan) {
+  if (typeof S !== 'undefined') {
+    S.pendingPlan = plan || 'free';
+    showScreen('s-auth');
+  }
+} };
 if (history.scrollRestoration) history.scrollRestoration = 'manual';
 window.scrollTo(0,0);
 
@@ -2753,7 +2760,7 @@ function showScreen(id) {
   document.documentElement.scrollTop = 0;
 }
 function goLanding()  { showScreen('s-landing'); }
-function goAuth(plan) { S.pendingPlan = plan || 'free'; showScreen('s-auth'); }
+// goAuth defined above (hoisted)
 
 // ══════════════════════════════════════════
 // AUTH (Simulado — conectar Supabase aquí)
@@ -3307,7 +3314,7 @@ function renderKPIs(kpis, m) {
     margenKPI = '<div class="kpi"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">'+((m.tv-m.tc)/m.tv*100).toFixed(1)+'%</div><div class="kpi-s">sobre ventas</div></div>';
   } else if (isPro()) {
     // Pro sin compras aún — invitar a subir
-    margenKPI = '<div class="kpi" style="cursor:pointer;border:1px dashed rgba(200,169,110,.3)" onclick="toggleHubSlot('compras')">'
+    margenKPI = '<div class="kpi" style="cursor:pointer;border:1px dashed rgba(200,169,110,.3)" onclick="toggleHubSlot(&quot;compras&quot;)">'
       +'<div class="kpi-l">Margen Bruto</div>'
       +'<div class="kpi-v" style="font-size:18px;color:var(--accent)">+ Subí Compras</div>'
       +'<div class="kpi-s">para ver tu margen real</div></div>';
