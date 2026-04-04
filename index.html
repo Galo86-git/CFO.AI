@@ -591,18 +591,13 @@ async function identificarColumnas(sheets, yellowCols) {
       };
     });
 
-    var prompt = 'Analizá este Excel y devolvé SOLO un JSON identificando las columnas clave por hoja. '
-      + 'Para cada hoja devolvé: ventaTotal (columna de venta/ingreso total), '
-      + 'costoTotal (columna de costo total), costoUnit (costo unitario), '
-      + 'fecha (columna de fecha), producto (nombre de producto), '
-      + 'cliente (nombre de cliente), cantidad (columna cantidad), '
-      + 'precioVenta (precio unitario de venta), vendedor (vendedor si existe). '
-      + 'Si una columna no existe ponés null. '
-      + 'Formato: {"NombreHoja": {"ventaTotal":"NombreCol","costoTotal":"NombreCol",...}, ...}
-
-'
-      + 'Datos:
-' + JSON.stringify(muestras).slice(0, 6000);
+    var prompt = 'Analiza este Excel y devuelve SOLO un JSON identificando columnas clave por hoja. '
+      + 'Para cada hoja devuelve: ventaTotal (venta total), costoTotal (costo total), '
+      + 'costoUnit (costo unitario), fecha (fecha), producto (nombre producto), '
+      + 'cliente (cliente), cantidad (cantidad), precioVenta (precio venta unitario), vendedor. '
+      + 'Si no existe pon null. '
+      + 'Formato exacto: {"NombreHoja":{"ventaTotal":"col","costoTotal":"col","costoUnit":"col","fecha":"col","producto":"col","cliente":"col","cantidad":"col","precioVenta":"col","vendedor":null}} '
+      + 'Datos: ' + JSON.stringify(muestras).slice(0, 6000);
 
     var raw = await callClaude(prompt, [], 800);
     var clean = raw.replace(/```json|```/g, '').trim();
