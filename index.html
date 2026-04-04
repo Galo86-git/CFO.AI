@@ -1245,10 +1245,10 @@ input[type=file] { display: none; }
         <div class="upload-title" id="upl-title">Subí tu Excel de ventas</div>
         <div class="upload-sub" id="upl-sub">Una sola hoja · Arrastrá o hacé click para seleccionar</div>
         <div class="upload-formats">
-          <span class="fmt">.xlsx</span><span class="fmt">.xls</span>
+          <span class="fmt">.xlsx</span><span class="fmt">.xls</span><span class="fmt">.csv</span>
         </div>
         <button class="btn-upload" onclick="event.stopPropagation();document.getElementById('fi').click()" id="upl-btn">Elegir archivo</button>
-        <input type="file" id="fi" accept=".xlsx,.xls" onchange="go(this.files[0])">
+        <input type="file" id="fi" accept=".xlsx,.xls,.csv" onchange="go(this.files[0])">
         <p class="upload-note" id="upl-note">Plan Gratis · 1 Excel · 1 hoja · Solo ventas</p>
       </div>
     </div>
@@ -1521,9 +1521,39 @@ function prepararMuestra(sheets, filename) {
 // CLAUDE ANALIZA EL EXCEL COMPLETO
 // ══════════════════════════════════════════
 async function claudeAnaliza(muestra, filename) {
+
+  // PASO 1: Validar que el archivo tenga datos de ventas (llamada rápida)
+  var validationPrompt =
+    'Mirá estas columnas y datos de un Excel. ¿Es un archivo de VENTAS/TRANSACCIONES? ' +
+    'Un archivo de ventas tiene registros de operaciones comerciales: cada fila es una venta con fecha, cliente, monto. ' +
+    'NO es ventas: inventario, stock, lista de precios, catálogo, balance, presupuesto. ' +
+    'Respondé SOLO con una palabra: SI o NO. ' +
+    'Datos:
+' + muestra.slice(0, 2000);
+
+  try {
+    var validacion = await claude(validationPrompt, [], 10);
+    validacion = validacion.trim().toUpperCase().replace(/[^A-Z]/g, '');
+    console.log('[CFO.AI] Validación ventas:', validacion);
+
+    if (validacion !== 'SI' && validacion !== 'SÍ') {
+      throw new Error(
+        'Este archivo no parece contener ventas. ' +
+        'Necesitamos un Excel donde cada fila sea una transacción de venta con fecha, producto/servicio y monto. ' +
+        'Si tenés un listado de stock o inventario, ese corresponde al Plan Pro.'
+      );
+    }
+  } catch(e) {
+    // Si el error es nuestro (no_ventas), propagarlo
+    if (e.message.indexOf('no parece contener') !== -1) throw e;
+    // Si es error de API, continuar igual (no bloquear por fallo técnico)
+    console.warn('[CFO.AI] Error en validación, continuando:', e.message);
+  }
+
+  // PASO 2: Análisis completo
   var prompt =
     'Sos un analista financiero senior especializado en PyMEs argentinas. ' +
-    'Analizá este Excel y calculá los KPIs reales del negocio. ' +
+    'Analizá este Excel de ventas y calculá los KPIs reales del negocio. ' +
     'REGLAS CRÍTICAS:\n' +
     '1. La columna de VENTAS/INGRESOS es la que registra lo que cobró el negocio (no costos, no precios unitarios, no márgenes)\n' +
     '2. Sumá TODAS las filas de datos para calcular totales. Ignorá filas de encabezado o totales al pie\n' +
@@ -1571,12 +1601,10 @@ async function claudeAnaliza(muestra, filename) {
     try { result = JSON.parse(clean); }
     catch(e) { var mm = clean.match(/\{[\s\S]*\}/); result = mm ? JSON.parse(mm[0]) : null; }
     if (!result) throw new Error('No se pudo parsear respuesta');
-    // Verificar si la IA detectó que no son ventas
-    if (result.error === 'no_ventas') throw new Error(result.mensaje);
     console.log('[CFO.AI] ✓ Analizó:', result.titulo, '|', result.kpis&&result.kpis.map(function(k){return k.l+': '+k.v;}).join(' | '));
     return { dash: result, colMap: result.colMap || null };
   } catch(e) {
-    console.warn('[CFO.AI] Error Claude, usando fallback:', e.message);
+    console.warn('[CFO.AI] Error en análisis, fallback:', e.message);
     return { dash: {titulo:filename, tipo:'', periodo:'', kpis:[], insights:[]}, colMap: null };
   }
 }
@@ -1787,6 +1815,8 @@ async function go(file) {
     var errEl = document.getElementById('dash-err');
     errEl.textContent = '⚠️ ' + e.message;
     errEl.classList.add('on');
+    // Resetear el input para que pueda subir otro archivo
+    document.getElementById('fi').value = '';
   }
 }
 
