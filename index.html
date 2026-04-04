@@ -389,6 +389,38 @@ footer {
   letter-spacing: .05em;
 }
 
+
+/* ══ PRESENTATION MODE ══ */
+.pres-slide {
+  background: var(--navy2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 48px 56px;
+  width: 100%;
+  max-width: 820px;
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  animation: presIn .3s ease;
+}
+@keyframes presIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+.pres-cover { text-align: center; align-items: center; background: linear-gradient(135deg, #0A1628 0%, #0F2040 100%); }
+.pres-logo { font-family: var(--fh); font-size: 18px; font-weight: 800; color: var(--white); margin-bottom: 32px; opacity: .6; }
+.pres-logo span { color: var(--accent); }
+.pres-cover-title { font-family: var(--fh); font-size: clamp(28px,4vw,48px); font-weight: 900; color: var(--white); margin-bottom: 12px; line-height: 1.15; }
+.pres-cover-title em { color: var(--accent); font-style: italic; }
+.pres-cover-sub { font-family: var(--fm); font-size: 14px; color: var(--muted); letter-spacing: .1em; margin-bottom: 24px; }
+.pres-cover-badge { font-family: var(--fm); font-size: 13px; font-weight: 700; letter-spacing: .1em; }
+.pres-slide-title { font-family: var(--fh); font-size: 24px; font-weight: 900; color: var(--white); margin-bottom: 28px; }
+.pres-kpi-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+.pres-kpi { background: rgba(255,255,255,.04); border: 1px solid var(--border2); border-radius: 10px; padding: 20px; }
+.pres-kpi-l { font-family: var(--fm); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.pres-kpi-v { font-family: var(--fh); font-size: 28px; font-weight: 900; color: var(--white); margin-bottom: 4px; }
+.pres-kpi-s { font-size: 11px; color: var(--dim); }
+.pres-pl { display: flex; flex-direction: column; gap: 2px; }
+.pres-bars { display: flex; flex-direction: column; gap: 4px; }
+
 /* ═══════════════════════════════════════
    AUTH SCREEN
 ═══════════════════════════════════════ */
@@ -1989,6 +2021,8 @@ function goAuth(plan) {
       <div class="dash-tabs">
         <button class="dash-tab active" onclick="switchTab('overview')" id="tab-overview">Resumen</button>
         <button class="dash-tab" onclick="switchTab('detail')" id="tab-detail">Detalle</button>
+        <button class="dash-tab full-only" onclick="switchTab('pnl')" id="tab-pnl" style="display:none">P&amp;L</button>
+        <button class="dash-tab full-only" onclick="switchTab('caja')" id="tab-caja" style="display:none">Cash Flow</button>
       </div>
     </div>
     <div class="dash-nav-right">
@@ -2434,6 +2468,17 @@ function goAuth(plan) {
 
     </div>
 
+    <!-- WELCOME SPLASH — Full plan -->
+    <div id="full-splash" style="display:none;position:fixed;inset:0;background:var(--navy);z-index:200;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div style="font-family:var(--fh);font-size:14px;font-weight:600;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:20px">CFO.AI Full</div>
+      <div style="font-family:var(--fh);font-size:clamp(28px,4vw,48px);font-weight:900;color:var(--white);line-height:1.15;margin-bottom:16px;max-width:600px" id="splash-title">Analizando tu negocio...</div>
+      <div style="font-size:15px;color:var(--muted);margin-bottom:48px;max-width:500px" id="splash-sub">Procesando 9 archivos financieros</div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap;justify-content:center" id="splash-stats"></div>
+      <div style="margin-top:48px;width:240px;height:2px;background:rgba(200,169,110,.1);border-radius:2px;overflow:hidden">
+        <div id="splash-bar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 1s ease"></div>
+      </div>
+    </div>
+
     <!-- PROCESSING -->
     <div class="proc-overlay" id="proc">
       <div class="proc-spin"></div>
@@ -2459,7 +2504,7 @@ function goAuth(plan) {
         </div>
         <div class="dash-actions">
           <button class="btn-act" id="btn-res" onclick="toggleRes()">📋 Resumen</button>
-          
+          <button class="btn-act full-only" id="btn-present" onclick="launchPresentation()" style="display:none">🎯 Presentar</button>
           <button class="btn-new" onclick="doReset()">← Nuevo archivo</button>
         </div>
       </div>
@@ -2637,6 +2682,16 @@ function goAuth(plan) {
       </div>
 
       <!-- TAB: DETAIL -->
+      <!-- P&L PANE — solo Full -->
+      <div id="pane-pnl" style="display:none">
+        <div id="pl-content"></div>
+      </div>
+
+      <!-- CASH FLOW PANE — solo Full -->
+      <div id="pane-caja" style="display:none">
+        <div id="cf-content"></div>
+      </div>
+
       <div id="pane-detail" style="display:none">
         <div class="card" id="card-drill" style="display:none">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -2683,6 +2738,12 @@ function goAuth(plan) {
 
 <!-- BOTTOM TAB BAR (mobile) -->
 <div class="bottom-tabs" id="bottom-tabs" style="display:none">
+  <button class="bottom-tab on" id="btab-pnl" onclick="switchTabMobile('pnl')" style="display:none">
+    <span style="font-size:18px">📊</span><span>P&amp;L</span>
+  </button>
+  <button class="bottom-tab on" id="btab-caja" onclick="switchTabMobile('caja')" style="display:none">
+    <span style="font-size:18px">💰</span><span>Caja</span>
+  </button>
   <button class="bottom-tab on" id="btab-overview" onclick="switchTabMobile('overview')">
     <span class="bottom-tab-ico">📊</span>Resumen
   </button>
@@ -2814,10 +2875,12 @@ function logout() {
 // TABS
 // ══════════════════════════════════════════
 function switchTab(tab) {
-  document.getElementById('pane-overview').style.display = tab === 'overview' ? 'block' : 'none';
-  document.getElementById('pane-detail').style.display   = tab === 'detail'   ? 'block' : 'none';
-  document.getElementById('tab-overview').classList.toggle('active', tab === 'overview');
-  document.getElementById('tab-detail').classList.toggle('active',   tab === 'detail');
+  ['overview','detail','pnl','caja'].forEach(function(t) {
+    var pane = document.getElementById('pane-'+t);
+    var btn  = document.getElementById('tab-'+t);
+    if (pane) pane.style.display = (t === tab) ? 'block' : 'none';
+    if (btn)  btn.classList.toggle('active', t === tab);
+  });
 }
 
 // ══════════════════════════════════════════
@@ -4106,6 +4169,15 @@ function initUploadZone() {
     document.getElementById('upload-full').style.display = 'block';
     document.getElementById('pro-cards').style.display   = 'none';
     document.getElementById('pro-sections').style.display = 'block';
+    // Mostrar tabs Full
+    ['tab-pnl','tab-caja'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'block';
+    });
+    ['btab-pnl','btab-caja'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.style.display = 'flex';
+    });
   } else {
     document.getElementById('upload-free').style.display = 'none';
     document.getElementById('upload-pro').style.display  = 'block';
@@ -4603,6 +4675,460 @@ function doReset(){
   ['ps0','ps1','ps2','ps3','ps4'].forEach(function(id,i){var el=document.getElementById(id);if(el)el.className=i===0?'go':'wait';});
   switchTab('overview');
 }
+
+
+// ══════════════════════════════════════════
+// FULL PLAN — WELCOME SPLASH
+// ══════════════════════════════════════════
+function showFullSplash(stats) {
+  if (!isFull()) return;
+  var splash = document.getElementById('full-splash');
+  if (!splash) return;
+  splash.style.display = 'flex';
+  // Animated stats
+  var statsEl = document.getElementById('splash-stats');
+  var items = [
+    { ico: '📈', label: 'Ventas', val: stats.ventas ? fmt(stats.ventas) : '—' },
+    { ico: '💰', label: 'Margen', val: stats.margen ? stats.margen.toFixed(1)+'%' : 'calculando...' },
+    { ico: '🏦', label: 'Caja', val: stats.caja ? fmt(stats.caja) : 'calculando...' },
+    { ico: '⚠️', label: 'Alertas', val: stats.alertas || '—' },
+  ];
+  statsEl.innerHTML = items.map(function(it){
+    return '<div style="text-align:center;opacity:0;transform:translateY(20px);transition:all .5s ease">'
+      +'<div style="font-size:32px;margin-bottom:8px">'+it.ico+'</div>'
+      +'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--white)">'+it.val+'</div>'
+      +'<div style="font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:4px">'+it.label+'</div>'
+      +'</div>';
+  }).join('');
+  // Animate in
+  var bar = document.getElementById('splash-bar');
+  setTimeout(function(){ if(bar) bar.style.width = '60%'; }, 100);
+  var cards = statsEl.querySelectorAll('div');
+  cards.forEach(function(card, i){
+    setTimeout(function(){ card.style.opacity='1'; card.style.transform='translateY(0)'; }, 200 + i*150);
+  });
+  setTimeout(function(){ if(bar) bar.style.width = '100%'; }, 800);
+  setTimeout(function(){
+    splash.style.opacity = '0';
+    splash.style.transition = 'opacity .6s ease';
+    setTimeout(function(){ splash.style.display = 'none'; splash.style.opacity = '1'; }, 600);
+  }, 2800);
+}
+
+// ══════════════════════════════════════════
+// FULL PLAN — EXECUTIVE BRIEF
+// ══════════════════════════════════════════
+function renderExecutiveBrief() {
+  if (!isFull()) return;
+  var m = S.metrics, d = S.dash;
+  if (!m || !d) return;
+
+  var margen = m.tc > 0 && m.tv > 0 ? ((m.tv-m.tc)/m.tv*100).toFixed(1) : null;
+  var cobrar = S.pro.cobrar && S.pro.cobrar.loaded && S.pro.cobrar.analisis ? (S.pro.cobrar.analisis.metricas && S.pro.cobrar.analisis.metricas.totalACobrar || 0) : 0;
+  var pagar  = S.pro.pagar  && S.pro.pagar.loaded  && S.pro.pagar.analisis  ? (S.pro.pagar.analisis.metricas  && S.pro.pagar.analisis.metricas.totalAPagar  || 0) : 0;
+
+  var semColor = document.querySelector('.semaforo') ? (document.querySelector('.semaforo.verde') ? '#5EBD8A' : document.querySelector('.semaforo.rojo') ? '#E05040' : '#E8C87A') : '#E8C87A';
+  var semText  = document.querySelector('.semaforo.verde') ? 'en zona segura' : document.querySelector('.semaforo.rojo') ? 'con alertas críticas' : 'en zona de atención';
+
+  var brief = 'Tu negocio facturó <strong>'+fmt(m.tv)+'</strong> en '+m.pReal+'. ';
+  if (margen) brief += 'El margen bruto es <strong>'+margen+'%</strong>. ';
+  if (cobrar > 0) brief += 'Tenés <strong>'+fmt(cobrar)+'</strong> a cobrar próximamente. ';
+  if (pagar > 0)  brief += 'Y <strong>'+fmt(pagar)+'</strong> a pagar. ';
+  brief += 'El semáforo financiero está <strong style="color:'+semColor+'">'+semText+'</strong>.';
+
+  var existing = document.getElementById('executive-brief');
+  if (existing) existing.remove();
+
+  var div = document.createElement('div');
+  div.id = 'executive-brief';
+  div.style.cssText = 'background:linear-gradient(135deg,rgba(27,79,138,.2) 0%,rgba(200,169,110,.06) 100%);border:1px solid rgba(200,169,110,.2);border-radius:12px;padding:20px 24px;margin-bottom:20px;position:relative;overflow:hidden';
+  div.innerHTML = '<div style="font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">Resumen ejecutivo · IA</div>'
+    +'<div style="font-family:var(--fb);font-size:15px;color:var(--white);line-height:1.7">'+brief+'</div>'
+    +'<div style="position:absolute;top:16px;right:20px;font-size:28px;opacity:.12">🤖</div>';
+
+  var semaforo = document.getElementById('semaforo-card');
+  if (semaforo && semaforo.parentNode) {
+    semaforo.parentNode.insertBefore(div, semaforo.nextSibling);
+  }
+}
+
+// ══════════════════════════════════════════
+// FULL PLAN — P&L VISUAL
+// ══════════════════════════════════════════
+function renderPL() {
+  if (!isFull()) return;
+  var m = S.metrics;
+  if (!m || !m.tv) return;
+
+  var ingresos  = m.tv;
+  var costo     = m.tc || 0;
+  var margenB   = ingresos - costo;
+  var gastos    = calcGastosTotal();
+  var nomina    = calcNominaTotal();
+  var impuestos = calcImpuestosTotal();
+  var resultado = margenB - gastos - nomina - impuestos;
+
+  var lines = [
+    { label: 'Ingresos por ventas', val: ingresos, type: 'ingreso', indent: 0 },
+    { label: 'Costo mercadería (CMV)', val: -costo, type: 'costo', indent: 1 },
+    { label: 'Margen bruto', val: margenB, type: 'subtotal', indent: 0, pct: ingresos>0?(margenB/ingresos*100).toFixed(1):null },
+    { label: 'Gastos operativos', val: -gastos, type: 'gasto', indent: 1 },
+    { label: 'Nómina y cargas sociales', val: -nomina, type: 'gasto', indent: 1 },
+    { label: 'Impuestos y contribuciones', val: -impuestos, type: 'gasto', indent: 1 },
+    { label: 'Resultado neto', val: resultado, type: 'resultado', indent: 0, pct: ingresos>0?(resultado/ingresos*100).toFixed(1):null },
+  ];
+
+  var maxAbs = Math.max.apply(null, lines.map(function(l){ return Math.abs(l.val); }));
+
+  var html = '<div style="margin-bottom:24px">'
+    +'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--white);margin-bottom:4px">Estado de Resultados</div>'
+    +'<div style="font-family:var(--fm);font-size:12px;color:var(--muted)">'+( m.pReal||'Q1 2026')+'  ·  '+EMPRESA_NOMBRE+'</div>'
+    +'</div>';
+
+  html += '<div style="display:flex;flex-direction:column;gap:4px">';
+
+  lines.forEach(function(line) {
+    var isPos = line.val >= 0;
+    var barW  = maxAbs > 0 ? Math.abs(line.val)/maxAbs*100 : 0;
+    var barColor = line.type==='ingreso' ? '#378ADD'
+                 : line.type==='costo'   ? '#E24B4A'
+                 : line.type==='gasto'   ? '#D85A30'
+                 : line.type==='subtotal'? '#C8A96E'
+                 : (isPos ? '#5EBD8A' : '#E24B4A');
+
+    var isSub = line.type==='subtotal'||line.type==='resultado';
+    var bg = isSub ? 'rgba(255,255,255,.04)' : 'transparent';
+    var borderT = isSub ? 'border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:8px' : '';
+
+    html += '<div style="display:grid;grid-template-columns:220px 1fr 100px;align-items:center;gap:16px;padding:10px 16px;border-radius:8px;background:'+bg+';'+borderT+'">'
+      +'<div style="font-size:'+(isSub?'14':'13')+'px;font-weight:'+(isSub?'700':'400')+';color:'+(isSub?'var(--white)':'var(--muted)')+';padding-left:'+(line.indent*16)+'px">'+line.label+'</div>'
+      +'<div style="position:relative;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden">'
+      +'<div style="position:absolute;'+(isPos?'left':'right')+':0;width:'+barW+'%;height:100%;background:'+barColor+';border-radius:3px;transition:width .6s ease"></div>'
+      +'</div>'
+      +'<div style="text-align:right">'
+      +'<div style="font-family:var(--fh);font-size:'+(isSub?'16':'14')+'px;font-weight:'+(isSub?'900':'600')+';color:'+(line.val<0?'#E05040':'var(--white)')+'">'+( line.val < 0 ? '-'+fmt(Math.abs(line.val)) : fmt(line.val))+'</div>'
+      +(line.pct ? '<div style="font-family:var(--fm);font-size:10px;color:'+barColor+'">'+line.pct+'%</div>' : '')
+      +'</div>'
+      +'</div>';
+  });
+
+  html += '</div>';
+
+  // Missing data notice
+  if (!costo && !gastos && !nomina) {
+    html += '<div style="margin-top:16px;padding:14px 18px;background:rgba(200,169,110,.06);border:1px dashed rgba(200,169,110,.2);border-radius:8px;font-size:13px;color:var(--muted)">'
+      +'💡 Subí Compras, Gastos y Nómina para completar el P&L con datos reales.</div>';
+  }
+
+  document.getElementById('pl-content').innerHTML = html;
+}
+
+var EMPRESA_NOMBRE = '';
+
+function calcGastosTotal() {
+  var pf = S.proFiles['gastos'] || S.proFiles['f-gastos'];
+  if (!pf || !pf.sheets) return 0;
+  var sheets = pf.sheets, vk = Object.keys(sheets)[0], rows = sheets[vk]||[];
+  if (!rows.length) return 0;
+  var cols = Object.keys(rows[0]);
+  var montoCol = findCol(cols,[/monto|importe|total|amount/i]);
+  return montoCol ? sumCol(rows, montoCol) : 0;
+}
+
+function calcNominaTotal() {
+  var pf = S.proFiles['nomina'] || S.proFiles['f-nomina'];
+  if (!pf || !pf.sheets) return 0;
+  var sheets = pf.sheets, vk = Object.keys(sheets)[0], rows = sheets[vk]||[];
+  if (!rows.length) return 0;
+  var cols = Object.keys(rows[0]);
+  var totalCol = findCol(cols,[/costo.*total|total.*emple|total.*empleador/i]) || findCol(cols,[/sueldo|salario|bruto/i]);
+  return totalCol ? sumCol(rows, totalCol) : 0;
+}
+
+function calcImpuestosTotal() {
+  var pf = S.proFiles['impuestos'] || S.proFiles['f-impuestos'];
+  if (!pf || !pf.sheets) return 0;
+  var sheets = pf.sheets, vk = Object.keys(sheets)[0], rows = sheets[vk]||[];
+  if (!rows.length) return 0;
+  var cols = Object.keys(rows[0]);
+  var tipoCol = findCol(cols,[/tipo|type/i]);
+  var ivaCol  = findCol(cols,[/iva|tax|impuesto/i]) || findCol(cols,[/monto|importe|total/i]);
+  // Sum only debito rows
+  return rows.reduce(function(a,r){
+    if (tipoCol && String(r[tipoCol]||'').toLowerCase().indexOf('d') === -1) return a;
+    var v = ivaCol ? parseFloat(String(r[ivaCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    return a + v;
+  }, 0);
+}
+
+// ══════════════════════════════════════════
+// FULL PLAN — CASH FLOW PROJECTION
+// ══════════════════════════════════════════
+function renderCashFlow() {
+  if (!isFull()) return;
+  var m = S.metrics;
+  if (!m || !m.tv) return;
+
+  // Saldo inicial desde extracto bancario
+  var saldoInicial = calcSaldoBancario();
+  var ventasMes    = m.tv / Math.max(Object.keys(m.byMes||{}).length, 1);
+  var costosMes    = m.tc > 0 ? m.tc / Math.max(Object.keys(m.byMes||{}).length, 1) : ventasMes * 0.6;
+  var gastosMes    = calcGastosTotal() / 3;
+  var nominaMes    = calcNominaTotal() / 3;
+  var impuestosMes = calcImpuestosTotal() / 3;
+
+  var cobrarTotal = S.pro.cobrar && S.pro.cobrar.loaded && S.pro.cobrar.analisis ? (S.pro.cobrar.analisis.metricas && S.pro.cobrar.analisis.metricas.totalACobrar || 0) : 0;
+  var pagarTotal  = S.pro.pagar  && S.pro.pagar.loaded  && S.pro.pagar.analisis  ? (S.pro.pagar.analisis.metricas  && S.pro.pagar.analisis.metricas.totalAPagar  || 0) : 0;
+
+  var periodos = ['Abril 2026','Mayo 2026','Junio 2026'];
+  var cobro_factor = [0.5, 0.3, 0.2];
+  var pago_factor  = [0.7, 0.3, 0.0];
+
+  var saldo = saldoInicial;
+  var minOperativo = nominaMes + gastosMes * 0.5;
+  var proyeccion = [];
+
+  periodos.forEach(function(mes, i) {
+    var ingresos = ventasMes + (cobrarTotal * cobro_factor[i]);
+    var egresos  = costosMes + gastosMes + nominaMes + impuestosMes + (pagarTotal * pago_factor[i]);
+    var neto     = ingresos - egresos;
+    saldo        = saldo + neto;
+    proyeccion.push({ mes: mes, ingresos: ingresos, egresos: egresos, neto: neto, saldo: saldo, riesgo: saldo < minOperativo });
+  });
+
+  var maxVal = Math.max.apply(null, proyeccion.map(function(p){ return Math.max(p.ingresos, p.egresos); }));
+  var minSaldo = Math.min.apply(null, proyeccion.map(function(p){ return p.saldo; }));
+
+  var html = '<div style="margin-bottom:24px">'
+    +'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--white);margin-bottom:4px">Cash Flow Proyectado</div>'
+    +'<div style="font-family:var(--fm);font-size:12px;color:var(--muted)">Próximos 90 días  ·  basado en tus datos reales</div>'
+    +'</div>';
+
+  // Alerta si hay riesgo
+  if (minSaldo < minOperativo) {
+    var diasRiesgo = proyeccion.findIndex(function(p){ return p.riesgo; });
+    html += '<div style="background:rgba(220,80,60,.12);border:1px solid rgba(220,80,60,.3);border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px">'
+      +'<div style="font-size:28px">🚨</div>'
+      +'<div><div style="font-family:var(--fh);font-size:16px;font-weight:800;color:#FF7060;margin-bottom:2px">Riesgo de liquidez detectado</div>'
+      +'<div style="font-size:13px;color:var(--muted)">En '+(diasRiesgo+1)*30+' días la caja podría estar por debajo del mínimo operativo de '+fmt(minOperativo)+'</div></div>'
+      +'</div>';
+  } else {
+    html += '<div style="background:rgba(46,125,82,.1);border:1px solid rgba(94,189,138,.25);border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px">'
+      +'<div style="font-size:22px">✅</div>'
+      +'<div style="font-size:13px;color:#7DDBA8">La caja proyectada se mantiene por encima del mínimo operativo los próximos 90 días.</div>'
+      +'</div>';
+  }
+
+  // Cards por mes
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">';
+  proyeccion.forEach(function(p) {
+    var borderColor = p.riesgo ? 'rgba(220,80,60,.4)' : 'rgba(200,169,110,.15)';
+    html += '<div style="background:rgba(15,32,64,.6);border:1px solid '+borderColor+';border-radius:12px;padding:18px">'
+      +'<div style="font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:14px">'+p.mes+'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Ingresos</span><span style="color:#5EBD8A;font-weight:600">'+fmt(p.ingresos)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--muted)">Egresos</span><span style="color:#E05040;font-weight:600">-'+fmt(p.egresos)+'</span></div>'
+      +'<div style="height:1px;background:rgba(255,255,255,.06)"></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--white);font-weight:600">Saldo final</span><span style="color:'+(p.saldo>0?'var(--white)':'#E05040')+';font-family:var(--fh);font-size:16px;font-weight:900">'+fmt(p.saldo)+'</span></div>'
+      +'</div>'
+      +(p.riesgo ? '<div style="font-family:var(--fm);font-size:9px;color:#FF7060;letter-spacing:.08em;text-transform:uppercase">⚠ Bajo mínimo operativo</div>' : '')
+      +'</div>';
+  });
+  html += '</div>';
+
+  // Saldo inicial card
+  html += '<div style="background:rgba(27,79,138,.15);border:1px solid rgba(200,169,110,.15);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">'
+    +'<div><div style="font-size:12px;color:var(--muted)">Saldo inicial (extracto bancario)</div>'
+    +(saldoInicial > 0 ? '' : '<div style="font-size:11px;color:var(--dim)">Subí el Extracto Bancario para datos reales</div>')+'</div>'
+    +'<div style="font-family:var(--fh);font-size:20px;font-weight:900;color:var(--white)">'+fmt(Math.abs(saldoInicial))+'</div>'
+    +'</div>';
+
+  document.getElementById('cf-content').innerHTML = html;
+}
+
+function calcSaldoBancario() {
+  var pf = S.proFiles['banco'] || S.proFiles['f-banco'];
+  if (!pf || !pf.sheets) return 0;
+  var sheets = pf.sheets, vk = Object.keys(sheets)[0], rows = sheets[vk]||[];
+  if (!rows.length) return 0;
+  var cols = Object.keys(rows[0]);
+  var saldoCol = findCol(cols,[/saldo/i]);
+  if (saldoCol) {
+    var last = rows[rows.length-1];
+    return parseFloat(String(last[saldoCol]||'').replace(/[^0-9.-]/g,''))||0;
+  }
+  return 0;
+}
+
+// ══════════════════════════════════════════
+// FULL PLAN — MODO PRESENTACIÓN
+// ══════════════════════════════════════════
+function launchPresentation() {
+  if (!isFull()) return;
+  var m = S.metrics, d = S.dash;
+  if (!m || !d) return;
+
+  var margen   = m.tc > 0 && m.tv > 0 ? ((m.tv-m.tc)/m.tv*100).toFixed(1) : '—';
+  var gastos   = calcGastosTotal(), nomina = calcNominaTotal(), imp = calcImpuestosTotal();
+  var resultado = m.tv - m.tc - gastos - nomina - imp;
+  var semClass  = document.querySelector('.semaforo.verde') ? 'verde' : document.querySelector('.semaforo.rojo') ? 'rojo' : 'amarillo';
+  var semColor  = semClass==='verde' ? '#5EBD8A' : semClass==='rojo' ? '#E05040' : '#E8C87A';
+  var semLabel  = semClass==='verde' ? '🟢 NEGOCIO EN ZONA SEGURA' : semClass==='rojo' ? '🔴 ALERTAS CRÍTICAS' : '🟡 ZONA DE ATENCIÓN';
+  var empresa   = EMPRESA_NOMBRE || (d.titulo||'Tu empresa');
+
+  var slides = [
+    // Slide 1: Portada
+    '<div class="pres-slide pres-cover">'
+      +'<div class="pres-logo">CFO<span>.AI</span></div>'
+      +'<div class="pres-cover-title">'+empresa+'</div>'
+      +'<div class="pres-cover-sub">Informe Financiero · '+(m.pReal||'Q1 2026')+'</div>'
+      +'<div class="pres-cover-badge" style="color:'+semColor+'">'+semLabel+'</div>'
+    +'</div>',
+    // Slide 2: KPIs clave
+    '<div class="pres-slide">'
+      +'<div class="pres-slide-title">Resultados del período</div>'
+      +'<div class="pres-kpi-grid">'
+      +'<div class="pres-kpi"><div class="pres-kpi-l">Ventas totales</div><div class="pres-kpi-v">'+fmt(m.tv)+'</div><div class="pres-kpi-s">'+m.nt+' transacciones</div></div>'
+      +'<div class="pres-kpi"><div class="pres-kpi-l">Margen bruto</div><div class="pres-kpi-v" style="color:'+(parseFloat(margen)>30?'#5EBD8A':parseFloat(margen)>15?'#E8C87A':'#E05040')+'">'+margen+'%</div><div class="pres-kpi-s">sobre ventas</div></div>'
+      +'<div class="pres-kpi"><div class="pres-kpi-l">Ticket promedio</div><div class="pres-kpi-v">'+fmt(m.tk)+'</div><div class="pres-kpi-s">por operación</div></div>'
+      +'<div class="pres-kpi"><div class="pres-kpi-l">Resultado neto</div><div class="pres-kpi-v" style="color:'+(resultado>=0?'#5EBD8A':'#E05040')+'">'+fmt(Math.abs(resultado))+'</div><div class="pres-kpi-s">'+(resultado>=0?'ganancia':'pérdida')+'</div></div>'
+      +'</div>'
+    +'</div>',
+    // Slide 3: P&L simplificado
+    '<div class="pres-slide">'
+      +'<div class="pres-slide-title">Estado de Resultados</div>'
+      +'<div class="pres-pl">'
+      +[
+        {l:'Ingresos por ventas',v:m.tv,bold:false,color:'var(--white)'},
+        {l:'(-) Costo mercadería',v:-m.tc,bold:false,color:'#E05040'},
+        {l:'= Margen bruto',v:m.tv-m.tc,bold:true,color:'#C8A96E'},
+        {l:'(-) Gastos operativos',v:-gastos,bold:false,color:'#E05040'},
+        {l:'(-) Nómina',v:-nomina,bold:false,color:'#E05040'},
+        {l:'(-) Impuestos',v:-imp,bold:false,color:'#E05040'},
+        {l:'= Resultado neto',v:resultado,bold:true,color:resultado>=0?'#5EBD8A':'#E05040'},
+      ].map(function(row){
+        return '<div class="pres-pl-row" style="font-weight:'+(row.bold?'700':'400')+';'+(row.bold?'background:rgba(255,255,255,.04);':'')+'border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between">'
+          +'<span style="color:var(--muted)">'+row.l+'</span>'
+          +'<span style="font-family:var(--fh);color:'+row.color+'">'+fmt(Math.abs(row.v))+'</span>'
+          +'</div>';
+      }).join('')
+      +'</div>'
+    +'</div>',
+    // Slide 4: Top ventas
+    '<div class="pres-slide">'
+      +'<div class="pres-slide-title">Top rendimiento por '+( m.dims.length ? m.dims[0].lbl : 'Producto')+'</div>'
+      +'<div class="pres-bars">'
+      +(function(){
+          if (!m.dims.length) return '<div style="color:var(--muted)">Sin datos de dimensión disponibles</div>';
+          var dim = m.dims[0];
+          var map = {};
+          m.rows.forEach(function(r){
+            var k = String(r[dim.col]||'').trim()||'N/D';
+            var v = parseFloat(String(r[m.valCol]||'').replace(/[^0-9.-]/g,''))||0;
+            map[k] = (map[k]||0)+v;
+          });
+          var top = Object.entries(map).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+          var max = top[0]?top[0][1]:1;
+          return top.map(function(e,i){
+            var pct = (e[1]/max*100).toFixed(0);
+            return '<div style="display:grid;grid-template-columns:160px 1fr 90px;align-items:center;gap:12px;margin-bottom:8px">'
+              +'<div style="font-size:13px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+e[0]+'</div>'
+              +'<div style="background:rgba(255,255,255,.05);border-radius:4px;height:8px"><div style="width:'+pct+'%;height:100%;background:'+COLORS[i%COLORS.length]+';border-radius:4px"></div></div>'
+              +'<div style="text-align:right;font-family:var(--fh);font-size:14px;font-weight:700;color:var(--white)">'+fmt(e[1])+'</div>'
+              +'</div>';
+          }).join('');
+       })()
+      +'</div>'
+    +'</div>',
+    // Slide 5: Cierre
+    '<div class="pres-slide pres-cover">'
+      +'<div class="pres-logo">CFO<span>.AI</span></div>'
+      +'<div class="pres-cover-title" style="font-size:32px">La inteligencia financiera<br><em>que te mereces</em></div>'
+      +'<div class="pres-cover-sub">cfo-ai.vercel.app</div>'
+    +'</div>',
+  ];
+
+  S._presSlides = slides;
+  S._presIdx    = 0;
+
+  var modal = document.getElementById('pres-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'pres-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:#000;z-index:500;display:flex;flex-direction:column';
+    modal.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(0,0,0,.5);flex-shrink:0">'
+      +'<div style="font-family:var(--fh);font-size:16px;font-weight:800;color:var(--white)">CFO<span style="color:var(--accent)">.AI</span> · Modo Presentación</div>'
+      +'<div style="display:flex;align-items:center;gap:16px">'
+      +'<span id="pres-counter" style="font-family:var(--fm);font-size:12px;color:var(--muted)">1 / 5</span>'
+      +'<button onclick="presNav(-1)" style="background:rgba(255,255,255,.1);border:none;color:var(--white);padding:8px 16px;border-radius:6px;cursor:pointer;font-size:18px">◀</button>'
+      +'<button onclick="presNav(1)"  style="background:var(--accent);border:none;color:var(--navy);padding:8px 16px;border-radius:6px;cursor:pointer;font-size:18px;font-weight:700">▶</button>'
+      +'<button onclick="presClose()" style="background:rgba(255,255,255,.1);border:none;color:var(--white);padding:8px 16px;border-radius:6px;cursor:pointer">✕ Salir</button>'
+      +'</div>'
+      +'</div>'
+      +'<div id="pres-body" style="flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:40px"></div>';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  presRender(0);
+}
+
+function presClose() {
+  var m = document.getElementById('pres-modal');
+  if (m) m.style.display = 'none';
+}
+function presNav(dir) {
+  S._presIdx = Math.max(0, Math.min(S._presSlides.length-1, S._presIdx + dir));
+  presRender(S._presIdx);
+}
+function presRender(idx) {
+  var body = document.getElementById('pres-body');
+  var counter = document.getElementById('pres-counter');
+  if (body) body.innerHTML = S._presSlides[idx];
+  if (counter) counter.textContent = (idx+1)+' / '+S._presSlides.length;
+  S._presIdx = idx;
+}
+
+// ══════════════════════════════════════════
+// FULL PLAN — HOOK INTO renderDash
+// ══════════════════════════════════════════
+var _origRenderDash = renderDash;
+renderDash = function(d, m) {
+  _origRenderDash(d, m);
+  if (isFull()) {
+    EMPRESA_NOMBRE = d && d.titulo ? d.titulo : '';
+    // Show Full tabs and button
+    ['tab-pnl','tab-caja','btn-present'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display = 'block';
+    });
+    ['btab-pnl','btab-caja'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display = 'flex';
+    });
+    // Splash
+    var stats = {
+      ventas: m.tv,
+      margen: m.tc > 0 ? (m.tv-m.tc)/m.tv*100 : null,
+      caja: calcSaldoBancario() || null,
+      alertas: '—',
+    };
+    showFullSplash(stats);
+    // Brief and P&L after splash
+    setTimeout(function(){
+      renderExecutiveBrief();
+      renderPL();
+      renderCashFlow();
+    }, 600);
+  }
+};
+
+// Also re-render P&L when compras/gastos/nomina loaded
+var _origRenderProSection = renderProSection;
+renderProSection = function(tipo) {
+  _origRenderProSection(tipo);
+  if (isFull() && ['compras','gastos','nomina','impuestos','banco'].indexOf(tipo) !== -1) {
+    setTimeout(function(){ renderPL(); renderCashFlow(); renderExecutiveBrief(); }, 300);
+  }
+};
+
 </script>
 </body>
 </html>
