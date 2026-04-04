@@ -1966,106 +1966,70 @@ input[type=file] { display: none; }
 <script>
 // Stub temprano — garantiza que goAuth esté disponible antes del primer render
 function goAuth(plan) {
-  plan = plan || 'free';
-  if (plan === 'pro' || plan === 'full') {
-    showPayScreen(plan);
-  } else {
+  if (plan === 'free') {
+    // Plan gratis → directo al auth
     if (window._S) {
-      window._S.pendingPlan = plan;
+      window._S.pendingPlan = 'free';
       window.showScreen && window.showScreen('s-auth');
     } else {
-      window._pendingGoAuth = plan;
+      window._pendingGoAuth = 'free';
     }
+  } else {
+    // Plan pago → mostrar pantalla de pago
+    window._pendingGoAuth = plan;
+    showPayScreen(plan);
   }
 }
 
 function showPayScreen(plan) {
   var existing = document.getElementById('pay-screen');
   if (existing) existing.remove();
+
   var prices = { pro: 19.99, full: 49.99 };
   var names  = { pro: 'CFO.AI Pro', full: 'CFO.AI Full' };
   var price  = prices[plan];
-  var planName = names[plan];
-  if (!price) return;
+  var name   = names[plan];
 
-  var overlay = document.createElement('div');
-  overlay.id = 'pay-screen';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,15,30,.97);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)';
+  var screen = document.createElement('div');
+  screen.id = 'pay-screen';
+  screen.style.cssText = 'position:fixed;inset:0;background:var(--navy);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px';
+  screen.innerHTML = '<div style="background:rgba(15,32,64,.9);border:1px solid var(--border);border-radius:16px;padding:40px 36px;max-width:420px;width:100%;text-align:center">'
+    + '<div style="font-family:var(--fh);font-size:28px;font-weight:900;color:var(--white);margin-bottom:6px">'+name+'</div>'
+    + '<div style="font-family:var(--fh);font-size:42px;font-weight:900;color:var(--accent);margin-bottom:4px">USD $'+price+'</div>'
+    + '<div style="font-size:12px;color:var(--muted);margin-bottom:28px">por mes · suscripción automática · cancelá cuando quieras</div>'
+    + '<div id="pay-price-ars" style="font-size:13px;color:var(--muted);margin-bottom:24px">Calculando precio en ARS...</div>'
+    + '<div style="margin-bottom:20px">'
+    +   '<input id="pay-email" type="email" placeholder="Tu email" style="width:100%;padding:14px 16px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--white);font-size:14px;font-family:var(--fb);box-sizing:border-box">'
+    + '</div>'
+    + '<button id="pay-btn" onclick="initPayment(&quot;'+plan+'&quot;)" style="width:100%;background:var(--accent);color:var(--navy);font-family:var(--fb);font-size:15px;font-weight:700;padding:16px;border-radius:10px;border:none;cursor:pointer;margin-bottom:12px">Pagar con Mercado Pago →</button>'
+    + '<button onclick="document.getElementById(&quot;pay-screen&quot;).remove()" style="width:100%;background:transparent;color:var(--muted);font-family:var(--fb);font-size:13px;padding:10px;border:none;cursor:pointer">Cancelar</button>'
+    + '<div style="margin-top:20px;font-size:11px;color:var(--dim)">🔒 Pago seguro via Mercado Pago · Podés cancelar en cualquier momento</div>'
+    + '</div>';
+  document.body.appendChild(screen);
 
-  var box = document.createElement('div');
-  box.style.cssText = 'background:#0F2040;border:1px solid rgba(200,169,110,.2);border-radius:16px;padding:36px 32px;max-width:400px;width:100%;text-align:center;font-family:sans-serif';
-
-  var title = document.createElement('div');
-  title.style.cssText = 'font-size:26px;font-weight:900;color:#fff;margin-bottom:6px';
-  title.textContent = planName;
-
-  var priceEl = document.createElement('div');
-  priceEl.style.cssText = 'font-size:40px;font-weight:900;color:#C8A96E;margin-bottom:4px';
-  priceEl.textContent = 'USD $' + price;
-
-  var period = document.createElement('div');
-  period.style.cssText = 'font-size:12px;color:#8090A8;margin-bottom:20px';
-  period.textContent = 'por mes · suscripción automática · cancelá cuando quieras';
-
-  var arsEl = document.createElement('div');
-  arsEl.id = 'pay-price-ars';
-  arsEl.style.cssText = 'font-size:13px;color:#8090A8;margin-bottom:20px';
-  arsEl.textContent = 'Calculando precio en ARS...';
-
-  var emailInput = document.createElement('input');
-  emailInput.type = 'email';
-  emailInput.id = 'pay-email';
-  emailInput.placeholder = 'Tu email';
-  emailInput.style.cssText = 'width:100%;padding:13px 15px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;font-size:14px;box-sizing:border-box;margin-bottom:14px;outline:none';
-
-  var msgEl = document.createElement('div');
-  msgEl.id = 'pay-msg';
-  msgEl.style.cssText = 'min-height:18px;margin-bottom:8px;font-size:12px;color:#E05040';
-
-  var payBtn = document.createElement('button');
-  payBtn.id = 'pay-btn';
-  payBtn.textContent = 'Pagar con Mercado Pago';
-  payBtn.style.cssText = 'width:100%;background:#C8A96E;color:#0A1628;font-size:15px;font-weight:700;padding:15px;border-radius:10px;border:none;cursor:pointer;margin-bottom:10px';
-  var _plan = plan;
-  payBtn.addEventListener('click', function() { initPayment(_plan); });
-
-  var cancelBtn = document.createElement('button');
-  cancelBtn.textContent = 'Cancelar';
-  cancelBtn.style.cssText = 'width:100%;background:transparent;color:#8090A8;font-size:13px;padding:9px;border:none;cursor:pointer';
-  cancelBtn.addEventListener('click', function() { overlay.remove(); });
-
-  var note = document.createElement('div');
-  note.style.cssText = 'margin-top:16px;font-size:11px;color:#4A5568';
-  note.textContent = 'Pago seguro via Mercado Pago. Pods cancelar en cualquier momento.';
-
-  box.appendChild(title); box.appendChild(priceEl); box.appendChild(period);
-  box.appendChild(arsEl); box.appendChild(emailInput); box.appendChild(msgEl);
-  box.appendChild(payBtn); box.appendChild(cancelBtn); box.appendChild(note);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
+  // Cargar TC en background
   fetch('/api/tc?country=AR')
-    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(r){ return r.json(); })
     .then(function(d){
-      if (d && d.tc_usd) {
+      if (d.tc_usd) {
         var ars = Math.round(price * d.tc_usd);
-        arsEl.innerHTML = 'Equiv. a <strong style="color:#fff">$' + ars.toLocaleString('es-AR') + '</strong> ARS (TC $' + Math.round(d.tc_usd) + '/USD)';
+        document.getElementById('pay-price-ars').innerHTML =
+          'Equivale a <strong style="color:var(--white)">$'+ars.toLocaleString('es-AR')+'</strong> ARS al TC del día ($'+Math.round(d.tc_usd)+'/USD)';
       }
     }).catch(function(){});
 }
 
 async function initPayment(plan) {
-  var emailEl = document.getElementById('pay-email');
-  var msgEl   = document.getElementById('pay-msg');
-  var btn     = document.getElementById('pay-btn');
-  var email   = emailEl ? emailEl.value.trim() : '';
-
+  var email = (document.getElementById('pay-email') || {}).value || '';
   if (!email || !email.includes('@')) {
-    if (emailEl) emailEl.style.borderColor = '#E05040';
-    if (msgEl) msgEl.textContent = 'Ingresa un email valido';
+    document.getElementById('pay-email').style.borderColor = '#E05040';
+    document.getElementById('pay-email').placeholder = 'Ingresá un email válido';
     return;
   }
-  if (btn) { btn.textContent = 'Creando suscripcion...'; btn.disabled = true; }
+
+  var btn = document.getElementById('pay-btn');
+  btn.textContent = 'Creando suscripción...';
+  btn.disabled = true;
 
   try {
     var res = await fetch('/api/mp-subscribe', {
@@ -2074,18 +2038,1105 @@ async function initPayment(plan) {
       body: JSON.stringify({ plan: plan, email: email })
     });
     var data = await res.json();
+
     if (data.init_point) {
+      // Redirigir al checkout de Mercado Pago
       window.location.href = data.init_point;
     } else {
-      throw new Error(data.error || 'Error al crear la suscripcion');
+      throw new Error(data.error || 'Error al crear la suscripción');
     }
   } catch(err) {
-    if (btn) { btn.textContent = 'Error - reintenta'; btn.style.background = '#C0392B'; btn.disabled = false; }
-    if (msgEl) msgEl.textContent = err.message;
+    btn.textContent = 'Error: ' + err.message;
+    btn.style.background = '#C0392B';
+    btn.disabled = false;
   }
 }
+</script>
+</head>
+<body>
 
+<!-- NAV (global) -->
+<nav id="main-nav">
+  <div class="nav-logo">CFO<span>.AI</span></div>
+  <div class="nav-links">
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="#precios">Precios</a>
+    <a href="#precios">Planes</a>
+  </div>
+  <button class="nav-cta" onclick="goAuth()" id="nav-cta-btn">Empezar gratis</button>
+</nav>
 
+<!-- ═══════════════════════════
+     LANDING
+═══════════════════════════ -->
+<div id="s-landing" class="screen active">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-rule"></div>
+    <div class="hero-eyebrow" id="txt-eyebrow">Inteligencia financiera con IA · Para PyMEs</div>
+    <h1 id="txt-h1">La inteligencia financiera<br><em>que te mereces</em></h1>
+    <p class="hero-sub" id="txt-sub">Analizá tus ventas, márgenes y rentabilidad en minutos. Sin consultores. Sin Excel complicados.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="goAuth()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 0 1-5.279-5.28 5.27 5.27 0 0 1 5.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 0 0-8.934 8.934 8.908 8.908 0 0 0 8.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z" fill="#4285F4"/></svg>
+        <span id="txt-cta">Empezar gratis con Google</span>
+      </button>
+      <button class="btn-secondary" onclick="document.getElementById('como-funciona').scrollIntoView({behavior:'smooth'})">
+        <span id="txt-how">Ver cómo funciona</span> ↓
+      </button>
+    </div>
+    <p class="hero-note" id="txt-note">Sin tarjeta de crédito · Gratis para siempre en el plan básico</p>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-inner">
+      <div class="ticker-item"><strong>Ventas</strong> <span class="ticker-sep">·</span> Análisis en tiempo real</div>
+      <div class="ticker-item"><strong>Margen</strong> <span class="ticker-sep">·</span> Por producto y cliente</div>
+      <div class="ticker-item"><strong>Inflación</strong> <span class="ticker-sep">·</span> Alertas de pricing automáticas</div>
+      <div class="ticker-item"><strong>Capital de trabajo</strong> <span class="ticker-sep">·</span> Stock inmovilizado</div>
+      <div class="ticker-item"><strong>Cash Flow</strong> <span class="ticker-sep">·</span> Proyección mensual</div>
+      <div class="ticker-item"><strong>Clientes</strong> <span class="ticker-sep">·</span> Rentabilidad por cuenta</div>
+      <div class="ticker-item"><strong>CFO.AI</strong> <span class="ticker-sep">·</span> La inteligencia financiera que te mereces</div>
+      <!-- duplicado para loop -->
+      <div class="ticker-item"><strong>Ventas</strong> <span class="ticker-sep">·</span> Análisis en tiempo real</div>
+      <div class="ticker-item"><strong>Margen</strong> <span class="ticker-sep">·</span> Por producto y cliente</div>
+      <div class="ticker-item"><strong>Inflación</strong> <span class="ticker-sep">·</span> Alertas de pricing automáticas</div>
+      <div class="ticker-item"><strong>Capital de trabajo</strong> <span class="ticker-sep">·</span> Stock inmovilizado</div>
+      <div class="ticker-item"><strong>Cash Flow</strong> <span class="ticker-sep">·</span> Proyección mensual</div>
+      <div class="ticker-item"><strong>Clientes</strong> <span class="ticker-sep">·</span> Rentabilidad por cuenta</div>
+      <div class="ticker-item"><strong>CFO.AI</strong> <span class="ticker-sep">·</span> La inteligencia financiera que te mereces</div>
+    </div>
+  </div>
+
+  <!-- PAIN -->
+  <section class="pain">
+    <div>
+      <div class="pain-label" id="txt-pain-label">El problema</div>
+      <h2 id="txt-pain-h2">¿Vendés mucho pero no sabés si ganás?</h2>
+      <ul class="pain-list">
+        <li id="p1"><strong>Confundís caja con ganancia.</strong> Vendiste $10M pero no tenés plata en la cuenta.</li>
+        <li id="p2"><strong>La inflación te come el margen</strong> sin que te des cuenta. El costo sube, el precio no.</li>
+        <li id="p3"><strong>No sabés qué producto te da plata de verdad</strong> y cuál te hace perder.</li>
+        <li id="p4"><strong>Tu Excel tiene respuestas</strong> pero no tenés tiempo de analizarlo.</li>
+      </ul>
+    </div>
+    <div class="pain-cards">
+      <div class="pain-card">
+        <div class="pain-card-label">Margen perdido por inflación</div>
+        <div class="pain-card-val red">-8.3%</div>
+        <div class="pain-card-sub">En productos sin ajuste de precios · Últimos 6 meses</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-card-label">Producto más rentable</div>
+        <div class="pain-card-val green">+44.2%</div>
+        <div class="pain-card-sub">Margen bruto real · Después de costos</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-card-label">Capital inmovilizado en stock</div>
+        <div class="pain-card-val">$2.8M</div>
+        <div class="pain-card-sub">Mercadería sin rotar hace +60 días</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section class="how" id="como-funciona">
+    <div class="how-inner">
+      <div class="section-label" id="txt-how-label">Cómo funciona</div>
+      <h2 class="section-title" id="txt-how-title">Tres pasos. Un dashboard que habla tu idioma.</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3 id="s1t">Subís tu Excel</h3>
+          <p id="s1p">Arrastrás tu Excel o CSV de ventas. Sin formato especial. CFO.AI lo entiende como viene.</p>
+          <div class="step-tag">Plan Gratis</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3 id="s2t">La IA lo analiza</h3>
+          <p id="s2p">Nuestra IA lee tus datos, identifica columnas, calcula KPIs reales y detecta problemas automáticamente.</p>
+          <div class="step-tag">Inteligencia Artificial</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3 id="s3t">Tomás decisiones</h3>
+          <p id="s3p">Ves tus ventas por producto, cliente, período. Alertas en lenguaje humano. Exportás a Excel con un click.</p>
+          <div class="step-tag" id="s3tag">En segundos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing" id="precios">
+    <div class="pricing-inner">
+      <div class="section-label" id="txt-price-label">Planes</div>
+      <h2 class="section-title" id="txt-price-title">El CFO que tu empresa necesita.</h2>
+      <div class="pricing-grid">
+        <!-- FREE -->
+        <div class="plan">
+          <div class="plan-name" id="plan1-name">Gratis</div>
+          <div class="plan-price"><span>$</span>0</div>
+          <div class="plan-period" id="plan1-period">para siempre</div>
+          <ul class="plan-features">
+            <li id="f1-1">1 archivo de ventas (1 hoja)</li>
+            <li id="f1-2">Dashboard de ventas completo</li>
+            <li id="f1-3">Drill-down por producto, cliente, mes</li>
+            <li id="f1-4">Chat financiero con IA</li>
+            <li id="f1-5">Exportar a Excel</li>
+            <li class="off" id="f1-6">Margen real por producto</li>
+            <li class="off" id="f1-7">Alertas de pricing por inflación</li>
+            <li class="off" id="f1-8">P&amp;L y Cash Flow</li>
+          </ul>
+          <button class="btn-plan" onclick="goAuth('free')" id="plan1-btn">Empezar gratis</button>
+        </div>
+        <!-- PRO -->
+        <div class="plan featured">
+          <div class="plan-badge" id="plan2-badge">Más popular</div>
+          <div class="plan-name" id="plan2-name">Pro</div>
+          <div class="plan-price"><span>USD $</span>19.99</div>
+          <div class="plan-period" id="plan2-period">por mes</div>
+          <ul class="plan-features">
+            <li id="f2-1">Todo lo del plan Gratis</li>
+            <li id="f2-2">5 archivos: ventas, compras, stock, cobrar, pagar</li>
+            <li id="f2-3">Margen real por producto y cliente</li>
+            <li id="f2-4">Alertas de pricing por inflación</li>
+            <li id="f2-5">Capital de trabajo e inventario</li>
+            <li id="f2-6">Cuentas por cobrar y pagar</li>
+            <li id="f2-7">Historial de análisis</li>
+            <li class="off" id="f2-8">P&amp;L y Cash Flow</li>
+          </ul>
+          <button class="btn-plan primary" onclick="goAuth('pro')" id="plan2-btn">Empezar Pro</button>
+        </div>
+        <!-- FULL -->
+        <div class="plan">
+          <div class="plan-name" id="plan3-name">Full</div>
+          <div class="plan-price"><span>USD $</span>49.99</div>
+          <div class="plan-period" id="plan3-period">por mes</div>
+          <ul class="plan-features">
+            <li id="f3-1">Todo lo del plan Pro</li>
+            <li id="f3-2">9 archivos: + gastos, nómina, impuestos, banco</li>
+            <li id="f3-3">P&amp;L automático (estado de resultados)</li>
+            <li id="f3-4">Cash flow proyectado</li>
+            <li id="f3-5">Posición fiscal (IVA e impuestos)</li>
+            <li id="f3-6">Masa salarial y estructura de costos</li>
+          </ul>
+          <button class="btn-plan" onclick="goAuth('full')" id="plan3-btn">Empezar Full</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">CFO<span>.AI</span></div>
+    <div class="footer-copy">© 2026 CFO.AI · La inteligencia financiera que te mereces</div>
+    <div style="display:flex;gap:20px;">
+      <a href="#" style="font-family:var(--fm);font-size:11px;color:var(--dim);text-decoration:none;" id="txt-terms">Términos</a>
+      <a href="#" style="font-family:var(--fm);font-size:11px;color:var(--dim);text-decoration:none;" id="txt-privacy">Privacidad</a>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════
+     AUTH
+═══════════════════════════ -->
+<div id="s-auth" class="screen">
+  <div class="auth-box">
+    <div class="auth-logo">CFO<span>.AI</span></div>
+    <div class="auth-tagline" id="auth-tagline">La inteligencia financiera que te mereces</div>
+    <div class="auth-divider"></div>
+    <div class="auth-title" id="auth-title">Accedé con tu cuenta de Google</div>
+    <button class="btn-google" onclick="loginGoogle()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 0 1-5.279-5.28 5.27 5.27 0 0 1 5.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 0 0-8.934 8.934 8.908 8.908 0 0 0 8.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z" fill="#4285F4"/></svg>
+      <span id="auth-google-txt">Continuar con Google</span>
+    </button>
+    <p class="auth-note" id="auth-note">Al registrarte aceptás los términos de uso. Tu información está segura y no la compartimos con terceros.</p>
+    <button class="auth-back" onclick="goLanding()">← <span id="auth-back-txt">Volver al inicio</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════
+     DASHBOARD
+═══════════════════════════ -->
+<div id="s-dash" class="screen">
+
+  <!-- DASH NAV -->
+  <div class="dash-nav">
+    <div class="dash-nav-left">
+      <div class="dash-logo">CFO<span>.AI</span></div>
+      <div class="dash-tabs">
+        <button class="dash-tab active" onclick="switchTab('overview')" id="tab-overview">Resumen</button>
+        <button class="dash-tab" onclick="switchTab('detail')" id="tab-detail">Detalle</button>
+        <button class="dash-tab full-only" onclick="switchTab('pnl')" id="tab-pnl" style="display:none">P&amp;L</button>
+        <button class="dash-tab full-only" onclick="switchTab('caja')" id="tab-caja" style="display:none">Cash Flow</button>
+      </div>
+    </div>
+    <div class="dash-nav-right">
+      <div class="user-chip">
+        <div class="user-av" id="user-av">U</div>
+        <span id="user-name" style="font-size:12px;color:var(--muted);">Usuario</span>
+        <span id="plan-badge-nav" style="font-family:var(--fm);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:rgba(200,169,110,.15);color:var(--accent);border:1px solid var(--border2);">FREE</span>
+      </div>
+      <button class="btn-upgrade" id="btn-upgrade-nav" onclick="goLanding()">⬆ Plan Pro</button>
+      <button class="btn-logout" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <!-- DASH BODY -->
+  <div class="dash-body">
+    <div class="dash-err" id="dash-err"></div>
+
+    <!-- UPLOAD — se muestra según el plan -->
+    <div id="upload-area">
+
+      <!-- PLAN FREE: 1 archivo -->
+      <div id="upload-free" style="display:none">
+        <div class="upload-zone" id="dropbox"
+          onclick="document.getElementById('fi').click()"
+          ondragover="doDrag(event,true)" ondragleave="doDrag(event,false)" ondrop="doDrop(event)">
+          <div class="upload-ico">📊</div>
+          <div class="upload-title">Subí tu Excel de ventas</div>
+          <div class="upload-sub">Excel o CSV · Arrastrá o hacé click para seleccionar</div>
+          <div class="upload-formats">
+            <span class="fmt">.xlsx</span><span class="fmt">.xls</span><span class="fmt">.csv</span>
+          </div>
+          <button class="btn-upload" onclick="event.stopPropagation();document.getElementById('fi').click()">Elegir archivo</button>
+          <input type="file" id="fi" accept=".xlsx,.xls,.csv" onchange="go(this.files[0])">
+          <p class="upload-note">Plan Gratis · 1 Excel · 1 hoja · Solo ventas</p>
+        </div>
+      </div>
+
+      <!-- PLAN PRO: hub acordeón -->
+      <div id="upload-pro" style="display:none">
+        <div class="upload-hub">
+          <!-- Summary ring -->
+          <div class="hub-summary">
+            <div class="hub-ring-wrap">
+              <svg width="52" height="52" viewBox="0 0 52 52">
+                <circle class="hub-ring-bg" cx="26" cy="26" r="22"/>
+                <circle class="hub-ring-fill" id="pro-ring" cx="26" cy="26" r="22"
+                  stroke-dasharray="138" stroke-dashoffset="138"/>
+              </svg>
+              <div class="hub-ring-num" id="pro-ring-num">0</div>
+            </div>
+            <div class="hub-summary-text">
+              <div class="hub-summary-title">Tu centro financiero</div>
+              <div class="hub-summary-sub" id="pro-summary-sub">Subí tus archivos — cada uno desbloquea un análisis nuevo</div>
+            </div>
+            <button class="hub-summary-cta" onclick="showDashboardPreview()">Ver dashboard →</button>
+          </div>
+
+          <!-- MULTI-DROP ZONE -->
+          <div class="hub-multidrop" id="hub-multidrop-pro"
+            ondragover="multiDragOver(event,'pro')"
+            ondragleave="multiDragLeave('pro')"
+            ondrop="multiDrop(event,'pro')">
+            <div class="hub-multidrop-ico">📂</div>
+            <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
+            <div class="hub-multidrop-sub">Detectamos por nombre de archivo o hoja — también funciona con un Excel de múltiples hojas</div>
+            <div class="hub-multidrop-tags">
+              <span>ventas.xlsx</span><span>compras.xlsx</span><span>todo_en_uno.xlsx</span><span>pagar.xlsx</span>
+            </div>
+            <button class="hub-slot-btn" style="margin-top:10px" onclick="event.stopPropagation();document.getElementById('multi-input-pro').click()">
+              <span>📱</span> Elegir archivos
+            </button>
+            <input type="file" id="multi-input-pro" accept=".xlsx,.xls,.csv" multiple style="display:none"
+              onchange="multiDropFromInput(this.files,'pro');this.value=''">
+            <div id="hub-multidrop-pro-result" class="hub-multidrop-result"></div>
+          </div>
+
+          <!-- Slots acordeón -->
+          <div class="hub-slots">
+        <div class="hub-slot" id="pfc-ventas">
+          <div class="hub-slot-header" onclick="toggleHubSlot('ventas')">
+            <span class="hub-slot-num">01</span>
+            <span class="hub-slot-ico">📈</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Ventas</div>
+              <div class="hub-slot-desc">Base del análisis — KPIs, tendencias, ticket</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-ventas">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-ventas"
+              ondragover="hubDragOver(event,'ventas')"
+              ondragleave="hubDragLeave('ventas')"
+              ondrop="hubDrop(event,'ventas','ventas')"
+              onclick="document.getElementById('fi-ventas').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-ventas').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-ventas" accept=".xlsx,.xls,.csv" onchange="goProFile('ventas',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-compras">
+          <div class="hub-slot-header" onclick="toggleHubSlot('compras')">
+            <span class="hub-slot-num">02</span>
+            <span class="hub-slot-ico">🛒</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Compras / Costos</div>
+              <div class="hub-slot-desc">Desbloquea margen real por producto</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-compras">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-compras"
+              ondragover="hubDragOver(event,'compras')"
+              ondragleave="hubDragLeave('compras')"
+              ondrop="hubDrop(event,'compras','compras')"
+              onclick="document.getElementById('fi-compras').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-compras').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-compras" accept=".xlsx,.xls,.csv" onchange="goProFile('compras',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-stock">
+          <div class="hub-slot-header" onclick="toggleHubSlot('stock')">
+            <span class="hub-slot-num">03</span>
+            <span class="hub-slot-ico">📦</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Stock / Inventario</div>
+              <div class="hub-slot-desc">Rotación, inmovilización y alertas</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-stock">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-stock"
+              ondragover="hubDragOver(event,'stock')"
+              ondragleave="hubDragLeave('stock')"
+              ondrop="hubDrop(event,'stock','stock')"
+              onclick="document.getElementById('fi-stock').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-stock').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-stock" accept=".xlsx,.xls,.csv" onchange="goProFile('stock',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-cobrar">
+          <div class="hub-slot-header" onclick="toggleHubSlot('cobrar')">
+            <span class="hub-slot-num">04</span>
+            <span class="hub-slot-ico">📥</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Cuentas por Cobrar</div>
+              <div class="hub-slot-desc">Lo que te deben — vencimientos y morosidad</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-cobrar">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-cobrar"
+              ondragover="hubDragOver(event,'cobrar')"
+              ondragleave="hubDragLeave('cobrar')"
+              ondrop="hubDrop(event,'cobrar','cobrar')"
+              onclick="document.getElementById('fi-cobrar').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-cobrar').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-cobrar" accept=".xlsx,.xls,.csv" onchange="goProFile('cobrar',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-pagar">
+          <div class="hub-slot-header" onclick="toggleHubSlot('pagar')">
+            <span class="hub-slot-num">05</span>
+            <span class="hub-slot-ico">📤</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Cuentas por Pagar</div>
+              <div class="hub-slot-desc">Lo que debés — flujo de pagos</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-pagar">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-pagar"
+              ondragover="hubDragOver(event,'pagar')"
+              ondragleave="hubDragLeave('pagar')"
+              ondrop="hubDrop(event,'pagar','pagar')"
+              onclick="document.getElementById('fi-pagar').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-pagar').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-pagar" accept=".xlsx,.xls,.csv" onchange="goProFile('pagar',this.files[0])">
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLAN FULL: hub acordeón 9 slots -->
+      <div id="upload-full" style="display:none">
+        <div class="upload-hub">
+          <!-- Summary ring -->
+          <div class="hub-summary">
+            <div class="hub-ring-wrap">
+              <svg width="52" height="52" viewBox="0 0 52 52">
+                <circle class="hub-ring-bg" cx="26" cy="26" r="22"/>
+                <circle class="hub-ring-fill" id="full-ring" cx="26" cy="26" r="22"
+                  stroke-dasharray="138" stroke-dashoffset="138"/>
+              </svg>
+              <div class="hub-ring-num" id="full-ring-num">0</div>
+            </div>
+            <div class="hub-summary-text">
+              <div class="hub-summary-title">Centro financiero completo</div>
+              <div class="hub-summary-sub" id="full-summary-sub">P&amp;L y Cash Flow automáticos cuando subís todos los archivos</div>
+            </div>
+            <button class="hub-summary-cta" onclick="showDashboardPreview()">Ver dashboard →</button>
+          </div>
+
+          <!-- MULTI-DROP ZONE -->
+          <div class="hub-multidrop" id="hub-multidrop-full"
+            ondragover="multiDragOver(event,'full')"
+            ondragleave="multiDragLeave('full')"
+            ondrop="multiDrop(event,'full')">
+            <div class="hub-multidrop-ico">📂</div>
+            <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
+            <div class="hub-multidrop-sub">Detectamos por nombre de archivo o hoja — también funciona con un Excel de múltiples hojas</div>
+            <div class="hub-multidrop-tags">
+              <span>ventas.xlsx</span><span>gastos.xlsx</span><span>todo_junto.xlsx</span><span>banco.xlsx</span>
+            </div>
+            <button class="hub-slot-btn" style="margin-top:10px" onclick="event.stopPropagation();document.getElementById('multi-input-full').click()">
+              <span>📱</span> Elegir archivos
+            </button>
+            <input type="file" id="multi-input-full" accept=".xlsx,.xls,.csv" multiple style="display:none"
+              onchange="multiDropFromInput(this.files,'full');this.value=''">
+            <div id="hub-multidrop-full-result" class="hub-multidrop-result"></div>
+          </div>
+
+          <div class="hub-section-label" style="color:var(--accent)">Base Pro</div>
+          <div class="hub-slots">
+        <div class="hub-slot" id="pfc-f-ventas">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-ventas')">
+            <span class="hub-slot-num">01</span>
+            <span class="hub-slot-ico">📈</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Ventas</div>
+              <div class="hub-slot-desc">Base del análisis</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-ventas">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-ventas"
+              ondragover="hubDragOver(event,'f-ventas')"
+              ondragleave="hubDragLeave('f-ventas')"
+              ondrop="hubDrop(event,'f-ventas','f-ventas')"
+              onclick="document.getElementById('fi-f-ventas').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-ventas').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-ventas" accept=".xlsx,.xls,.csv" onchange="goProFile('f-ventas',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-f-compras">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-compras')">
+            <span class="hub-slot-num">02</span>
+            <span class="hub-slot-ico">🛒</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Compras / Costos</div>
+              <div class="hub-slot-desc">Margen real por producto</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-compras">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-compras"
+              ondragover="hubDragOver(event,'f-compras')"
+              ondragleave="hubDragLeave('f-compras')"
+              ondrop="hubDrop(event,'f-compras','f-compras')"
+              onclick="document.getElementById('fi-f-compras').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-compras').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-compras" accept=".xlsx,.xls,.csv" onchange="goProFile('f-compras',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-f-stock">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-stock')">
+            <span class="hub-slot-num">03</span>
+            <span class="hub-slot-ico">📦</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Stock / Inventario</div>
+              <div class="hub-slot-desc">Rotación e inmovilización</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-stock">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-stock"
+              ondragover="hubDragOver(event,'f-stock')"
+              ondragleave="hubDragLeave('f-stock')"
+              ondrop="hubDrop(event,'f-stock','f-stock')"
+              onclick="document.getElementById('fi-f-stock').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-stock').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-stock" accept=".xlsx,.xls,.csv" onchange="goProFile('f-stock',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-f-cobrar">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-cobrar')">
+            <span class="hub-slot-num">04</span>
+            <span class="hub-slot-ico">📥</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Por Cobrar</div>
+              <div class="hub-slot-desc">Vencimientos y morosidad</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-cobrar">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-cobrar"
+              ondragover="hubDragOver(event,'f-cobrar')"
+              ondragleave="hubDragLeave('f-cobrar')"
+              ondrop="hubDrop(event,'f-cobrar','f-cobrar')"
+              onclick="document.getElementById('fi-f-cobrar').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-cobrar').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-cobrar" accept=".xlsx,.xls,.csv" onchange="goProFile('f-cobrar',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-f-pagar">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-pagar')">
+            <span class="hub-slot-num">05</span>
+            <span class="hub-slot-ico">📤</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Por Pagar</div>
+              <div class="hub-slot-desc">Flujo de pagos a proveedores</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-pagar">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-pagar"
+              ondragover="hubDragOver(event,'f-pagar')"
+              ondragleave="hubDragLeave('f-pagar')"
+              ondrop="hubDrop(event,'f-pagar','f-pagar')"
+              onclick="document.getElementById('fi-f-pagar').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-pagar').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-pagar" accept=".xlsx,.xls,.csv" onchange="goProFile('f-pagar',this.files[0])">
+            </div>
+          </div>
+        </div>
+          </div>
+
+          <div class="hub-section-label" style="color:#5EBD8A;margin-top:24px">Exclusivo Full — P&amp;L y Cash Flow</div>
+          <div class="hub-slots">
+        <div class="hub-slot" id="pfc-f-gastos">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-gastos')">
+            <span class="hub-slot-num">06</span>
+            <span class="hub-slot-ico">🏢</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Gastos Operativos</div>
+              <div class="hub-slot-desc">Alquileres, servicios, flota, marketing</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-gastos">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-gastos"
+              ondragover="hubDragOver(event,'f-gastos')"
+              ondragleave="hubDragLeave('f-gastos')"
+              ondrop="hubDrop(event,'f-gastos','f-gastos')"
+              onclick="document.getElementById('fi-f-gastos').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-gastos').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-gastos" accept=".xlsx,.xls,.csv" onchange="goProFile('f-gastos',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-f-nomina">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-nomina')">
+            <span class="hub-slot-num">07</span>
+            <span class="hub-slot-ico">👥</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Nómina / Sueldos</div>
+              <div class="hub-slot-desc">Masa salarial y cargas sociales</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-nomina">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-nomina"
+              ondragover="hubDragOver(event,'f-nomina')"
+              ondragleave="hubDragLeave('f-nomina')"
+              ondrop="hubDrop(event,'f-nomina','f-nomina')"
+              onclick="document.getElementById('fi-f-nomina').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-nomina').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-nomina" accept=".xlsx,.xls,.csv" onchange="goProFile('f-nomina',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-f-impuestos">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-impuestos')">
+            <span class="hub-slot-num">08</span>
+            <span class="hub-slot-ico">🧾</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Impuestos / IVA</div>
+              <div class="hub-slot-desc">Posición fiscal y vencimientos</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-impuestos">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-impuestos"
+              ondragover="hubDragOver(event,'f-impuestos')"
+              ondragleave="hubDragLeave('f-impuestos')"
+              ondrop="hubDrop(event,'f-impuestos','f-impuestos')"
+              onclick="document.getElementById('fi-f-impuestos').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-impuestos').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-impuestos" accept=".xlsx,.xls,.csv" onchange="goProFile('f-impuestos',this.files[0])">
+            </div>
+          </div>
+        </div>
+        <div class="hub-slot" id="pfc-f-banco">
+          <div class="hub-slot-header" onclick="toggleHubSlot('f-banco')">
+            <span class="hub-slot-num">09</span>
+            <span class="hub-slot-ico">🏦</span>
+            <div class="hub-slot-info">
+              <div class="hub-slot-name">Extracto Bancario</div>
+              <div class="hub-slot-desc">Movimientos de caja — drag o click</div>
+            </div>
+            <span class="hub-slot-badge pending" id="pfs-f-banco">Pendiente</span>
+            <span class="hub-slot-arrow">▶</span>
+          </div>
+          <div class="hub-slot-panel">
+            <div class="hub-slot-droparea" id="hda-f-banco"
+              ondragover="hubDragOver(event,'f-banco')"
+              ondragleave="hubDragLeave('f-banco')"
+              ondrop="hubDrop(event,'f-banco','f-banco')"
+              onclick="document.getElementById('fi-f-banco').click()">
+              <p>Arrastrá tu archivo acá o hacé click para seleccionar</p>
+              <button class="hub-slot-btn" onclick="event.stopPropagation();document.getElementById('fi-f-banco').click()">
+                <span>📂</span> Elegir archivo
+              </button>
+              <input type="file" id="fi-f-banco" accept=".xlsx,.xls,.csv" onchange="goProFile('f-banco',this.files[0])">
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- WELCOME SPLASH — Full plan -->
+    <div id="full-splash" style="display:none;position:fixed;inset:0;background:var(--navy);z-index:200;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div style="font-family:var(--fh);font-size:14px;font-weight:600;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:20px">CFO.AI Full</div>
+      <div style="font-family:var(--fh);font-size:clamp(28px,4vw,48px);font-weight:900;color:var(--white);line-height:1.15;margin-bottom:16px;max-width:600px" id="splash-title">Analizando tu negocio...</div>
+      <div style="font-size:15px;color:var(--muted);margin-bottom:48px;max-width:500px" id="splash-sub">Procesando 9 archivos financieros</div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap;justify-content:center" id="splash-stats"></div>
+      <div style="margin-top:48px;width:240px;height:2px;background:rgba(200,169,110,.1);border-radius:2px;overflow:hidden">
+        <div id="splash-bar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 1s ease"></div>
+      </div>
+    </div>
+
+    <!-- PROCESSING -->
+    <div class="proc-overlay" id="proc">
+      <div class="proc-spin"></div>
+      <div class="proc-title" id="proc-title">Analizando tu negocio...</div>
+      <div class="proc-sub" id="proc-sub">Procesando archivo</div>
+      <ul class="proc-steps">
+        <li class="go"   id="ps0">Leyendo el archivo</li>
+        <li class="wait" id="ps1">Identificando datos</li>
+        <li class="wait" id="ps2">Calculando métricas reales</li>
+        <li class="wait" id="ps3">Generando insights</li>
+        <li class="wait" id="ps4">Armando el dashboard</li>
+      </ul>
+    </div>
+
+    <!-- DASHBOARD CONTENT -->
+    <div id="dash-content" style="display:none">
+
+      <!-- HEADER -->
+      <div class="dash-hd">
+        <div>
+          <div class="dash-title" id="d-title">Dashboard</div>
+          <div class="dash-meta" id="d-meta"></div>
+        </div>
+        <div class="dash-actions">
+          <button class="btn-act" id="btn-res" onclick="toggleRes()">📋 Resumen</button>
+          <button class="btn-act full-only" id="btn-present" onclick="launchPresentation()" style="display:none">🎯 Presentar</button>
+          <button class="btn-new" onclick="doReset()">← Nuevo archivo</button>
+        </div>
+      </div>
+
+      <!-- RESUMEN -->
+      <div class="res-panel" id="res-panel">
+        <div class="res-hd">
+          <div class="res-hl">
+            <span class="res-title">📋 Resumen ejecutivo</span>
+            <button class="btn-copy" id="btn-cp" onclick="copyRes()">Copiar</button>
+          </div>
+          <button class="btn-new" onclick="toggleRes()">✕</button>
+        </div>
+        <div class="res-body" id="res-body">
+          <div class="ld-row"><div class="ld-sp"></div>Generando resumen...</div>
+        </div>
+      </div>
+
+      <!-- TAB: OVERVIEW -->
+      <div id="pane-overview">
+        <!-- SEMÁFORO DE SUPERVIVENCIA -->
+        <div class="semaforo" id="semaforo-card">
+          <div class="sem-top">
+            <div class="sem-left">
+              <div class="sem-dot"></div>
+              <div>
+                <div class="sem-label">Semáforo de supervivencia</div>
+                <div class="sem-msg" id="sem-msg">Calculando...</div>
+              </div>
+            </div>
+            <div class="sem-dias" id="sem-dias">—<span>días de caja</span></div>
+          </div>
+          <div class="sem-sub" id="sem-sub"></div>
+        </div>
+        <!-- KPIs -->
+        <div class="kpi-row" id="kpi-row"></div>
+        <!-- Alertas -->
+        <div class="card" id="card-a4" style="display:none">
+          <div class="card-title">🔔 Alertas del negocio</div>
+          <div class="a4" id="a4-grid"></div>
+        </div>
+        <!-- Timeline -->
+        <div class="card" id="card-tl" style="display:none">
+          <div class="card-title">📅 Evolución mensual</div>
+          <div class="tbars" id="tbars"></div>
+          <div class="tdet" id="tdet"></div>
+        </div>
+        <!-- Insights -->
+        <div class="card" id="card-ins" style="display:none">
+          <div class="card-title">🤖 Análisis de IA</div>
+          <div id="ins-list"></div>
+        </div>
+        <!-- SECCIONES PRO — aparecen progresivamente -->
+        <div id="pro-sections" style="display:none">
+
+          <!-- Capital de trabajo -->
+          <div class="card" id="card-capital" style="display:none">
+            <div class="card-title">💰 Capital de trabajo</div>
+            <div class="capital-grid" id="capital-grid"></div>
+            <div style="font-size:11px;color:#8090A8;font-family:var(--fm);margin-top:6px" id="capital-note"></div>
+          </div>
+
+          <!-- Margen por producto -->
+          <div class="card" id="card-margen-pro" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div class="card-title" style="margin:0">📊 Margen real por producto</div>
+              <span style="font-family:var(--fm);font-size:10px;color:#8090A8">Calculado con tus costos reales</span>
+            </div>
+            <div id="margen-pro-list"></div>
+          </div>
+
+          <!-- Alertas de pricing por inflación -->
+          <div class="card" id="card-pricing-alerts" style="display:none">
+            <div class="card-title">⚠️ Alertas de pricing por inflación</div>
+            <div id="pricing-alerts-list"></div>
+          </div>
+
+          <!-- Stock e inventario -->
+          <div class="card" id="card-stock-pro" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div class="card-title" style="margin:0">📦 Stock e inventario</div>
+              <span style="font-family:var(--fm);font-size:10px;color:#8090A8" id="stock-rotacion-label"></span>
+            </div>
+            <div id="stock-pro-list"></div>
+          </div>
+
+          <!-- Cuentas por cobrar -->
+          <div class="card" id="card-cobrar-pro" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div class="card-title" style="margin:0">📥 Cuentas por cobrar</div>
+              <span style="font-family:var(--fm);font-size:11px;font-weight:700;color:var(--blue)" id="cobrar-total"></span>
+            </div>
+            <div id="cobrar-pro-list"></div>
+          </div>
+
+          <!-- Cuentas por pagar -->
+          <div class="card" id="card-pagar-pro" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div class="card-title" style="margin:0">📤 Cuentas por pagar</div>
+              <span style="font-family:var(--fm);font-size:11px;font-weight:700;color:#C0392B" id="pagar-total"></span>
+            </div>
+            <div id="pagar-pro-list"></div>
+          </div>
+
+        </div>
+
+        <!-- Cards Pro bloqueadas (solo en plan free) -->
+        <div id="pro-cards">
+
+          <!-- Margen por producto -->
+          <div class="card-pro">
+            <div class="card-pro-header">
+              <div class="card-pro-title">📊 Margen real por producto <span class="pro-badge">🔒 Requiere Plan Pro</span></div>
+            </div>
+            <div class="card-pro-preview">
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto A</div><div class="card-pro-preview-v">44.2%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto B</div><div class="card-pro-preview-v">31.8%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto C</div><div class="card-pro-preview-v">18.5%</div></div>
+            </div>
+            <div class="card-pro-cta">
+              <p><strong>Detectá qué productos te dan plata</strong> y cuáles te hacen perder margen por inflación.</p>
+              <button class="btn-pro-cta" onclick="goLanding()">Ver Plan Pro →</button>
+            </div>
+          </div>
+
+          <!-- Capital de trabajo -->
+          <div class="card-pro">
+            <div class="card-pro-header">
+              <div class="card-pro-title">💰 Capital de trabajo e inventario <span class="pro-badge">🔒 Plan Pro</span></div>
+            </div>
+            <div class="card-pro-preview">
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Stock inmovilizado</div><div class="card-pro-preview-v">$2.8M</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Rotación real</div><div class="card-pro-preview-v">3.2x</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Días de stock</div><div class="card-pro-preview-v">114 días</div></div>
+            </div>
+            <div class="card-pro-cta">
+              <p><strong>Descubrí cuánta plata tenés trabada</strong> en mercadería sin rotar.</p>
+              <button class="btn-pro-cta" onclick="goLanding()">Ver Plan Pro →</button>
+            </div>
+          </div>
+
+          <!-- Alertas de pricing -->
+          <div class="card-pro">
+            <div class="card-pro-header">
+              <div class="card-pro-title">⚠️ Alertas de pricing por inflación <span class="pro-badge">🔒 Plan Pro</span></div>
+            </div>
+            <div class="card-pro-preview">
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto sin ajuste</div><div class="card-pro-preview-v">-8.3%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Margen perdido</div><div class="card-pro-preview-v">$180K</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Productos afectados</div><div class="card-pro-preview-v">4</div></div>
+            </div>
+            <div class="card-pro-cta">
+              <p><strong>Detectá qué productos no ajustaron precio</strong> con la inflación y cuánto te costó.</p>
+              <button class="btn-pro-cta" onclick="goLanding()">Ver Plan Pro →</button>
+            </div>
+          </div>
+
+          <!-- Clientes por rentabilidad -->
+          <div class="card-pro">
+            <div class="card-pro-header">
+              <div class="card-pro-title">👥 Clientes por rentabilidad <span class="pro-badge">🔒 Plan Pro</span></div>
+            </div>
+            <div class="card-pro-preview">
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Cliente más rentable</div><div class="card-pro-preview-v">42.1%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Cliente menos rentable</div><div class="card-pro-preview-v">12.3%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Clientes deficitarios</div><div class="card-pro-preview-v">2</div></div>
+            </div>
+            <div class="card-pro-cta">
+              <p><strong>Sabé cuáles clientes te convienen</strong> y cuáles te consumen margen sin darte ganancia.</p>
+              <button class="btn-pro-cta" onclick="goLanding()">Ver Plan Pro →</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TAB: DETAIL -->
+      <!-- P&L PANE — solo Full -->
+      <div id="pane-pnl" style="display:none">
+        <div id="pl-content"></div>
+      </div>
+
+      <!-- CASH FLOW PANE — solo Full -->
+      <div id="pane-caja" style="display:none">
+        <div id="cf-content"></div>
+      </div>
+
+      <div id="pane-detail" style="display:none">
+        <div class="card" id="card-drill" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div class="card-title" style="margin:0">Ventas y Margen por — <span id="drill-lbl"></span></div>
+            <div class="dim-btns" id="dim-btns"></div>
+          </div>
+          <div id="drill-rows"></div>
+        </div>
+      </div>
+
+    </div><!-- /dash-content -->
+  </div><!-- /dash-body -->
+</div><!-- /s-dash -->
+
+<!-- CHAT -->
+<button class="chat-btn" id="chat-btn" onclick="toggleChat()" style="display:none">
+  💬<div class="chat-bdg" id="chat-bdg">1</div>
+</button>
+<div class="chat-pan" id="chat-pan">
+  <div class="chat-hd">
+    <div style="display:flex;align-items:center;gap:9px;">
+      <div class="chat-av-lg">🤖</div>
+      <div><div class="chat-nm">CFO Assistant</div><div class="chat-st">● En línea</div></div>
+    </div>
+    <button class="chat-x" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-msgs" id="chat-msgs"></div>
+  <div class="chat-sugs" id="chat-sugs">
+    <span class="sug" onclick="chatSug(this)">¿Cuál es mi producto más rentable?</span>
+    <span class="sug" onclick="chatSug(this)">¿Dónde pierdo margen?</span>
+    <span class="sug" onclick="chatSug(this)">¿Cómo mejorar la rentabilidad?</span>
+  </div>
+  <div class="chat-inp-row">
+    <textarea class="chat-inp" id="chat-inp" placeholder="Preguntá sobre tu negocio..." rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+    <button class="chat-send" id="chat-send" onclick="sendChat()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- BOTTOM TAB BAR (mobile) -->
+<div class="bottom-tabs" id="bottom-tabs" style="display:none">
+  <button class="bottom-tab on" id="btab-pnl" onclick="switchTabMobile('pnl')" style="display:none">
+    <span style="font-size:18px">📊</span><span>P&amp;L</span>
+  </button>
+  <button class="bottom-tab on" id="btab-caja" onclick="switchTabMobile('caja')" style="display:none">
+    <span style="font-size:18px">💰</span><span>Caja</span>
+  </button>
+  <button class="bottom-tab on" id="btab-overview" onclick="switchTabMobile('overview')">
+    <span class="bottom-tab-ico">📊</span>Resumen
+  </button>
+  <button class="bottom-tab" id="btab-detail" onclick="switchTabMobile('detail')">
+    <span class="bottom-tab-ico">🔍</span>Detalle
+  </button>
+  <button class="bottom-tab" id="btab-chat" onclick="toggleChatMobile()">
+    <span class="bottom-tab-ico">💬</span>Chat
+    <span id="btab-badge" style="display:none;position:absolute;top:4px;right:calc(50% - 18px);width:8px;height:8px;background:#EF4444;border-radius:50%"></span>
+  </button>
+</div>
+
+<script>
+// Scroll to top siempre al cargar
+// Solo scroll al top si estamos en la landing, no en el dashboard
+if (document.getElementById('s-dash') && !document.getElementById('s-dash').classList.contains('active')) {
+  window.scrollTo(0,0);
+}
+if (history.scrollRestoration) history.scrollRestoration = 'auto';
+
+// ══════════════════════════════════════════
+// CONFIGURACIÓN DE PLANES — fuente de verdad
+// ══════════════════════════════════════════
+var PLANS = {
+  free: {
+    maxSheets: 1,
+    multiFile: false,
+    features: ['dashboard','chat','export']
+  },
+  pro: {
+    maxSheets: null,
+    multiFile: true,
+    features: ['dashboard','chat','export','margen','alertas','capital','historial','multiarchivo']
+  },
+  full: {
+    maxSheets: null,
+    multiFile: true,
+    features: ['*']
+  }
+};
+function canUse(feature) {
+  var f = PLANS[S.plan] && PLANS[S.plan].features;
+  if (!f) return false;
+  return f[0] === '*' || f.indexOf(feature) !== -1;
+}
+function isPro()  { return S.plan === 'pro' || S.plan === 'full'; }
+function isFull() { return S.plan === 'full'; }
+
+// ══════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════
+var S = {
+  user: null, // { name, email, avatar }
+  plan: 'free',
+  pendingPlan: 'free',
+  sheets: null, yc: {}, colMap: null,
+  metrics: null, dash: null,
+  chatHistory: [], chatOpen: false, chatInit: false,
+  drillDim: null, drillLabels: [],
+  resDone: false, resTxt: '',
+  lang: 'es',
+  proFiles: {},   // archivos Plan Pro: ventas, compras, stock, cobrar, pagar
+  pro: {          // análisis procesados Plan Pro
+    ventas:  { loaded: false }, compras: { loaded: false },
+    stock:   { loaded: false }, cobrar:  { loaded: false },
+    pagar:   { loaded: false }
+  }
+};
+var COLORS = ['#1B4F8A','#C8A96E','#2E7D52','#B7791F','#7B5EA7','#C0392B','#1A7A8A','#5D4E37'];
+// Expose S globally and redefine goAuth with full access
+window._S = S;
+// Detectar retorno desde Mercado Pago
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('payment') === 'success' && params.get('plan')) {
+    var plan = params.get('plan');
+    window._pendingGoAuth = plan;
+    // Limpiar URL
+    window.history.replaceState({}, '', window.location.pathname);
+    // Mostrar mensaje de éxito
+    setTimeout(function(){
+      var banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#2E7D52;color:#fff;text-align:center;padding:14px;font-family:var(--fb);font-size:14px;font-weight:600';
+      var planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+      banner.innerHTML = '\uD83C\uDF89 \u00A1Pago confirmado! Bienvenido a CFO.AI ' + planLabel + ' \u2014 ';
+      var link = document.createElement('span');
+      link.textContent = 'Ingres\u00E1 ac\u00E1';
+      link.style.cssText = 'color:#fff;text-decoration:underline;cursor:pointer';
+      link.onclick = function(){ banner.remove(); showScreen('s-auth'); };
+      banner.appendChild(link);
+      document.body.prepend(banner);
+    }, 500);
+  }
+})();
+function goAuth(plan) {
+  plan = plan || 'free';
+  if (plan === 'pro' || plan === 'full') {
+    // Plan pago → pantalla de pago
+    window._pendingGoAuth = plan;
+    showPayScreen(plan);
+  } else {
+    // Plan gratis → auth directo
+    S.pendingPlan = plan;
+    showScreen('s-auth');
+  }
+}
 // Handle any goAuth call that happened before S was ready
 if (window._pendingGoAuth) {
   var _pg = window._pendingGoAuth; window._pendingGoAuth = null;
