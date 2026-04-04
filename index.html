@@ -1520,6 +1520,11 @@ input[type=file] { display: none; }
 </div>
 
 <script>
+// Scroll to top siempre al cargar
+window.onbeforeunload = function(){ window.scrollTo(0,0); };
+if (history.scrollRestoration) history.scrollRestoration = 'manual';
+window.scrollTo(0,0);
+
 // ══════════════════════════════════════════
 // ESTADO
 // ══════════════════════════════════════════
