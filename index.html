@@ -2255,8 +2255,7 @@ function goAuth(plan) {
           <div class="hub-multidrop" id="hub-multidrop-pro"
             ondragover="multiDragOver(event,'pro')"
             ondragleave="multiDragLeave('pro')"
-            ondrop="multiDrop(event,'pro')"
-            onclick="document.getElementById('multi-input-pro').click()">
+            ondrop="multiDrop(event,'pro')">
             <div class="hub-multidrop-ico">📂</div>
             <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
             <div class="hub-multidrop-sub">Detectamos por nombre de archivo o hoja — también funciona con un Excel de múltiples hojas</div>
@@ -2426,8 +2425,7 @@ function goAuth(plan) {
           <div class="hub-multidrop" id="hub-multidrop-full"
             ondragover="multiDragOver(event,'full')"
             ondragleave="multiDragLeave('full')"
-            ondrop="multiDrop(event,'full')"
-            onclick="document.getElementById('multi-input-full').click()">
+            ondrop="multiDrop(event,'full')">
             <div class="hub-multidrop-ico">📂</div>
             <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
             <div class="hub-multidrop-sub">Detectamos por nombre de archivo o hoja — también funciona con un Excel de múltiples hojas</div>
@@ -5359,11 +5357,22 @@ function launchPresentation() {
   }
   modal.style.display = 'flex';
   presRender(0);
+  // Keyboard navigation
+  document._presKeyHandler = function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); presNav(1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); presNav(-1); }
+    if (e.key === 'Escape') presClose();
+  };
+  document.addEventListener('keydown', document._presKeyHandler);
 }
 
 function presClose() {
   var m = document.getElementById('pres-modal');
   if (m) m.style.display = 'none';
+  if (document._presKeyHandler) {
+    document.removeEventListener('keydown', document._presKeyHandler);
+    document._presKeyHandler = null;
+  }
 }
 function presNav(dir) {
   S._presIdx = Math.max(0, Math.min(S._presSlides.length-1, S._presIdx + dir));
