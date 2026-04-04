@@ -2001,8 +2001,8 @@ function showPayScreen(plan) {
     + '<div style="margin-bottom:20px">'
     +   '<input id="pay-email" type="email" placeholder="Tu email" style="width:100%;padding:14px 16px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--white);font-size:14px;font-family:var(--fb);box-sizing:border-box">'
     + '</div>'
-    + '<button id="pay-btn" onclick="initPayment(''+plan+'')" style="width:100%;background:var(--accent);color:var(--navy);font-family:var(--fb);font-size:15px;font-weight:700;padding:16px;border-radius:10px;border:none;cursor:pointer;margin-bottom:12px">Pagar con Mercado Pago →</button>'
-    + '<button onclick="document.getElementById('pay-screen').remove()" style="width:100%;background:transparent;color:var(--muted);font-family:var(--fb);font-size:13px;padding:10px;border:none;cursor:pointer">Cancelar</button>'
+    + '<button id="pay-btn" onclick="initPayment(&quot;'+plan+'&quot;)" style="width:100%;background:var(--accent);color:var(--navy);font-family:var(--fb);font-size:15px;font-weight:700;padding:16px;border-radius:10px;border:none;cursor:pointer;margin-bottom:12px">Pagar con Mercado Pago →</button>'
+    + '<button onclick="document.getElementById(&quot;pay-screen&quot;).remove()" style="width:100%;background:transparent;color:var(--muted);font-family:var(--fb);font-size:13px;padding:10px;border:none;cursor:pointer">Cancelar</button>'
     + '<div style="margin-top:20px;font-size:11px;color:var(--dim)">🔒 Pago seguro via Mercado Pago · Podés cancelar en cualquier momento</div>'
     + '</div>';
   document.body.appendChild(screen);
