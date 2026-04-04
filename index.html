@@ -2561,7 +2561,7 @@ input[type=file] { display: none; }
           <!-- Margen por producto -->
           <div class="card-pro">
             <div class="card-pro-header">
-              <div class="card-pro-title">📊 Margen real por producto <span class="pro-badge">🔒 Plan Pro</span></div>
+              <div class="card-pro-title">📊 Margen real por producto <span class="pro-badge">🔒 Requiere Plan Pro</span></div>
             </div>
             <div class="card-pro-preview">
               <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto A</div><div class="card-pro-preview-v">44.2%</div></div>
@@ -3301,9 +3301,20 @@ function renderKPIs(kpis, m) {
   }
   // KPI 3: Ticket
   var ticketVal = kpis.length>=3 ? kpis[2].v : fmt(m.tk);
-  var margenKPI = isPro() && m.tc > 0 && m.tv > 0
-    ? '<div class="kpi"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">'+((m.tv-m.tc)/m.tv*100).toFixed(1)+'%</div><div class="kpi-s">sobre ventas</div></div>'
-    : '<div class="kpi locked"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">34.4%</div><div class="kpi-s">sobre ventas</div><div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div></div>';
+  var margenKPI;
+  if (isPro() && m.tc > 0 && m.tv > 0) {
+    // Pro con compras cargadas — margen real
+    margenKPI = '<div class="kpi"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">'+((m.tv-m.tc)/m.tv*100).toFixed(1)+'%</div><div class="kpi-s">sobre ventas</div></div>';
+  } else if (isPro()) {
+    // Pro sin compras aún — invitar a subir
+    margenKPI = '<div class="kpi" style="cursor:pointer;border:1px dashed rgba(200,169,110,.3)" onclick="toggleHubSlot('compras')">'
+      +'<div class="kpi-l">Margen Bruto</div>'
+      +'<div class="kpi-v" style="font-size:18px;color:var(--accent)">+ Subí Compras</div>'
+      +'<div class="kpi-s">para ver tu margen real</div></div>';
+  } else {
+    // Free — bloqueado
+    margenKPI = '<div class="kpi locked"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">34.4%</div><div class="kpi-s">sobre ventas</div><div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div></div>';
+  }
   var stockKPI = isPro()
     ? '<div class="kpi"><div class="kpi-l">Rotación de Stock</div><div class="kpi-v">'+(m.stockRot||'—')+'</div><div class="kpi-s">anual estimada</div></div>'
     : '<div class="kpi locked"><div class="kpi-l">Rotación de Stock</div><div class="kpi-v">3.2x</div><div class="kpi-s">anual estimada</div><div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div></div>';
