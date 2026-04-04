@@ -3915,21 +3915,29 @@ function hubDrop(e, tipo, onchange) {
 // HUB PROGRESS RING
 // ══════════════════════════════════════════
 function updateHubRing(planPrefix, loaded, total) {
-  var ringId   = planPrefix === 'f-' ? 'full-ring' : 'pro-ring';
-  var numId    = planPrefix === 'f-' ? 'full-ring-num' : 'pro-ring-num';
-  var subId    = planPrefix === 'f-' ? 'full-summary-sub' : 'pro-summary-sub';
-  var ring     = document.getElementById(ringId);
-  var num      = document.getElementById(numId);
-  var sub      = document.getElementById(subId);
-  var circ     = 2 * Math.PI * 22; // 138.2
-  var offset   = circ - (loaded / total) * circ;
+  var isFull   = planPrefix === 'f-';
+  var ringId   = isFull ? 'full-ring' : 'pro-ring';
+  var numId    = isFull ? 'full-ring-num' : 'pro-ring-num';
+  var subId    = isFull ? 'full-summary-sub' : 'pro-summary-sub';
+  var allTypes = isFull
+    ? ['f-ventas','f-compras','f-stock','f-cobrar','f-pagar','f-gastos','f-nomina','f-impuestos','f-banco']
+    : ['ventas','compras','stock','cobrar','pagar'];
+  var loadedCount = allTypes.filter(function(t){
+    var s = document.getElementById('pfc-' + t);
+    return s && s.classList.contains('loaded');
+  }).length;
+  total = allTypes.length;
+  var ring = document.getElementById(ringId);
+  var num  = document.getElementById(numId);
+  var sub  = document.getElementById(subId);
+  var circ = 2 * Math.PI * 22;
+  var offset = circ - (loadedCount / total) * circ;
   if (ring) ring.style.strokeDashoffset = offset;
-  if (num)  num.textContent = loaded;
-  if (sub && loaded === 0) sub.textContent = 'Subí tus archivos — cada uno desbloquea un análisis nuevo';
-  if (sub && loaded > 0 && loaded < total) sub.textContent = loaded + ' de ' + total + ' archivos cargados — podés ver el dashboard ya';
-  if (sub && loaded === total) sub.textContent = '¡Todo listo! El análisis completo está disponible.';
-  // Color verde cuando completo
-  if (ring && loaded === total) ring.style.stroke = '#5EBD8A';
+  if (num)  num.textContent = loadedCount;
+  if (sub && loadedCount === 0) sub.textContent = 'Subí tus archivos — cada uno desbloquea un análisis nuevo';
+  if (sub && loadedCount > 0 && loadedCount < total) sub.textContent = loadedCount + ' de ' + total + ' archivos cargados';
+  if (sub && loadedCount === total) sub.textContent = '¡Todo listo! Hacé click en Ver dashboard';
+  if (ring && loadedCount === total) ring.style.stroke = '#5EBD8A';
   else if (ring) ring.style.stroke = 'var(--accent)';
 }
 
@@ -5344,6 +5352,20 @@ async function multiDrop(e, plan) {
       pill.innerHTML = '&#x2717; ' + file.name.split('.')[0].slice(0, 14) + ' (error)';
     }
   }
+
+  // Mostrar CTA al terminar
+  var ok    = resultEl.querySelectorAll('.ok').length;
+  var total = files.length;
+  var cta   = document.createElement('div');
+  cta.style.cssText = 'width:100%;margin-top:16px;text-align:center';
+  if (ok === total) {
+    cta.innerHTML = '<div style="font-family:var(--fh);font-size:18px;font-weight:900;color:#5EBD8A;margin-bottom:10px">&#x1F389; &#xA1;Todo listo!</div>'
+      + '<button onclick="showDashboardPreview()" style="background:var(--accent);color:var(--navy);font-family:var(--fb);font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;border:none;cursor:pointer;transition:all .2s">Ver mi dashboard financiero &rarr;</button>';
+  } else {
+    cta.innerHTML = '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+ok+' de '+total+' archivos procesados</div>'
+      + '<button onclick="showDashboardPreview()" style="background:transparent;color:var(--accent);font-family:var(--fb);font-size:13px;font-weight:600;padding:10px 22px;border-radius:8px;border:1px solid var(--border);cursor:pointer">Ver dashboard con los datos disponibles &rarr;</button>';
+  }
+  resultEl.appendChild(cta);
 }
 
 </script>
