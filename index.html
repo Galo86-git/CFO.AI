@@ -1067,6 +1067,147 @@ input[type=file] { display: none; }
 .btn-pro-cta:hover { background: var(--accent2); }
 
 /* RESPONSIVE */
+
+/* ── PRO UPLOAD PANEL ── */
+.pro-files-panel {
+  display: none;
+  background: #fff;
+  border: 1px solid #DDE3EC;
+  border-radius: 8px;
+  padding: 18px 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.pro-files-panel.on { display: block; }
+.pro-files-title {
+  font-family: var(--fh);
+  font-size: 14px; font-weight: 700;
+  color: var(--navy); margin-bottom: 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.pro-plan-badge {
+  font-family: var(--fm); font-size: 9px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 3px;
+  background: rgba(200,169,110,.15); color: var(--accent);
+  border: 1px solid rgba(200,169,110,.3);
+}
+.pro-files-sub {
+  font-size: 11px; color: #8090A8; margin-bottom: 14px;
+  font-family: var(--fm);
+}
+.pro-file-items { display: flex; flex-direction: column; gap: 8px; }
+.pro-file-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px;
+  border: 1.5px dashed #DDE3EC;
+  border-radius: 7px;
+  background: #F8F9FC;
+  cursor: pointer;
+  transition: all .18s;
+  position: relative;
+}
+.pro-file-item:hover { border-color: var(--blue); background: #EEF5FF; }
+.pro-file-item.loaded {
+  border-style: solid; border-color: #2E7D52;
+  background: rgba(46,125,82,.04);
+  cursor: default;
+}
+.pro-file-item.loading {
+  border-color: var(--blue);
+  background: var(--pale);
+}
+.pro-file-ico { font-size: 20px; flex-shrink: 0; }
+.pro-file-info { flex: 1; }
+.pro-file-name {
+  font-size: 13px; font-weight: 600;
+  color: var(--navy); margin-bottom: 2px;
+}
+.pro-file-desc { font-size: 11px; color: #8090A8; }
+.pro-file-status {
+  font-family: var(--fm); font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; flex-shrink: 0;
+}
+.pro-file-status.ok { color: #2E7D52; }
+.pro-file-status.wait { color: #8090A8; }
+.pro-file-status.loading { color: var(--blue); }
+.pro-file-unlock {
+  font-size: 10px; font-weight: 600;
+  padding: 3px 9px; border-radius: 4px;
+  background: var(--pale); color: var(--blue);
+  border: 1px solid rgba(59,125,216,.2);
+  white-space: nowrap; flex-shrink: 0;
+}
+.pro-file-item.loaded .pro-file-unlock { display: none; }
+
+/* ── MÉTRICAS PRO ── */
+.pro-metrics-section {
+  display: none; margin-bottom: 12px;
+}
+.pro-metrics-section.on { display: block; }
+
+/* Capital de trabajo card */
+.capital-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 10px; margin-bottom: 10px;
+}
+.capital-card {
+  background: #fff; border: 1px solid #DDE3EC;
+  border-radius: 7px; padding: 14px 14px;
+}
+.capital-l {
+  font-family: var(--fm); font-size: 9px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #8090A8; margin-bottom: 6px;
+}
+.capital-v {
+  font-family: var(--fh); font-size: 22px; font-weight: 800;
+  color: var(--navy); line-height: 1;
+}
+.capital-v.green { color: #2E7D52; }
+.capital-v.red { color: #C0392B; }
+.capital-v.amber { color: #B7791F; }
+.capital-s { font-size: 10px; color: #8090A8; margin-top: 4px; }
+
+/* Tabla margen por producto */
+.margen-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+}
+.margen-table th {
+  font-family: var(--fm); font-size: 9px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: #8090A8; padding: 6px 10px; text-align: left;
+  border-bottom: 2px solid #DDE3EC;
+}
+.margen-table td {
+  padding: 9px 10px; border-bottom: 1px solid #EEF2F8;
+  color: var(--navy);
+}
+.margen-table tr:last-child td { border: none; }
+.margen-table tr:hover td { background: #F8F9FC; }
+.mg-pill {
+  display: inline-block;
+  font-family: var(--fm); font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 100px;
+}
+.mg-pill.g { background: rgba(46,125,82,.1); color: #2E7D52; }
+.mg-pill.a { background: rgba(183,121,31,.1); color: #B7791F; }
+.mg-pill.r { background: rgba(192,57,43,.1); color: #C0392B; }
+
+/* Barra de progreso rotación */
+.rot-bar { height: 6px; background: #EEF2F8; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.rot-fill { height: 100%; border-radius: 3px; transition: width .5s; }
+
+@media(max-width:480px){
+  .capital-grid { grid-template-columns: 1fr 1fr; }
+  .pro-file-item { padding: 9px 11px; gap: 9px; }
+  .pro-file-name { font-size: 12px; }
+  .pro-file-desc { font-size: 10px; }
+  .pro-file-unlock { font-size: 9px; padding: 2px 7px; }
+  .margen-table th, .margen-table td { padding: 7px 8px; font-size: 11px; }
+}
+
 /* ═══════ TABLET ═══════ */
 @media(max-width: 900px){
   nav { padding: 0 20px; }
@@ -1214,6 +1355,179 @@ input[type=file] { display: none; }
 
   /* Bottom tab bar */
   .bottom-tabs { display: flex; }
+}
+
+
+/* ═══════ PRO DASHBOARD ═══════ */
+.pro-files-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+  margin-bottom: 14px;
+}
+.pro-file-card {
+  background: #fff;
+  border: 1.5px dashed #C8D4E8;
+  border-radius: 8px;
+  padding: 14px 12px;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  position: relative;
+}
+.pro-file-card:hover { border-color: var(--blue); background: #F0F6FF; }
+.pro-file-card.loaded {
+  border-style: solid;
+  border-color: #2E7D52;
+  background: #F0FDF7;
+  cursor: default;
+}
+.pro-file-card.loaded:hover { background: #F0FDF7; border-color: #2E7D52; }
+.pro-file-ico { font-size: 22px; }
+.pro-file-name {
+  font-family: var(--fh);
+  font-size: 11px; font-weight: 700;
+  color: var(--navy); line-height: 1.2;
+}
+.pro-file-sub { font-size: 10px; color: #8090A8; }
+.pro-file-status {
+  font-size: 9px; font-weight: 700;
+  font-family: var(--fm);
+  padding: 2px 7px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.pro-file-status.pending { background: #F0F4FA; color: #8090A8; }
+.pro-file-status.loaded  { background: #ECFDF5; color: #2E7D52; }
+.pro-file-card input[type=file] { display: none; }
+
+/* Capital de trabajo */
+.capital-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 11px;
+  margin-bottom: 12px;
+}
+.capital-card {
+  background: #fff;
+  border: 1px solid #DDE3EC;
+  border-radius: 8px;
+  padding: 16px 15px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.capital-card.highlight {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+.capital-lbl {
+  font-family: var(--fm);
+  font-size: 9px; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: #8090A8; margin-bottom: 7px;
+}
+.capital-card.highlight .capital-lbl { color: rgba(248,246,241,.5); }
+.capital-val {
+  font-family: var(--fh);
+  font-size: 22px; font-weight: 800;
+  color: var(--navy); line-height: 1;
+}
+.capital-card.highlight .capital-val { color: var(--accent); }
+.capital-sub { font-size: 10px; margin-top: 4px; color: #8090A8; }
+.capital-card.highlight .capital-sub { color: rgba(248,246,241,.45); }
+.capital-val.green { color: #2E7D52; }
+.capital-val.red   { color: #C0392B; }
+
+/* Margen por producto (Pro) */
+.mg-row {
+  display: flex; align-items: center;
+  gap: 10px; padding: 9px 0;
+  border-bottom: 1px solid #EEF2F8;
+}
+.mg-row:last-child { border: none; }
+.mg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.mg-name { font-size: 12px; color: var(--navy); flex: 1; font-weight: 500; }
+.mg-venta { font-size: 12px; font-weight: 700; color: var(--navy); font-family: var(--fm); }
+.mg-badge {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 3px;
+  font-family: var(--fm);
+}
+.mg-badge.g { background: rgba(46,125,82,.1); color: #2E7D52; }
+.mg-badge.a { background: rgba(183,121,31,.1); color: #B7791F; }
+.mg-badge.r { background: rgba(192,57,43,.1);  color: #C0392B; }
+
+/* Stock */
+.stock-row {
+  display: flex; align-items: center;
+  gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid #EEF2F8;
+}
+.stock-row:last-child { border: none; }
+.stock-name { font-size: 12px; color: var(--navy); flex: 1; }
+.stock-dias { font-size: 11px; color: #8090A8; font-family: var(--fm); }
+.stock-val  { font-size: 12px; font-weight: 700; font-family: var(--fm); color: var(--navy); }
+.stock-alert {
+  font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px;
+  font-family: var(--fm);
+}
+.stock-alert.ok   { background: rgba(46,125,82,.1);  color: #2E7D52; }
+.stock-alert.warn { background: rgba(183,121,31,.1); color: #B7791F; }
+.stock-alert.bad  { background: rgba(192,57,43,.1);  color: #C0392B; }
+
+/* Cuentas */
+.cuenta-row {
+  display: flex; align-items: center;
+  gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid #EEF2F8;
+}
+.cuenta-row:last-child { border: none; }
+.cuenta-name { font-size: 12px; color: var(--navy); flex: 1; }
+.cuenta-dias {
+  font-size: 10px; font-family: var(--fm);
+  padding: 2px 7px; border-radius: 3px;
+}
+.cuenta-dias.ok   { background: rgba(46,125,82,.1);  color: #2E7D52; }
+.cuenta-dias.warn { background: rgba(183,121,31,.1); color: #B7791F; }
+.cuenta-dias.bad  { background: rgba(192,57,43,.1);  color: #C0392B; }
+.cuenta-monto { font-size: 12px; font-weight: 700; font-family: var(--fm); color: var(--navy); }
+
+/* Pricing vs alertas */
+.pricing-alert {
+  background: linear-gradient(135deg, #FEF9EC, #FFFBF0);
+  border: 1px solid rgba(183,121,31,.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.pricing-alert-ico { font-size: 20px; flex-shrink: 0; }
+.pricing-alert-body { flex: 1; }
+.pricing-alert-title {
+  font-size: 12px; font-weight: 700;
+  color: #92400E; margin-bottom: 4px;
+}
+.pricing-alert-txt { font-size: 11px; color: #B7791F; line-height: 1.5; }
+.pricing-alert-val {
+  font-family: var(--fm); font-size: 13px;
+  font-weight: 700; color: #C0392B;
+  white-space: nowrap; align-self: center;
+}
+
+@media(max-width: 900px){
+  .pro-files-row { grid-template-columns: repeat(2,1fr); }
+  .capital-grid  { grid-template-columns: 1fr 1fr; }
+}
+@media(max-width: 480px){
+  .pro-files-row { grid-template-columns: repeat(2,1fr); gap: 7px; }
+  .pro-file-card { padding: 11px 9px; }
+  .pro-file-ico  { font-size: 18px; }
+  .pro-file-name { font-size: 10px; }
+  .capital-grid  { grid-template-columns: 1fr 1fr; gap: 7px; }
+  .capital-val   { font-size: 18px; }
 }
 
 /* ═══════ BOTTOM TAB BAR (mobile only) ═══════ */
@@ -1474,7 +1788,7 @@ input[type=file] { display: none; }
         <div class="user-av" id="user-av">U</div>
         <span id="user-name" style="font-size:12px;color:var(--muted);">Usuario</span>
       </div>
-      <button class="btn-upgrade" onclick="goLanding()">⬆ Plan Pro</button>
+      <button class="btn-upgrade" id="btn-upgrade-nav" onclick="goLanding()">⬆ Plan Pro</button>
       <button class="btn-logout" onclick="logout()">Salir</button>
     </div>
   </div>
@@ -1483,21 +1797,83 @@ input[type=file] { display: none; }
   <div class="dash-body">
     <div class="dash-err" id="dash-err"></div>
 
-    <!-- UPLOAD -->
+    <!-- UPLOAD — se muestra según el plan -->
     <div id="upload-area">
-      <div class="upload-zone" id="dropbox"
-        onclick="document.getElementById('fi').click()"
-        ondragover="doDrag(event,true)" ondragleave="doDrag(event,false)" ondrop="doDrop(event)">
-        <div class="upload-ico">📊</div>
-        <div class="upload-title" id="upl-title">Subí tu Excel de ventas</div>
-        <div class="upload-sub" id="upl-sub">Una sola hoja · Arrastrá o hacé click para seleccionar</div>
-        <div class="upload-formats">
-          <span class="fmt">.xlsx</span><span class="fmt">.xls</span><span class="fmt">.csv</span>
+
+      <!-- PLAN FREE: 1 archivo -->
+      <div id="upload-free" style="display:none">
+        <div class="upload-zone" id="dropbox"
+          onclick="document.getElementById('fi').click()"
+          ondragover="doDrag(event,true)" ondragleave="doDrag(event,false)" ondrop="doDrop(event)">
+          <div class="upload-ico">📊</div>
+          <div class="upload-title">Subí tu Excel de ventas</div>
+          <div class="upload-sub">Una sola hoja · Arrastrá o hacé click para seleccionar</div>
+          <div class="upload-formats">
+            <span class="fmt">.xlsx</span><span class="fmt">.xls</span><span class="fmt">.csv</span>
+          </div>
+          <button class="btn-upload" onclick="event.stopPropagation();document.getElementById('fi').click()">Elegir archivo</button>
+          <input type="file" id="fi" accept=".xlsx,.xls,.csv" onchange="go(this.files[0])">
+          <p class="upload-note">Plan Gratis · 1 Excel · 1 hoja · Solo ventas</p>
         </div>
-        <button class="btn-upload" onclick="event.stopPropagation();document.getElementById('fi').click()" id="upl-btn">Elegir archivo</button>
-        <input type="file" id="fi" accept=".xlsx,.xls,.csv" onchange="go(this.files[0])">
-        <p class="upload-note" id="upl-note">Plan Gratis · 1 Excel · 1 hoja · Solo ventas</p>
       </div>
+
+      <!-- PLAN PRO: 5 slots progresivos -->
+      <div id="upload-pro" style="display:none">
+        <div style="margin-bottom:14px">
+          <div style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--navy);margin-bottom:4px">Tu centro financiero</div>
+          <div style="font-size:12px;color:#8090A8;font-family:var(--fm)">Subí tus archivos de a uno — cada uno desbloquea un nuevo análisis</div>
+        </div>
+        <div class="pro-files-row">
+
+          <!-- Ventas -->
+          <div class="pro-file-card" id="pfc-ventas" onclick="document.getElementById('fi-ventas').click()">
+            <div class="pro-file-ico">📈</div>
+            <div class="pro-file-name">Ventas</div>
+            <div class="pro-file-sub">Base del análisis</div>
+            <div class="pro-file-status pending" id="pfs-ventas">Pendiente</div>
+            <input type="file" id="fi-ventas" accept=".xlsx,.xls,.csv" onchange="goProFile('ventas',this.files[0])">
+          </div>
+
+          <!-- Compras -->
+          <div class="pro-file-card" id="pfc-compras" onclick="document.getElementById('fi-compras').click()">
+            <div class="pro-file-ico">🛒</div>
+            <div class="pro-file-name">Compras / Costos</div>
+            <div class="pro-file-sub">Desbloquea margen real</div>
+            <div class="pro-file-status pending" id="pfs-compras">Pendiente</div>
+            <input type="file" id="fi-compras" accept=".xlsx,.xls,.csv" onchange="goProFile('compras',this.files[0])">
+          </div>
+
+          <!-- Stock -->
+          <div class="pro-file-card" id="pfc-stock" onclick="document.getElementById('fi-stock').click()">
+            <div class="pro-file-ico">📦</div>
+            <div class="pro-file-name">Stock / Inventario</div>
+            <div class="pro-file-sub">Rotación e inmovilización</div>
+            <div class="pro-file-status pending" id="pfs-stock">Pendiente</div>
+            <input type="file" id="fi-stock" accept=".xlsx,.xls,.csv" onchange="goProFile('stock',this.files[0])">
+          </div>
+
+          <!-- Cuentas por Cobrar -->
+          <div class="pro-file-card" id="pfc-cobrar" onclick="document.getElementById('fi-cobrar').click()">
+            <div class="pro-file-ico">📥</div>
+            <div class="pro-file-name">Cuentas por Cobrar</div>
+            <div class="pro-file-sub">Lo que te deben</div>
+            <div class="pro-file-status pending" id="pfs-cobrar">Pendiente</div>
+            <input type="file" id="fi-cobrar" accept=".xlsx,.xls,.csv" onchange="goProFile('cobrar',this.files[0])">
+          </div>
+
+          <!-- Cuentas por Pagar -->
+          <div class="pro-file-card" id="pfc-pagar" onclick="document.getElementById('fi-pagar').click()">
+            <div class="pro-file-ico">📤</div>
+            <div class="pro-file-name">Cuentas por Pagar</div>
+            <div class="pro-file-sub">Lo que debés</div>
+            <div class="pro-file-status pending" id="pfs-pagar">Pendiente</div>
+            <input type="file" id="fi-pagar" accept=".xlsx,.xls,.csv" onchange="goProFile('pagar',this.files[0])">
+          </div>
+
+        </div>
+        <p style="font-size:11px;color:#8090A8;font-family:var(--fm);text-align:center">Plan Pro · Archivos ilimitados · Múltiples hojas · .xlsx .xls .csv</p>
+      </div>
+
     </div>
 
     <!-- PROCESSING -->
@@ -1564,7 +1940,61 @@ input[type=file] { display: none; }
           <div class="card-title">🤖 Análisis de IA</div>
           <div id="ins-list"></div>
         </div>
-        <!-- Cards Pro bloqueadas -->
+        <!-- SECCIONES PRO — aparecen progresivamente -->
+        <div id="pro-sections" style="display:none">
+
+          <!-- Capital de trabajo -->
+          <div class="card" id="card-capital" style="display:none">
+            <div class="card-title">💰 Capital de trabajo</div>
+            <div class="capital-grid" id="capital-grid"></div>
+            <div style="font-size:11px;color:#8090A8;font-family:var(--fm);margin-top:6px" id="capital-note"></div>
+          </div>
+
+          <!-- Margen por producto -->
+          <div class="card" id="card-margen-pro" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div class="card-title" style="margin:0">📊 Margen real por producto</div>
+              <span style="font-family:var(--fm);font-size:10px;color:#8090A8">Calculado con tus costos reales</span>
+            </div>
+            <div id="margen-pro-list"></div>
+          </div>
+
+          <!-- Alertas de pricing por inflación -->
+          <div class="card" id="card-pricing-alerts" style="display:none">
+            <div class="card-title">⚠️ Alertas de pricing por inflación</div>
+            <div id="pricing-alerts-list"></div>
+          </div>
+
+          <!-- Stock e inventario -->
+          <div class="card" id="card-stock-pro" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div class="card-title" style="margin:0">📦 Stock e inventario</div>
+              <span style="font-family:var(--fm);font-size:10px;color:#8090A8" id="stock-rotacion-label"></span>
+            </div>
+            <div id="stock-pro-list"></div>
+          </div>
+
+          <!-- Cuentas por cobrar -->
+          <div class="card" id="card-cobrar-pro" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div class="card-title" style="margin:0">📥 Cuentas por cobrar</div>
+              <span style="font-family:var(--fm);font-size:11px;font-weight:700;color:var(--blue)" id="cobrar-total"></span>
+            </div>
+            <div id="cobrar-pro-list"></div>
+          </div>
+
+          <!-- Cuentas por pagar -->
+          <div class="card" id="card-pagar-pro" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+              <div class="card-title" style="margin:0">📤 Cuentas por pagar</div>
+              <span style="font-family:var(--fm);font-size:11px;font-weight:700;color:#C0392B" id="pagar-total"></span>
+            </div>
+            <div id="pagar-pro-list"></div>
+          </div>
+
+        </div>
+
+        <!-- Cards Pro bloqueadas (solo en plan free) -->
         <div id="pro-cards">
 
           <!-- Margen por producto -->
@@ -1734,10 +2164,15 @@ function goAuth()     { showScreen('s-auth'); }
 // ══════════════════════════════════════════
 function loginGoogle() {
   // TODO: Conectar Supabase Auth con Google
-  // Por ahora: demo user
+  // Por ahora: demo user — cambiar S.plan a 'free' o 'pro' para probar
   S.user = { name: 'Demo', email: 'demo@cfoai.com', avatar: 'D' };
+  S.plan = 'pro'; // ← 'free' | 'pro' para testear
   document.getElementById('user-av').textContent = 'D';
   document.getElementById('user-name').textContent = 'Demo';
+  // Mostrar/ocultar botón upgrade según plan
+  var ub = document.getElementById('btn-upgrade-nav');
+  if (ub) ub.style.display = S.plan === 'free' ? 'block' : 'none';
+  initUploadZone();
   showScreen('s-dash');
   document.getElementById('chat-btn').style.display = 'flex';
 }
@@ -2513,6 +2948,362 @@ function toggleLang(){
 // ══════════════════════════════════════════
 // RESET
 // ══════════════════════════════════════════
+
+// ══════════════════════════════════════════
+// PLAN PRO: INICIALIZACIÓN UI
+// ══════════════════════════════════════════
+function initPlanUI() {
+  if (S.plan === 'free') {
+    document.getElementById('pro-panel').classList.remove('on');
+  } else {
+    document.getElementById('pro-panel').classList.add('on');
+  }
+}
+
+// ══════════════════════════════════════════
+// PLAN PRO: TRIGGER UPLOAD
+// ══════════════════════════════════════════
+function triggerProUpload(tipo) {
+  var item = document.getElementById('pf-'+tipo);
+  if (item && item.classList.contains('loaded')) return;
+  document.getElementById('fi-'+tipo).click();
+}
+
+// ══════════════════════════════════════════
+// PLAN PRO: CARGAR ARCHIVO ADICIONAL
+// ══════════════════════════════════════════
+async function loadProFile(tipo, file) {
+  if (!file) return;
+
+  // UI: loading
+  var item = document.getElementById('pf-'+tipo);
+  var st   = document.getElementById('pf-'+tipo+'-st');
+  item.classList.add('loading');
+  st.className = 'pro-file-status loading';
+  st.textContent = '⏳ Analizando...';
+
+  try {
+    var result = await readExcel(file);
+    var sheets = result.sheets;
+
+    // Mandar a Claude para identificar columnas y calcular métricas clave
+    var muestra = prepararMuestra(sheets, file.name);
+    var prompt = proPromptPorTipo(tipo, muestra);
+    var raw = await claude(prompt, [], 1200);
+    var clean = raw.replace(/```json|```/g,'').trim();
+    var analisis;
+    try { analisis = JSON.parse(clean); }
+    catch(e) { var mm=clean.match(/\{[\s\S]*\}/); analisis=mm?JSON.parse(mm[0]):{colMap:{},metricas:{}}; }
+
+    // Guardar en estado
+    S.pro[tipo] = { sheets: sheets, analisis: analisis, loaded: true };
+
+    // UI: ok
+    item.classList.remove('loading'); item.classList.add('loaded');
+    st.className = 'pro-file-status ok';
+    st.textContent = '✓ ' + file.name.split('.')[0];
+
+    // Renderizar la sección que se desbloqueó
+    renderProSection(tipo, analisis);
+
+  } catch(e) {
+    item.classList.remove('loading');
+    st.className = 'pro-file-status wait';
+    st.textContent = '⚠ Error — reintentar';
+    console.warn('[CFO.AI Pro] Error cargando '+tipo+':', e.message);
+  }
+}
+
+// ══════════════════════════════════════════
+// PLAN PRO: PROMPTS POR TIPO
+// ══════════════════════════════════════════
+function proPromptPorTipo(tipo, muestra) {
+  var base = 'Analizá este archivo Excel y devolvé SOLO JSON sin markdown. ';
+  if (tipo === 'compras') {
+    return base +
+      'Es un archivo de COMPRAS o COSTOS. Identificá: columna de producto, columna de costo unitario o total, columna de proveedor, columna de fecha. ' +
+      'Calculá el costo total por producto (sumando todas las filas). ' +
+      'Cruzalo con las ventas si es posible para calcular margen. ' +
+      'Formato: {"colMap":{"producto":"col","costoUnit":"col","costoTotal":"col","proveedor":"col","fecha":"col"},' +
+      '"metricas":{"costoTotalGeneral":0,"topProductosMayCosto":[{"nombre":"x","costo":0}],' +
+      '"proveedorPrincipal":"x","periodoCompras":"x"}}
+
+Datos:
+' + muestra;
+  }
+  if (tipo === 'stock') {
+    return base +
+      'Es un archivo de STOCK o INVENTARIO. Identificá columnas de: producto, stock actual, stock mínimo, precio compra, precio venta, categoría. ' +
+      'Calculá: valor total del stock, productos bajo mínimo, rotación estimada. ' +
+      'Formato: {"colMap":{"producto":"col","stockActual":"col","stockMinimo":"col","precioCompra":"col","precioVenta":"col","categoria":"col"},' +
+      '"metricas":{"valorTotalStock":0,"cantProductos":0,"productosbajoMinimo":0,' +
+      '"topInmovilizados":[{"nombre":"x","valor":0,"diasSinMovimiento":0}],' +
+      '"rotacionPromedio":0}}
+
+Datos:
+' + muestra;
+  }
+  if (tipo === 'cobrar') {
+    return base +
+      'Es un archivo de CUENTAS POR COBRAR. Identificá columnas de: cliente, monto, fecha de vencimiento o fecha factura, estado o días vencido. ' +
+      'Calculá: total a cobrar, monto vencido, días promedio de cobro. ' +
+      'Formato: {"colMap":{"cliente":"col","monto":"col","fechaVencimiento":"col","estado":"col"},' +
+      '"metricas":{"totalACobrar":0,"totalVencido":0,"diasPromedioCobro":0,' +
+      '"topDeudores":[{"cliente":"x","monto":0,"diasVencido":0}]}}
+
+Datos:
+' + muestra;
+  }
+  if (tipo === 'pagar') {
+    return base +
+      'Es un archivo de CUENTAS POR PAGAR. Identificá columnas de: proveedor, monto, fecha de vencimiento, estado. ' +
+      'Calculá: total a pagar, monto vencido, días promedio de pago. ' +
+      'Formato: {"colMap":{"proveedor":"col","monto":"col","fechaVencimiento":"col","estado":"col"},' +
+      '"metricas":{"totalAPagar":0,"totalVencido":0,"diasPromediosPago":0,' +
+      '"topAcreedores":[{"proveedor":"x","monto":0}]}}
+
+Datos:
+' + muestra;
+  }
+  return base + muestra;
+}
+
+// ══════════════════════════════════════════
+// PLAN PRO: RENDERIZAR SECCIONES
+// ══════════════════════════════════════════
+function renderProSection(tipo, analisis) {
+  var m = analisis.metricas || {};
+
+  if (tipo === 'compras') {
+    // Cruzar con ventas para calcular margen real
+    renderMargenReal(m);
+    document.getElementById('sec-margen').classList.add('on');
+  }
+
+  if (tipo === 'stock') {
+    renderStockSection(m);
+    document.getElementById('sec-stock').classList.add('on');
+  }
+
+  if (tipo === 'cobrar' || tipo === 'pagar') {
+    // Mostrar capital de trabajo cuando hay al menos uno de los dos
+    renderCapitalTrabajo();
+    document.getElementById('sec-capital').classList.add('on');
+  }
+}
+
+// ── MARGEN REAL ──────────────────────────
+function renderMargenReal(m) {
+  var ventas = S.metrics;
+  if (!ventas) return;
+  var tv = ventas.tv, tc = m.costoTotalGeneral || 0;
+  var mg = tv>0&&tc>0 ? ((tv-tc)/tv*100) : null;
+
+  // Tabla por producto cruzando ventas con costos
+  var rows = '';
+  var prodByCat = ventas.byCat || [];
+
+  // Construir tabla de margen
+  var prods = prodByCat.slice(0,10).map(function(p, i) {
+    var venta = p[1];
+    // Prorratear costo por participación en ventas
+    var costoEstimado = tc>0 && tv>0 ? tc*(venta/tv) : 0;
+    var mgProd = venta>0&&costoEstimado>0 ? ((venta-costoEstimado)/venta*100) : null;
+    var cls = mgProd!==null ? (mgProd<20?'r':mgProd<35?'a':'g') : 'a';
+    return '<tr>'
+      +'<td>'+p[0]+'</td>'
+      +'<td style="font-weight:600">'+fmt(venta)+'</td>'
+      +'<td>'+fmt(costoEstimado)+'</td>'
+      +'<td><span class="mg-pill '+cls+'">'+(mgProd!==null?mgProd.toFixed(1)+'%':'N/D')+'</span></td>'
+      +'</tr>';
+  }).join('');
+
+  var html = '';
+  if (mg !== null) {
+    var mgCls = mg<20?'red':mg<35?'amber':'green';
+    html += '<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">'
+      +'<div class="capital-card" style="flex:1;min-width:140px">'
+      +'<div class="capital-l">Margen Bruto</div>'
+      +'<div class="capital-v '+mgCls+'">'+mg.toFixed(1)+'%</div>'
+      +'<div class="capital-s">sobre ventas totales</div>'
+      +'</div>'
+      +'<div class="capital-card" style="flex:1;min-width:140px">'
+      +'<div class="capital-l">Ganancia Bruta</div>'
+      +'<div class="capital-v">'+fmt(tv-tc)+'</div>'
+      +'<div class="capital-s">ventas - costos</div>'
+      +'</div>'
+      +'<div class="capital-card" style="flex:1;min-width:140px">'
+      +'<div class="capital-l">Costo Total</div>'
+      +'<div class="capital-v">'+fmt(tc)+'</div>'
+      +'<div class="capital-s">'+(tv>0?((tc/tv*100).toFixed(0)+'% de las ventas'):'')+'</div>'
+      +'</div>'
+      +'</div>';
+  }
+
+  if (prods) {
+    html += '<div style="overflow-x:auto">'
+      +'<table class="margen-table">'
+      +'<thead><tr><th>Categoría/Producto</th><th>Venta</th><th>Costo est.</th><th>Margen</th></tr></thead>'
+      +'<tbody>'+prods+'</tbody>'
+      +'</table></div>';
+  }
+
+  if (m.proveedorPrincipal) {
+    html += '<div style="margin-top:10px;font-size:11px;color:#8090A8;font-family:var(--fm)">Proveedor principal: <strong style="color:var(--navy)">'+m.proveedorPrincipal+'</strong></div>';
+  }
+
+  document.getElementById('margen-content').innerHTML = html;
+
+  // Actualizar KPI de margen — ahora real, no bloqueado
+  updateKPIMargen(mg);
+}
+
+function updateKPIMargen(mg) {
+  if (mg === null) return;
+  var kpiRow = document.getElementById('kpi-row');
+  var kpis = kpiRow.querySelectorAll('.kpi');
+  // KPI[1] es el de margen
+  if (kpis[1]) {
+    var cls = mg<20?'dn':mg<35?'':'up';
+    kpis[1].classList.remove('locked');
+    kpis[1].querySelector('.kpi-v').style.filter = '';
+    kpis[1].querySelector('.kpi-v').textContent = mg.toFixed(1)+'%';
+    kpis[1].querySelector('.kpi-s').className = 'kpi-s '+cls;
+    kpis[1].querySelector('.kpi-s').textContent = 'margen bruto real';
+    var lockEl = kpis[1].querySelector('.kpi-lock');
+    if (lockEl) lockEl.remove();
+  }
+}
+
+// ── STOCK ────────────────────────────────
+function renderStockSection(m) {
+  var valorStock = m.valorTotalStock || 0;
+  var bajosMin   = m.productosbajoMinimo || 0;
+  var rotacion   = m.rotacionPromedio || 0;
+  var diasStock  = rotacion>0 ? Math.round(365/rotacion) : null;
+
+  var html = '<div class="capital-grid" style="margin-bottom:12px">'
+    +'<div class="capital-card">'
+    +'<div class="capital-l">Valor en Stock</div>'
+    +'<div class="capital-v">'+fmt(valorStock)+'</div>'
+    +'<div class="capital-s">capital inmovilizado</div>'
+    +'</div>'
+    +'<div class="capital-card">'
+    +'<div class="capital-l">Productos Bajo Mínimo</div>'
+    +'<div class="capital-v '+(bajosMin>0?'red':'green')+'">'+bajosMin+'</div>'
+    +'<div class="capital-s">'+(bajosMin>0?'riesgo de quiebre':'stock saludable')+'</div>'
+    +'</div>'
+    +'<div class="capital-card">'
+    +'<div class="capital-l">Rotación Est.</div>'
+    +'<div class="capital-v">'+(rotacion>0?rotacion.toFixed(1)+'x':'N/D')+'</div>'
+    +'<div class="capital-s">'+(diasStock?diasStock+' días promedio de stock':'')+'</div>'
+    +'</div>'
+    +'</div>';
+
+  // Top inmovilizados
+  if (m.topInmovilizados && m.topInmovilizados.length) {
+    html += '<div style="font-family:var(--fm);font-size:9px;font-weight:700;color:#8090A8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Top productos inmovilizados</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:6px">';
+    m.topInmovilizados.slice(0,5).forEach(function(p) {
+      var maxVal = m.topInmovilizados[0].valor || 1;
+      var bw = Math.round((p.valor||0)/maxVal*100);
+      html += '<div>'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:3px;font-size:12px">'
+        +'<span>'+p.nombre+'</span>'
+        +'<span style="font-weight:700;color:var(--navy)">'+fmt(p.valor||0)+'</span>'
+        +'</div>'
+        +'<div class="rot-bar"><div class="rot-fill" style="width:'+bw+'%;background:var(--amber)"></div></div>'
+        +'</div>';
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('stock-content').innerHTML = html;
+
+  // Actualizar KPI de rotación
+  updateKPIRotacion(rotacion, diasStock);
+}
+
+function updateKPIRotacion(rotacion, diasStock) {
+  var kpiRow = document.getElementById('kpi-row');
+  var kpis = kpiRow.querySelectorAll('.kpi');
+  if (kpis[3]) {
+    kpis[3].classList.remove('locked');
+    kpis[3].querySelector('.kpi-v').style.filter = '';
+    kpis[3].querySelector('.kpi-v').textContent = rotacion>0?rotacion.toFixed(1)+'x':'N/D';
+    kpis[3].querySelector('.kpi-s').textContent = diasStock ? diasStock+' días de stock' : 'rotación anual';
+    var lockEl = kpis[3].querySelector('.kpi-lock');
+    if (lockEl) lockEl.remove();
+  }
+}
+
+// ── CAPITAL DE TRABAJO ───────────────────
+function renderCapitalTrabajo() {
+  var cobrar = S.pro.cobrar.loaded ? (S.pro.cobrar.analisis.metricas.totalACobrar||0) : null;
+  var pagar  = S.pro.pagar.loaded  ? (S.pro.pagar.analisis.metricas.totalAPagar||0) : null;
+  var stock  = S.pro.stock.loaded  ? (S.pro.stock.analisis.metricas.valorTotalStock||0) : 0;
+
+  // Capital de trabajo = Cobrar + Stock - Pagar
+  var capital = null;
+  if (cobrar !== null && pagar !== null) capital = cobrar + stock - pagar;
+  else if (cobrar !== null) capital = cobrar + stock;
+  else if (pagar !== null) capital = stock - pagar;
+
+  var html = '<div class="capital-grid">';
+
+  if (cobrar !== null) {
+    var diasCobro = S.pro.cobrar.analisis.metricas.diasPromedioCobro || 0;
+    var vcobrar   = S.pro.cobrar.analisis.metricas.totalVencido || 0;
+    html += '<div class="capital-card">'
+      +'<div class="capital-l">Cuentas por Cobrar</div>'
+      +'<div class="capital-v green">'+fmt(cobrar)+'</div>'
+      +'<div class="capital-s">'+(diasCobro?diasCobro+' días promedio':'')+(vcobrar?' · $'+fmt(vcobrar)+' vencido':'')+'</div>'
+      +'</div>';
+  }
+
+  if (stock > 0) {
+    html += '<div class="capital-card">'
+      +'<div class="capital-l">Stock</div>'
+      +'<div class="capital-v">'+fmt(stock)+'</div>'
+      +'<div class="capital-s">inventario valorizado</div>'
+      +'</div>';
+  }
+
+  if (pagar !== null) {
+    var diasPago  = S.pro.pagar.analisis.metricas.diasPromediosPago || 0;
+    html += '<div class="capital-card">'
+      +'<div class="capital-l">Cuentas por Pagar</div>'
+      +'<div class="capital-v red">'+fmt(pagar)+'</div>'
+      +'<div class="capital-s">'+(diasPago?diasPago+' días promedio':'')+'</div>'
+      +'</div>';
+  }
+
+  if (capital !== null) {
+    var capCls = capital > 0 ? 'green' : 'red';
+    html += '<div class="capital-card" style="grid-column:1/-1;border:2px solid '+(capital>0?'rgba(46,125,82,.3)':'rgba(192,57,43,.3)')+'">'
+      +'<div class="capital-l">Capital de Trabajo Neto</div>'
+      +'<div class="capital-v '+capCls+'">'+fmt(Math.abs(capital))+'</div>'
+      +'<div class="capital-s">'+(capital>0?'Posición positiva — cobrás más de lo que debés':'⚠ Posición negativa — revisá financiamiento')+'</div>'
+      +'</div>';
+  }
+
+  html += '</div>';
+
+  // Top deudores
+  var cobrarM = cobrar!==null ? (S.pro.cobrar.analisis.metricas||{}) : {};
+  if (cobrarM.topDeudores && cobrarM.topDeudores.length) {
+    html += '<div style="margin-top:12px;font-family:var(--fm);font-size:9px;font-weight:700;color:#8090A8;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Top deudores</div>';
+    html += '<div style="overflow-x:auto"><table class="margen-table"><thead><tr><th>Cliente</th><th>Monto</th><th>Días vencido</th></tr></thead><tbody>';
+    cobrarM.topDeudores.slice(0,5).forEach(function(d){
+      var diasCls = (d.diasVencido||0) > 60 ? 'color:#C0392B' : (d.diasVencido||0) > 30 ? 'color:#B7791F' : 'color:#2E7D52';
+      html += '<tr><td>'+d.cliente+'</td><td style="font-weight:600">'+fmt(d.monto)+'</td><td style="'+diasCls+';font-weight:600">'+(d.diasVencido||0)+' días</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  document.getElementById('capital-content').innerHTML = html;
+}
+
 function switchTabMobile(tab) {
   switchTab(tab);
   document.getElementById('btab-overview').classList.toggle('on', tab==='overview');
@@ -2526,13 +3317,466 @@ function toggleChatMobile() {
   toggleChat();
 }
 
+
+// ══════════════════════════════════════════
+// PLAN PRO — INICIALIZACIÓN Y ARCHIVOS
+// ══════════════════════════════════════════
+
+function initUploadZone() {
+  if (S.plan === 'free') {
+    document.getElementById('upload-free').style.display = 'block';
+    document.getElementById('upload-pro').style.display  = 'none';
+  } else {
+    document.getElementById('upload-free').style.display = 'none';
+    document.getElementById('upload-pro').style.display  = 'block';
+    document.getElementById('pro-cards').style.display   = 'none';
+    document.getElementById('pro-sections').style.display = 'block';
+  }
+}
+
+// Procesar cada archivo Pro
+async function goProFile(tipo, file) {
+  if (!file) return;
+  var card   = document.getElementById('pfc-'+tipo);
+  var status = document.getElementById('pfs-'+tipo);
+  status.className = 'pro-file-status pending';
+  status.textContent = 'Procesando...';
+
+  try {
+    var result = await readExcel(file);
+    var sheets = result.sheets;
+
+    // Validar que no esté vacío
+    if (!Object.keys(sheets).length) throw new Error('Archivo vacío');
+
+    // Analizar con IA
+    var muestra = prepararMuestra(sheets, file.name);
+    var analisis = await claudeAnalizaProFile(muestra, file.name, tipo);
+
+    // Guardar
+    S.proFiles[tipo] = { sheets: sheets, analisis: analisis, filename: file.name };
+
+    // Actualizar UI del card
+    card.classList.add('loaded');
+    card.onclick = null; // deshabilitar click
+    status.className = 'pro-file-status loaded';
+    status.textContent = '✓ Cargado';
+
+    // Si es ventas, iniciar dashboard principal también
+    if (tipo === 'ventas') {
+      S.sheets = sheets;
+      S.yc = result.yc;
+      await goProAnalisis();
+    } else {
+      // Actualizar secciones Pro
+      renderProSection(tipo);
+      recalcCapitalDeTrabajo();
+    }
+
+    // Si ventas ya está, mostrar dash
+    if (S.sheets) {
+      document.getElementById('dash-content').style.display = 'block';
+    }
+
+  } catch(e) {
+    status.className = 'pro-file-status pending';
+    status.textContent = '⚠ Error';
+    console.warn('[CFO.AI Pro] Error en '+tipo+':', e.message);
+    var errEl = document.getElementById('dash-err');
+    errEl.textContent = '⚠ ' + e.message;
+    errEl.classList.add('on');
+    setTimeout(function(){ errEl.classList.remove('on'); }, 4000);
+  }
+}
+
+// Análisis IA específico para cada tipo de archivo Pro
+async function claudeAnalizaProFile(muestra, filename, tipo) {
+  var descripciones = {
+    ventas:  'archivo de ventas/transacciones',
+    compras: 'archivo de compras o costos de productos',
+    stock:   'archivo de stock o inventario',
+    cobrar:  'archivo de cuentas por cobrar o créditos de clientes',
+    pagar:   'archivo de cuentas por pagar o deudas a proveedores',
+  };
+  var prompt = 'Analizá este '+descripciones[tipo]+' e identificá las columnas clave. '
+    + 'Devolvé SOLO JSON sin markdown: '
+    + '{"colMap":{'
+    + '"producto":"col o null","cliente":"col o null","proveedor":"col o null",'
+    + '"fecha":"col o null","vencimiento":"col o null","monto":"col o null",'
+    + '"costo":"col o null","cantidad":"col o null","precio":"col o null",'
+    + '"stock_actual":"col o null","stock_minimo":"col o null","categoria":"col o null"'
+    + '},'
+    + '"insights":["insight 1 con número","insight 2","insight 3"],'
+    + '"total_principal":0'
+    + '} '
+    + 'Datos:
+' + muestra;
+  try {
+    var raw = await claude(prompt, [], 800);
+    var clean = raw.replace(/```json|```/g,'').trim();
+    var r; try { r=JSON.parse(clean); } catch(e){ var mm=clean.match(/\{[\s\S]*\}/); r=mm?JSON.parse(mm[0]):{colMap:{}}; }
+    return r;
+  } catch(e) { return {colMap:{}}; }
+}
+
+// Flujo principal para ventas Pro (sin límite de hojas)
+async function goProAnalisis() {
+  document.getElementById('proc').classList.add('on');
+  try {
+    var muestra = prepararMuestra(S.sheets, S.proFiles.ventas && S.proFiles.ventas.filename || 'ventas.xlsx');
+    var analisis = await claudeAnaliza(muestra, 'ventas');
+    S.colMap = analisis.colMap;
+    S.metrics = calcMetrics(S.sheets, S.yc, S.colMap);
+    S.dash = analisis.dash;
+    document.getElementById('proc').classList.remove('on');
+    renderDash(S.dash, S.metrics);
+    document.getElementById('dash-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('proc').classList.remove('on');
+    console.warn('[CFO.AI Pro] Error analisis ventas:', e.message);
+  }
+}
+
+// ══════════════════════════════════════════
+// RENDER SECCIONES PRO
+// ══════════════════════════════════════════
+
+function renderProSection(tipo) {
+  if (tipo === 'compras')  renderMargenPro();
+  if (tipo === 'stock')    renderStockPro();
+  if (tipo === 'cobrar')   renderCobrarPro();
+  if (tipo === 'pagar')    renderPagarPro();
+}
+
+// MARGEN REAL POR PRODUCTO
+function renderMargenPro() {
+  var compras = S.proFiles.compras;
+  var ventas  = S.metrics;
+  if (!compras || !ventas) return;
+  document.getElementById('card-margen-pro').style.display = 'block';
+  document.getElementById('card-pricing-alerts').style.display = 'block';
+
+  var sheets = compras.sheets;
+  var vk = Object.keys(sheets)[0];
+  var rows = sheets[vk]||[];
+  var cm = compras.analisis && compras.analisis.colMap || {};
+  var prodCol   = cm.producto  || findCol(Object.keys(rows[0]||{}), [/producto|articulo|item/i]);
+  var costoCol  = cm.costo     || findCol(Object.keys(rows[0]||{}), [/costo|precio.comp/i]);
+  var cantCol   = cm.cantidad  || findCol(Object.keys(rows[0]||{}), [/cantidad|qty/i]);
+  var fechCol   = cm.fecha     || findCol(Object.keys(rows[0]||{}), [/fecha|date/i]);
+
+  // Costo por producto (más reciente si hay fecha)
+  var costoMap = {};
+  rows.forEach(function(r){
+    var prod = prodCol ? String(r[prodCol]||'').trim() : null;
+    var cost = costoCol ? parseFloat(String(r[costoCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    if (prod && cost) {
+      if (!costoMap[prod] || cost > costoMap[prod]) costoMap[prod] = cost;
+    }
+  });
+
+  // Cruzar con ventas
+  var MESES_IDX = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var ventasProd = {};
+  if (ventas.prodCol) {
+    ventas.rows.forEach(function(r){
+      var prod = String(r[ventas.prodCol]||'').trim();
+      var v    = parseFloat(String(r[ventas.valCol]||'').replace(/[^0-9.-]/g,''))||0;
+      var cant = ventas.cantCol ? parseFloat(String(r[ventas.cantCol]||'').replace(/[^0-9.-]/g,''))||1 : 1;
+      var mes  = ventas.fechCol ? extractMes(r[ventas.fechCol]) : null;
+      if (!ventasProd[prod]) ventasProd[prod] = {venta:0, cant:0, meses:{}};
+      ventasProd[prod].venta += v;
+      ventasProd[prod].cant  += cant;
+      if (mes) ventasProd[prod].meses[mes] = (ventasProd[prod].meses[mes]||0) + v;
+    });
+  }
+
+  // Calcular margen y detectar alertas de pricing
+  var resultados = [];
+  var pricingAlertas = [];
+  Object.keys(ventasProd).forEach(function(prod){
+    var vData = ventasProd[prod];
+    // Fuzzy match con costoMap
+    var cu = costoMap[prod];
+    if (!cu) {
+      var n = prod.toLowerCase().replace(/[()]/g,'').trim();
+      Object.keys(costoMap).forEach(function(k){
+        var kn = k.toLowerCase().replace(/[()]/g,'').trim();
+        var w1 = n.split(' ').slice(0,2).join(' ');
+        var w2 = kn.split(' ').slice(0,2).join(' ');
+        if (!cu && w1.length>3 && (n.indexOf(kn)!==-1||kn.indexOf(n)!==-1||w1===w2)) cu=costoMap[k];
+      });
+    }
+    if (!cu) return;
+    var costoTotal = cu * vData.cant;
+    var margen = vData.venta>0 ? (vData.venta-costoTotal)/vData.venta*100 : 0;
+    resultados.push({prod:prod, venta:vData.venta, costo:costoTotal, margen:margen});
+
+    // Detectar pricing: si el margen cayó respecto al promedio histórico
+    var mesesArr = Object.values(vData.meses);
+    if (mesesArr.length >= 3) {
+      var mitad = Math.floor(mesesArr.length/2);
+      var primerMitad = mesesArr.slice(0, mitad).reduce(function(a,b){return a+b;},0)/mitad;
+      var segMitad    = mesesArr.slice(mitad).reduce(function(a,b){return a+b;},0)/(mesesArr.length-mitad);
+      // Si la venta promedio no creció pero el costo sí (inflación)
+      var crecVenta = primerMitad > 0 ? (segMitad-primerMitad)/primerMitad*100 : 0;
+      if (crecVenta < 5 && margen < 25) {
+        pricingAlertas.push({prod:prod, margen:margen, crecVenta:crecVenta});
+      }
+    }
+  });
+  resultados.sort(function(a,b){return b.venta-a.venta;});
+
+  var html = resultados.slice(0,12).map(function(r,i){
+    var mc = r.margen < 20 ? 'r' : r.margen < 35 ? 'a' : 'g';
+    return '<div class="mg-row">'
+      +'<div class="mg-dot" style="background:'+COLORS[i%COLORS.length]+'"></div>'
+      +'<div class="mg-name">'+r.prod+'</div>'
+      +'<div class="mg-venta">'+fmt(r.venta)+'</div>'
+      +'<div class="mg-badge '+mc+'">'+r.margen.toFixed(1)+'%</div>'
+      +'</div>';
+  }).join('');
+  document.getElementById('margen-pro-list').innerHTML = html || '<div style="color:#8090A8;font-size:13px;text-align:center;padding:16px">No se pudo cruzar los datos. Verificá que los nombres de productos coincidan entre los archivos.</div>';
+
+  // Alertas de pricing
+  var alertHtml = pricingAlertas.length
+    ? pricingAlertas.map(function(a){
+        var margenPerdido = ventas.tv && ventasProd[a.prod] ? ventasProd[a.prod].venta * (0.35-a.margen/100) : 0;
+        return '<div class="pricing-alert">'
+          +'<div class="pricing-alert-ico">⚠️</div>'
+          +'<div class="pricing-alert-body">'
+          +'<div class="pricing-alert-title">'+a.prod+' — precio sin ajuste inflacionario</div>'
+          +'<div class="pricing-alert-txt">Margen actual '+a.margen.toFixed(1)+'%. El precio de venta no acompañó la suba de costos. Margen potencial perdido estimado: ~'+fmt(Math.abs(margenPerdido))+'</div>'
+          +'</div>'
+          +'<div class="pricing-alert-val">'+a.margen.toFixed(1)+'%</div>'
+          +'</div>';
+      }).join('')
+    : '<div style="color:#2E7D52;font-size:13px;padding:12px;background:rgba(46,125,82,.06);border-radius:7px;border:1px solid rgba(46,125,82,.15)">✅ No se detectaron problemas de pricing. Los márgenes están alineados con la inflación.</div>';
+  document.getElementById('pricing-alerts-list').innerHTML = alertHtml;
+}
+
+// STOCK E INVENTARIO
+function renderStockPro() {
+  var stockFile = S.proFiles.stock;
+  if (!stockFile) return;
+  document.getElementById('card-stock-pro').style.display = 'block';
+
+  var sheets = stockFile.sheets;
+  var vk = Object.keys(sheets)[0];
+  var rows = sheets[vk]||[];
+  var cm = stockFile.analisis && stockFile.analisis.colMap || {};
+  var cols = Object.keys(rows[0]||{});
+  var prodCol  = cm.producto    || findCol(cols,[/producto|articulo|descrip/i]);
+  var actCol   = cm.stock_actual|| findCol(cols,[/stock.act|actual|existencia|saldo/i]);
+  var minCol   = cm.stock_minimo|| findCol(cols,[/m[ií]nimo|min/i]);
+  var precCol  = cm.precio      || findCol(cols,[/precio.*vent|precio.*unit/i]);
+  var costCol  = cm.costo       || findCol(cols,[/costo|precio.comp/i]);
+  var catCol   = cm.categoria   || findCol(cols,[/categ|rubro/i]);
+
+  // Calcular rotación si tenemos ventas
+  var ventasProd = {};
+  if (S.metrics && S.metrics.prodCol) {
+    S.metrics.rows.forEach(function(r){
+      var p = String(r[S.metrics.prodCol]||'').trim();
+      var v = parseFloat(String(r[S.metrics.valCol]||'').replace(/[^0-9.-]/g,''))||0;
+      ventasProd[p] = (ventasProd[p]||0)+v;
+    });
+  }
+
+  var items = rows.map(function(r){
+    var prod  = prodCol ? String(r[prodCol]||'').trim() : '—';
+    var act   = actCol  ? parseFloat(String(r[actCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    var min   = minCol  ? parseFloat(String(r[minCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    var prec  = precCol ? parseFloat(String(r[precCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    var cost  = costCol ? parseFloat(String(r[costCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    var valorStock = act * (cost || prec * 0.65);
+    var vAnual = ventasProd[prod] || 0;
+    var rotacion = valorStock > 0 && vAnual > 0 ? vAnual / valorStock : null;
+    var diasStock = rotacion ? Math.round(365/rotacion) : null;
+    return {prod:prod, act:act, min:min, valorStock:valorStock, rotacion:rotacion, diasStock:diasStock, bajoMin: act < min && min > 0};
+  }).filter(function(r){return r.prod && r.prod !== '—';});
+
+  items.sort(function(a,b){return b.valorStock-a.valorStock;});
+
+  var totalStock = items.reduce(function(a,b){return a+b.valorStock;},0);
+  var rotProm = items.filter(function(i){return i.rotacion;}).reduce(function(a,b){return a+b.rotacion;},0) / (items.filter(function(i){return i.rotacion;}).length||1);
+  document.getElementById('stock-rotacion-label').textContent = 'Rotación promedio: ' + (rotProm>0 ? rotProm.toFixed(1)+'x' : 'N/D') + ' · Stock total: '+fmt(totalStock);
+
+  var html = items.slice(0,12).map(function(r){
+    var alertClass = r.bajoMin ? 'bad' : r.diasStock > 180 ? 'warn' : 'ok';
+    var alertTxt   = r.bajoMin ? 'Bajo mín.' : r.diasStock > 180 ? r.diasStock+'d' : r.diasStock ? r.diasStock+'d OK' : 'OK';
+    return '<div class="stock-row">'
+      +'<div class="stock-name">'+r.prod+'</div>'
+      +'<div class="stock-dias">Stock: '+r.act+'u</div>'
+      +'<div class="stock-val">'+fmt(r.valorStock)+'</div>'
+      +'<div class="stock-alert '+alertClass+'">'+alertTxt+'</div>'
+      +'</div>';
+  }).join('');
+  document.getElementById('stock-pro-list').innerHTML = html || '<div style="color:#8090A8;font-size:13px;padding:12px">Sin datos suficientes para mostrar el stock.</div>';
+}
+
+// CUENTAS POR COBRAR
+function renderCobrarPro() {
+  var file = S.proFiles.cobrar; if (!file) return;
+  document.getElementById('card-cobrar-pro').style.display = 'block';
+  var sheets=file.sheets, vk=Object.keys(sheets)[0], rows=sheets[vk]||[];
+  var cm=file.analisis&&file.analisis.colMap||{}, cols=Object.keys(rows[0]||{});
+  var cliCol   = cm.cliente    ||findCol(cols,[/cliente|razon|deudor/i]);
+  var montoCol = cm.monto      ||findCol(cols,[/monto|importe|saldo|total/i]);
+  var vencCol  = cm.vencimiento||findCol(cols,[/venc|due|expir/i]);
+
+  var items = rows.map(function(r){
+    var cli   = cliCol  ? String(r[cliCol]||'').trim()  : '—';
+    var monto = montoCol? parseFloat(String(r[montoCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    var venc  = vencCol ? r[vencCol] : null;
+    var dias  = null;
+    if (venc) {
+      var dv = venc instanceof Date ? venc : new Date(venc);
+      dias = Math.round((dv - new Date()) / 86400000);
+    }
+    return {cli:cli, monto:monto, dias:dias};
+  }).filter(function(r){return r.cli && r.monto > 0;});
+  items.sort(function(a,b){return b.monto-a.monto;});
+  var total = items.reduce(function(a,b){return a+b.monto;},0);
+  document.getElementById('cobrar-total').textContent = fmt(total)+' por cobrar';
+
+  var html = items.slice(0,10).map(function(r){
+    var dc = r.dias === null ? '' : r.dias < 0 ? 'bad' : r.dias < 15 ? 'warn' : 'ok';
+    var dt = r.dias === null ? '' : r.dias < 0 ? 'Venc.'+Math.abs(r.dias)+'d' : r.dias+'d';
+    return '<div class="cuenta-row">'
+      +'<div class="cuenta-name">'+r.cli+'</div>'
+      +(dt?'<div class="cuenta-dias '+dc+'">'+dt+'</div>':'')
+      +'<div class="cuenta-monto">'+fmt(r.monto)+'</div>'
+      +'</div>';
+  }).join('');
+  document.getElementById('cobrar-pro-list').innerHTML = html || '<div style="color:#8090A8;font-size:13px;padding:12px">Sin datos de cuentas por cobrar.</div>';
+  recalcCapitalDeTrabajo();
+}
+
+// CUENTAS POR PAGAR
+function renderPagarPro() {
+  var file = S.proFiles.pagar; if (!file) return;
+  document.getElementById('card-pagar-pro').style.display = 'block';
+  var sheets=file.sheets, vk=Object.keys(sheets)[0], rows=sheets[vk]||[];
+  var cm=file.analisis&&file.analisis.colMap||{}, cols=Object.keys(rows[0]||{});
+  var provCol  = cm.proveedor  ||findCol(cols,[/proveedor|acreedor|vendor/i]);
+  var montoCol = cm.monto      ||findCol(cols,[/monto|importe|saldo|total/i]);
+  var vencCol  = cm.vencimiento||findCol(cols,[/venc|due|expir/i]);
+
+  var items = rows.map(function(r){
+    var prov  = provCol  ? String(r[provCol]||'').trim() : '—';
+    var monto = montoCol ? parseFloat(String(r[montoCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    var venc  = vencCol  ? r[vencCol] : null;
+    var dias  = null;
+    if (venc) {
+      var dv = venc instanceof Date ? venc : new Date(venc);
+      dias = Math.round((dv - new Date()) / 86400000);
+    }
+    return {prov:prov, monto:monto, dias:dias};
+  }).filter(function(r){return r.prov && r.monto > 0;});
+  items.sort(function(a,b){return b.monto-a.monto;});
+  var total = items.reduce(function(a,b){return a+b.monto;},0);
+  document.getElementById('pagar-total').textContent = fmt(total)+' por pagar';
+
+  var html = items.slice(0,10).map(function(r){
+    var dc = r.dias===null?'':r.dias<0?'bad':r.dias<15?'warn':'ok';
+    var dt = r.dias===null?'':r.dias<0?'Venc.'+Math.abs(r.dias)+'d':r.dias+'d';
+    return '<div class="cuenta-row">'
+      +'<div class="cuenta-name">'+r.prov+'</div>'
+      +(dt?'<div class="cuenta-dias '+dc+'">'+dt+'</div>':'')
+      +'<div class="cuenta-monto">'+fmt(r.monto)+'</div>'
+      +'</div>';
+  }).join('');
+  document.getElementById('pagar-pro-list').innerHTML = html || '<div style="color:#8090A8;font-size:13px;padding:12px">Sin datos de cuentas por pagar.</div>';
+  recalcCapitalDeTrabajo();
+}
+
+// CAPITAL DE TRABAJO
+function recalcCapitalDeTrabajo() {
+  var cobrar = S.proFiles.cobrar;
+  var pagar  = S.proFiles.pagar;
+  var stock  = S.proFiles.stock;
+  if (!cobrar && !pagar && !stock) return;
+  document.getElementById('card-capital').style.display = 'block';
+
+  var totalCobrar = 0, totalPagar = 0, totalStock = 0;
+  if (cobrar) {
+    var cr=cobrar.sheets[Object.keys(cobrar.sheets)[0]]||[];
+    var cm=cobrar.analisis&&cobrar.analisis.colMap||{};
+    var mc=cm.monto||findCol(Object.keys(cr[0]||{}),[/monto|importe|saldo|total/i]);
+    totalCobrar=sumCol(cr,mc);
+  }
+  if (pagar) {
+    var pr=pagar.sheets[Object.keys(pagar.sheets)[0]]||[];
+    var pm=pagar.analisis&&pagar.analisis.colMap||{};
+    var mp=pm.monto||findCol(Object.keys(pr[0]||{}),[/monto|importe|saldo|total/i]);
+    totalPagar=sumCol(pr,mp);
+  }
+  if (stock) {
+    var sr=stock.sheets[Object.keys(stock.sheets)[0]]||[];
+    var sm=stock.analisis&&stock.analisis.colMap||{};
+    var actC=sm.stock_actual||findCol(Object.keys(sr[0]||{}),[/stock.act|actual|existencia/i]);
+    var costC=sm.costo||findCol(Object.keys(sr[0]||{}),[/costo|precio.comp/i]);
+    var precC=sm.precio||findCol(Object.keys(sr[0]||{}),[/precio.*vent/i]);
+    totalStock=sr.reduce(function(a,r){
+      var act=parseFloat(String(r[actC]||'').replace(/[^0-9.-]/g,''))||0;
+      var c=costC?parseFloat(String(r[costC]||'').replace(/[^0-9.-]/g,''))||0:0;
+      var p=precC?parseFloat(String(r[precC]||'').replace(/[^0-9.-]/g,''))||0:0;
+      return a+act*(c||p*0.65);
+    },0);
+  }
+
+  var capital = totalCobrar + totalStock - totalPagar;
+  var capClass = capital > 0 ? 'green' : 'red';
+
+  document.getElementById('capital-grid').innerHTML =
+    '<div class="capital-card">'
+    +'<div class="capital-lbl">Por Cobrar</div>'
+    +'<div class="capital-val">'+fmt(totalCobrar)+'</div>'
+    +'<div class="capital-sub">Clientes que te deben</div>'
+    +'</div>'
+    +'<div class="capital-card">'
+    +'<div class="capital-lbl">Stock en $</div>'
+    +'<div class="capital-val">'+fmt(totalStock)+'</div>'
+    +'<div class="capital-sub">Inventario valorizado</div>'
+    +'</div>'
+    +'<div class="capital-card">'
+    +'<div class="capital-lbl">Por Pagar</div>'
+    +'<div class="capital-val red">'+fmt(totalPagar)+'</div>'
+    +'<div class="capital-sub">Deuda a proveedores</div>'
+    +'</div>'
+    +'<div class="capital-card highlight" style="grid-column:1/-1">'
+    +'<div class="capital-lbl">Capital de Trabajo Neto</div>'
+    +'<div class="capital-val '+capClass+'">'+fmt(Math.abs(capital))+'</div>'
+    +'<div class="capital-sub">'+(capital>=0?'Posición positiva — podés cubrir tus obligaciones':'⚠ Posición negativa — revisá vencimientos urgente')+'</div>'
+    +'</div>';
+
+  var nota = [];
+  if (!cobrar) nota.push('Subí Cuentas por Cobrar para completar el cálculo');
+  if (!pagar)  nota.push('Subí Cuentas por Pagar para completar el cálculo');
+  if (!stock)  nota.push('Subí Stock para incluir el inventario');
+  document.getElementById('capital-note').textContent = nota.join(' · ');
+}
+
 function doReset(){
   S.sheets=null;S.yc={};S.colMap=null;S.metrics=null;S.dash=null;
   S.chatHistory=[];S.chatOpen=false;S.chatInit=false;S.drillDim=null;S.drillLabels=[];
   S.resDone=false;S.resTxt='';
-  document.getElementById('fi').value='';
+  document.getElementById('fi') && (document.getElementById('fi').value='');
+  ['ventas','compras','stock','cobrar','pagar'].forEach(function(t){
+    var fi=document.getElementById('fi-'+t); if(fi) fi.value='';
+    var card=document.getElementById('pfc-'+t);
+    if(card){card.classList.remove('loaded');card.onclick=function(){document.getElementById('fi-'+t).click();};}
+    var st=document.getElementById('pfs-'+t);
+    if(st){st.className='pro-file-status pending';st.textContent='Pendiente';}
+  });
   document.getElementById('dash-content').style.display='none';
   document.getElementById('upload-area').style.display='block';
+  document.getElementById('pro-sections').style.display='none';
+  ['card-capital','card-margen-pro','card-pricing-alerts','card-stock-pro','card-cobrar-pro','card-pagar-pro'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  initUploadZone();
   document.getElementById('dash-err').classList.remove('on');
   document.getElementById('chat-pan').classList.remove('on');
   document.getElementById('chat-msgs').innerHTML='';
