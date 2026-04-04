@@ -1478,7 +1478,7 @@ input[type=file] { display: none; }
       <div id="pane-detail" style="display:none">
         <div class="card" id="card-drill" style="display:none">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-            <div class="card-title" style="margin:0">Ventas por — <span id="drill-lbl"></span></div>
+            <div class="card-title" style="margin:0">Ventas y Margen por — <span id="drill-lbl"></span></div>
             <div class="dim-btns" id="dim-btns"></div>
           </div>
           <div id="drill-rows"></div>
@@ -2137,8 +2137,11 @@ function renderDrillRows(dk) {
   document.getElementById('drill-rows').innerHTML = sorted.map(function(e,i){
     var label=e[0],val=e[1],pct=total>0?((val/total)*100).toFixed(1):'0',bw=Math.round(val/maxV*100),col=COLORS[i%COLORS.length];
     var mg=mMap[label]&&mMap[label].margen!==null?mMap[label].margen:null;
-    var mgH='';
-    if(mg!==null){var mc=mg<20?'r':mg<35?'a':'g';mgH='<span class="drow-mg '+mc+'">'+mg.toFixed(1)+'%</span>';}
+    // Plan gratis: margen siempre borroso con candado
+    var mgH='<span style="position:relative;display:inline-flex;align-items:center;gap:3px;">'
+      +'<span style="font-family:var(--fm);font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:rgba(200,169,110,.12);color:var(--accent);filter:blur(4px);user-select:none;">34.4%</span>'
+      +'<span title="Plan Pro" style="font-size:10px;cursor:pointer;" onclick="goLanding()">🔒</span>'
+      +'</span>';
     return '<div class="drow" data-i="'+i+'" onclick="dbarClick(this)">'
       +'<div class="drow-top"><div class="drow-lbl"><span class="drow-dot" style="background:'+col+'"></span>'+label+'<span class="drow-arr">▶</span></div>'
       +'<div class="drow-nums"><span class="drow-val">'+fmt(val)+'</span>'+mgH+'<span class="drow-pct">'+pct+'%</span></div></div>'
@@ -2157,8 +2160,13 @@ function dbarClick(row) {
     +'<div class="det-i"><div class="det-l">Operaciones</div><div class="det-v">'+cData.ops+'</div></div>'
     +'<div class="det-i"><div class="det-l">Ventas</div><div class="det-v">'+fmt(cData.venta)+'</div></div>'
     +'<div class="det-i"><div class="det-l">Ticket medio</div><div class="det-v">'+(cData.ops>0?fmt(cData.venta/cData.ops):'$0')+'</div></div>'
-    +(cData.margen!==null?'<div class="det-i"><div class="det-l">Margen</div><div class="det-v" style="color:'+(cData.margen<20?'var(--red)':cData.margen<35?'var(--amber)':'var(--green)')+'">'+cData.margen.toFixed(1)+'%</div></div>':'')
-    +(cData.costo>0?'<div class="det-i"><div class="det-l">Costo est.</div><div class="det-v">'+fmt(cData.costo)+'</div></div>':'')
+    +'<div class="det-i" style="position:relative;overflow:hidden;">'
+    +'<div class="det-l">Margen</div>'
+    +'<div class="det-v" style="filter:blur(5px);user-select:none;">34.4%</div>'
+    +'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;" onclick="goLanding()">'
+    +'<span style="font-size:11px;">🔒</span>'
+    +'<span style="font-family:var(--fm);font-size:9px;font-weight:700;color:var(--accent);letter-spacing:.08em;">PLAN PRO</span>'
+    +'</div></div>'
     +'</div>';
   secs.forEach(function(sd){
     var dim=m.dims.find(function(d){return d.key===dk;});
