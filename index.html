@@ -3184,6 +3184,35 @@ function calcMetrics(sheets, yc, cm) {
 // ══════════════════════════════════════════
 // CALCULAR MARGEN POR GRUPO
 // ══════════════════════════════════════════
+// Cache del mapa de costos por producto (se genera una sola vez)
+var _costoMapCache = null;
+function getCostoMap() {
+  if (_costoMapCache) return _costoMapCache;
+  var pf = S.proFiles.compras || S.proFiles['f-compras'];
+  if (!pf || !pf.sheets) return {};
+  var sheets = pf.sheets, vk = Object.keys(sheets)[0], rows = sheets[vk]||[];
+  if (!rows.length) return {};
+  var cols = Object.keys(rows[0]);
+  var prodCol  = pf.analisis&&pf.analisis.colMap&&pf.analisis.colMap.producto || findCol(cols,[/producto|articulo|item|descrip/i]);
+  var costoCol = pf.analisis&&pf.analisis.colMap&&pf.analisis.colMap.costo    || findCol(cols,[/costo.*unit|precio.*comp|costo(?!.*total)/i]);
+  var cantCol  = pf.analisis&&pf.analisis.colMap&&pf.analisis.colMap.cantidad  || findCol(cols,[/cantidad|qty/i]);
+  var totalCol = pf.analisis&&pf.analisis.colMap&&pf.analisis.colMap.costoTotal|| findCol(cols,[/costo.*total|total.*costo/i]);
+  var map = {};
+  rows.forEach(function(r){
+    var prod = prodCol ? String(r[prodCol]||'').trim() : null;
+    if (!prod) return;
+    // Prefer costo unitario
+    var cu = costoCol ? parseFloat(String(r[costoCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    if (cu > 0) { if (!map[prod] || cu > map[prod]) map[prod] = cu; return; }
+    // Fallback: costo total / cantidad
+    var ct = totalCol ? parseFloat(String(r[totalCol]||'').replace(/[^0-9.-]/g,''))||0 : 0;
+    var q  = cantCol  ? parseFloat(String(r[cantCol]||'').replace(/[^0-9.-]/g,''))||1  : 1;
+    if (ct > 0 && q > 0) { var cuCalc = ct/q; if (!map[prod] || cuCalc > map[prod]) map[prod] = cuCalc; }
+  });
+  _costoMapCache = map;
+  return map;
+}
+
 function calcMargen(m, dk, label) {
   var dim=m.dims.find(function(d){return d.key===dk;}); if(!dim) return null;
   var gR=m.rows.filter(function(r){
@@ -3192,9 +3221,44 @@ function calcMargen(m, dk, label) {
   });
   var venta=gR.reduce(function(a,r){return a+(parseFloat(String(r[m.valCol]||'').replace(/[^0-9.-]/g,''))||0);},0);
   var costo=0;
-  if(m.costCol) costo=gR.reduce(function(a,r){return a+(parseFloat(String(r[m.costCol]||'').replace(/[^0-9.-]/g,''))||0);},0);
-  else if(m.cuCol&&m.cantCol) costo=gR.reduce(function(a,r){var cu=parseFloat(String(r[m.cuCol]||'').replace(/[^0-9.-]/g,''))||0,q=parseFloat(String(r[m.cantCol]||'').replace(/[^0-9.-]/g,''))||1;return a+cu*q;},0);
-  else if(m.tc&&m.tv) costo=m.tc*(venta/m.tv);
+
+  if(m.costCol) {
+    // Costo directo en el archivo de ventas
+    costo=gR.reduce(function(a,r){return a+(parseFloat(String(r[m.costCol]||'').replace(/[^0-9.-]/g,''))||0);},0);
+  } else if(m.cuCol&&m.cantCol) {
+    // Costo unitario x cantidad en ventas
+    costo=gR.reduce(function(a,r){
+      var cu=parseFloat(String(r[m.cuCol]||'').replace(/[^0-9.-]/g,''))||0;
+      var q=parseFloat(String(r[m.cantCol]||'').replace(/[^0-9.-]/g,''))||1;
+      return a+cu*q;
+    },0);
+  } else {
+    // Cruzar con archivo de Compras por producto
+    var costoMap = getCostoMap();
+    var hasCostoMap = Object.keys(costoMap).length > 0;
+    if (hasCostoMap && m.prodCol && m.cantCol) {
+      costo = gR.reduce(function(a,r){
+        var prod = String(r[m.prodCol]||'').trim();
+        var cant = parseFloat(String(r[m.cantCol]||'').replace(/[^0-9.-]/g,''))||1;
+        // Exact match first
+        var cu = costoMap[prod];
+        if (!cu) {
+          // Fuzzy: buscar coincidencia parcial
+          var pn = prod.toLowerCase().replace(/[()]/g,'').trim();
+          Object.keys(costoMap).forEach(function(k){
+            if (!cu) {
+              var kn = k.toLowerCase().replace(/[()]/g,'').trim();
+              if (pn.indexOf(kn)!==-1||kn.indexOf(pn)!==-1||pn.split(' ')[0]===kn.split(' ')[0]) cu=costoMap[k];
+            }
+          });
+        }
+        return a + (cu ? cu*cant : 0);
+      },0);
+    }
+    // Fallback proporcional SOLO si no hay compras cargadas
+    if (costo===0 && m.tc && m.tv) costo=m.tc*(venta/m.tv);
+  }
+
   var mg=(venta>0&&costo>0)?(venta-costo)/venta*100:null;
   return {venta:venta,costo:costo,margen:mg,ops:gR.length};
 }
@@ -3804,6 +3868,8 @@ function updateHubRing(planPrefix, loaded, total) {
 // MARCAR SLOT COMO CARGADO EN EL HUB
 // ══════════════════════════════════════════
 function markHubSlotLoaded(tipo, filename) {
+  // Reset costoMap cache cuando se sube un nuevo archivo de compras
+  if (tipo === 'compras' || tipo === 'f-compras') _costoMapCache = null;
   // tipo puede ser 'ventas' o 'f-ventas'
   var slot   = document.getElementById('pfc-' + tipo);
   var badge  = document.getElementById('pfs-' + tipo);
