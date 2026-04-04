@@ -1067,6 +1067,7 @@ input[type=file] { display: none; }
 .btn-pro-cta:hover { background: var(--accent2); }
 
 /* RESPONSIVE */
+/* ═══════ TABLET ═══════ */
 @media(max-width: 900px){
   nav { padding: 0 20px; }
   .nav-links { display: none; }
@@ -1079,13 +1080,172 @@ input[type=file] { display: none; }
   .pricing-grid { grid-template-columns: 1fr; }
   .plan { border-right: none; border-bottom: 1px solid var(--border2); }
   footer { padding: 28px 24px; }
-  .dash-nav { padding: 0 16px; }
-  .dash-body { padding: 16px 16px 72px; }
-  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .dash-nav { padding: 0 14px; height: 54px; }
+  .dash-body { padding: 14px 14px 100px; }
+  .kpi-row { grid-template-columns: 1fr 1fr; gap: 9px; }
   .a4 { grid-template-columns: 1fr; }
   .chat-pan { width: calc(100vw - 28px); right: 14px; bottom: 74px; }
   .chat-btn { right: 14px; bottom: 14px; }
+  .card-pro-preview { grid-template-columns: 1fr 1fr 1fr; }
 }
+
+/* ═══════ MOBILE ═══════ */
+@media(max-width: 480px){
+  /* Nav dashboard */
+  .dash-nav { padding: 0 12px; height: 52px; }
+  .dash-logo { font-size: 16px; }
+  .dash-tabs { gap: 1px; }
+  .dash-tab { padding: 6px 10px; font-size: 10px; letter-spacing: .02em; }
+  .btn-upgrade { font-size: 10px; padding: 5px 10px; }
+  .btn-logout { display: none; }
+  .user-chip span { display: none; }
+
+  /* Body */
+  .dash-body { padding: 12px 12px 90px; }
+
+  /* KPIs — 2 columnas compactas */
+  .kpi-row { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .kpi { padding: 14px 12px; border-radius: 8px; }
+  .kpi-v { font-size: 20px; }
+  .kpi-l { font-size: 8px; margin-bottom: 5px; }
+  .kpi-s { font-size: 10px; }
+  .kpi-lock-ico { font-size: 14px; }
+  .kpi-lock-tag { font-size: 8px; padding: 2px 6px; }
+
+  /* Cards */
+  .card { padding: 14px 12px; border-radius: 8px; margin-bottom: 9px; }
+  .card-title { font-size: 13px; margin-bottom: 11px; }
+
+  /* Alertas — 1 col */
+  .a4 { grid-template-columns: 1fr; gap: 8px; }
+  .a4-item { padding: 10px 10px; border-radius: 8px; gap: 9px; }
+  .a4-ico { width: 28px; height: 28px; font-size: 12px; border-radius: 5px; flex-shrink: 0; }
+  .a4-lbl { font-size: 8px; margin-bottom: 2px; }
+  .a4-txt { font-size: 11px; line-height: 1.45; }
+  .a4-badge { font-size: 9px; padding: 2px 5px; }
+
+  /* Timeline */
+  .tbars { height: 100px; gap: 4px; }
+  .tbar-f { width: 20px; }
+  .tbar-v { font-size: 7px; }
+  .tbar-l { font-size: 7px; }
+  .tdet-g { grid-template-columns: 1fr 1fr; }
+  .tdet-t { font-size: 12px; }
+  .tdet-v { font-size: 13px; }
+
+  /* Drill */
+  .dim-btns { gap: 4px; }
+  .dim-btn { font-size: 10px; padding: 4px 9px; }
+  .drow { padding: 7px 8px; }
+  .drow-lbl { font-size: 11px; }
+  .drow-val { font-size: 11px; }
+  .drow-pct { font-size: 9px; }
+  .drow-mg { font-size: 9px; padding: 1px 5px; }
+  .det-g { grid-template-columns: 1fr 1fr; }
+
+  /* Cards Pro bloqueadas */
+  .card-pro { padding: 14px 12px; border-radius: 8px; margin-bottom: 9px; }
+  .card-pro-preview { grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+  .card-pro-preview-item { padding: 7px 8px; }
+  .card-pro-preview-l { font-size: 8px; }
+  .card-pro-preview-v { font-size: 13px; }
+  .card-pro-title { font-size: 12px; }
+  .pro-badge { font-size: 8px; padding: 2px 6px; }
+  .card-pro-cta { padding: 10px 11px; flex-direction: column; gap: 8px; }
+  .card-pro-cta p { font-size: 11px; }
+  .btn-pro-cta { width: 100%; text-align: center; padding: 9px; font-size: 12px; }
+
+  /* Upload */
+  .upload-zone { padding: 32px 16px; border-radius: 10px; }
+  .upload-ico { font-size: 28px; margin-bottom: 8px; }
+  .upload-title { font-size: 17px; }
+  .upload-sub { font-size: 11px; }
+  .btn-upload { padding: 10px 20px; font-size: 13px; }
+  .upload-note { font-size: 10px; }
+
+  /* Processing */
+  .proc-overlay { padding: 40px 20px; }
+  .proc-title { font-size: 16px; }
+
+  /* Header dashboard */
+  .dash-hd { flex-direction: column; gap: 10px; align-items: flex-start; margin-bottom: 14px; }
+  .dash-title { font-size: 20px; }
+  .dash-meta { font-size: 10px; }
+  .dash-actions { gap: 6px; width: 100%; justify-content: flex-start; }
+  .btn-act { padding: 7px 10px; font-size: 11px; gap: 4px; }
+  .btn-new { padding: 7px 10px; font-size: 11px; }
+
+  /* Resumen */
+  .res-panel { padding: 14px 14px; }
+  .res-title { font-size: 13px; }
+  .res-body { font-size: 12px; line-height: 1.65; }
+
+  /* Insights */
+  .ins-item { padding: 10px 0; gap: 9px; }
+  .ins-ico { font-size: 13px; }
+  .ins-txt { font-size: 11px; }
+  .ins-btn { font-size: 9px; }
+
+  /* Chat */
+  .chat-btn { right: 12px; bottom: 12px; width: 46px; height: 46px; font-size: 18px; }
+  .chat-pan { width: calc(100vw - 24px); right: 12px; bottom: 68px; height: 420px; }
+  .chat-nm { font-size: 12px; }
+  .msg-bbl { font-size: 11px; padding: 8px 11px; }
+  .sug { font-size: 9px; padding: 3px 7px; }
+  .chat-inp { font-size: 12px; }
+
+  /* CTA strip */
+  .cta { padding: 18px 16px; flex-direction: column; gap: 12px; border-radius: 8px; }
+  .cta h3 { font-size: 13px; }
+  .cta p { font-size: 11px; }
+  .btn-cta { width: 100%; text-align: center; padding: 11px 16px; font-size: 13px; }
+
+  /* URL row */
+  .url-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .url-in { width: 160px; font-size: 11px; }
+  .url-hint-lbl { font-size: 10px; }
+
+  /* Historial */
+  .hist-chips { gap: 5px; }
+  .chip { font-size: 10px; padding: 4px 9px; }
+
+  /* Upgrade banner */
+  .upgrade-banner { padding: 16px; }
+
+  /* Bottom tab bar */
+  .bottom-tabs { display: flex; }
+}
+
+/* ═══════ BOTTOM TAB BAR (mobile only) ═══════ */
+.bottom-tabs {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 150;
+  background: var(--navy);
+  border-top: 1px solid var(--border2);
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+}
+.bottom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 0;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: var(--fb);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  transition: color .18s;
+}
+.bottom-tab.on { color: var(--accent); }
+.bottom-tab-ico { font-size: 18px; line-height: 1; }
 </style>
 </head>
 <body>
@@ -1517,6 +1677,20 @@ input[type=file] { display: none; }
       </svg>
     </button>
   </div>
+</div>
+
+<!-- BOTTOM TAB BAR (mobile) -->
+<div class="bottom-tabs" id="bottom-tabs" style="display:none">
+  <button class="bottom-tab on" id="btab-overview" onclick="switchTabMobile('overview')">
+    <span class="bottom-tab-ico">📊</span>Resumen
+  </button>
+  <button class="bottom-tab" id="btab-detail" onclick="switchTabMobile('detail')">
+    <span class="bottom-tab-ico">🔍</span>Detalle
+  </button>
+  <button class="bottom-tab" id="btab-chat" onclick="toggleChatMobile()">
+    <span class="bottom-tab-ico">💬</span>Chat
+    <span id="btab-badge" style="display:none;position:absolute;top:4px;right:calc(50% - 18px);width:8px;height:8px;background:#EF4444;border-radius:50%"></span>
+  </button>
 </div>
 
 <script>
@@ -1996,11 +2170,25 @@ function renderDash(d, m) {
   if (d.insights&&d.insights.length) renderInsights(d.insights);
   if (m.dims.length) { renderDrill(m); document.getElementById('card-drill').style.display='block'; }
   // pro-cards siempre visible en plan gratis
-  setTimeout(function(){var b=document.getElementById('chat-bdg');if(b&&!S.chatOpen)b.classList.add('on');},3000);
+  setTimeout(function(){
+    var b=document.getElementById('chat-bdg');
+    if(b&&!S.chatOpen) b.classList.add('on');
+    // Badge en bottom tab mobile
+    var bb=document.getElementById('btab-badge');
+    if(bb&&!S.chatOpen) bb.style.display='block';
+  },3000);
   S.resDone = false;
   // Mostrar cards de Plan Pro bloqueadas
   var proCards = document.getElementById('pro-cards');
   if (proCards) proCards.style.display = 'block';
+  // Mostrar bottom tabs en mobile
+  if (window.innerWidth <= 480) {
+    var bt = document.getElementById('bottom-tabs');
+    if (bt) bt.style.display = 'flex';
+    // Ocultar chat btn flotante en mobile (usamos bottom tab)
+    var cb = document.getElementById('chat-btn');
+    if (cb) cb.style.display = 'none';
+  }
 }
 
 function renderKPIs(kpis, m) {
@@ -2325,6 +2513,19 @@ function toggleLang(){
 // ══════════════════════════════════════════
 // RESET
 // ══════════════════════════════════════════
+function switchTabMobile(tab) {
+  switchTab(tab);
+  document.getElementById('btab-overview').classList.toggle('on', tab==='overview');
+  document.getElementById('btab-detail').classList.toggle('on', tab==='detail');
+  document.getElementById('btab-chat').classList.remove('on');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function toggleChatMobile() {
+  document.getElementById('btab-chat').classList.toggle('on', !S.chatOpen);
+  document.getElementById('btab-badge').style.display='none';
+  toggleChat();
+}
+
 function doReset(){
   S.sheets=null;S.yc={};S.colMap=null;S.metrics=null;S.dash=null;
   S.chatHistory=[];S.chatOpen=false;S.chatInit=false;S.drillDim=null;S.drillLabels=[];
