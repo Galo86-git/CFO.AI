@@ -398,20 +398,21 @@ function readExcel(file){
 
 function findTotalCol(cols,yc){
   if(yc&&cols.indexOf(yc)!==-1)return yc;
-  // Prioridad 1: columna que empiece con "Venta" y tenga $ o €
-  var ventaCol=cols.find(function(c){return /^venta.total/i.test(c.trim());});
-  if(ventaCol)return ventaCol;
-  // Prioridad 2: columna que empiece con "Total" y tenga $ o €
-  var totalCol=cols.find(function(c){return /^total/i.test(c.trim())&&(c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1);});
-  if(totalCol)return totalCol;
-  // Prioridad 3: última columna con $ excluyendo Margen, Costo, IVA
+  // Prioridad 1: exactamente "Venta Total"
+  var v1=cols.find(function(c){return /^venta.total/i.test(c.trim());});
+  if(v1)return v1;
+  // Prioridad 2: "Total ($)" o "Total (€)" que no sea Costo
+  var v2=cols.find(function(c){return /^total/i.test(c.trim())&&(c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1);});
+  if(v2)return v2;
+  // Prioridad 3: última columna con $ excluyendo Costo, Margen, IVA, Precio
+  var skip=['costo','margen','iva','tax','descuento','precio','price','subtotal'];
   var money=cols.filter(function(c){
-    return (c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1)
-      && !/margen|costo|iva|tax|descuento/i.test(c);
+    var cl=c.toLowerCase();
+    return (c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1)&&!skip.some(function(s){return cl.startsWith(s);});
   });
   if(money.length)return money[money.length-1];
-  // Fallback: cualquier columna con $
-  var all=cols.filter(function(c){return c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1;});
+  // Fallback: cualquier columna con $ que no sea costo
+  var all=cols.filter(function(c){return (c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1)&&!/^costo/i.test(c.trim());});
   if(all.length)return all[all.length-1];
   return cols.find(function(c){return /^total/i.test(c.trim());})||null;
 }
@@ -743,7 +744,7 @@ function calcMargenPorGrupo(metrics, dimKey) {
     }
     // MÉTODO 0b: Costo Unit. ($) * Cantidad
     if (costoFila === 0) {
-      var cuCol = findCol(cols, [/^costo.*unit/i]);
+      var cuCol = findCol(cols, [/^costo.*unit/i, /costo unit/i]);
       var caVal = cantCol ? parseFloat(String(r[cantCol]||'').replace(/[^0-9.-]/g,''))||1 : 1;
       if (cuCol) {
         var cuVal = parseFloat(String(r[cuCol]||'').replace(/[^0-9.-]/g,''))||0;
