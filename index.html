@@ -1130,6 +1130,9 @@ function drillDimClick(btn){
 function renderDrillRows(dk) {
   var m=S.metrics, dim=m.dims.find(function(d){return d.key===dk;});
   if(!dim) return;
+  console.log('[CFO.AI] Drill dim:', dk, '| col:', dim.col, '| dims:', m.dims.map(function(d){return d.key+':'+d.col;}));
+  console.log('[CFO.AI] Muestra fila[0] keys:', Object.keys(m.rows[0]||{}));
+  console.log('[CFO.AI] Muestra fila[0] cliente:', m.rows[0]&&m.rows[0][dim.col]);
   var map={};
   m.rows.forEach(function(r){
     var k=dk==='mes'?(extractMes(r[dim.col])||'Sin fecha'):(String(r[dim.col]||'').trim()||'Sin datos');
