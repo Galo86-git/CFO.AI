@@ -1571,7 +1571,9 @@ async function claudeAnaliza(muestra, filename) {
     try { result = JSON.parse(clean); }
     catch(e) { var mm = clean.match(/\{[\s\S]*\}/); result = mm ? JSON.parse(mm[0]) : null; }
     if (!result) throw new Error('No se pudo parsear respuesta');
-    console.log('[CFO.AI] ✓ Claude analizó:', result.titulo, '|', result.kpis&&result.kpis.map(function(k){return k.l+': '+k.v;}).join(' | '));
+    // Verificar si la IA detectó que no son ventas
+    if (result.error === 'no_ventas') throw new Error(result.mensaje);
+    console.log('[CFO.AI] ✓ Analizó:', result.titulo, '|', result.kpis&&result.kpis.map(function(k){return k.l+': '+k.v;}).join(' | '));
     return { dash: result, colMap: result.colMap || null };
   } catch(e) {
     console.warn('[CFO.AI] Error Claude, usando fallback:', e.message);
