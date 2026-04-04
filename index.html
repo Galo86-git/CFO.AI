@@ -3397,8 +3397,7 @@ async function claudeAnalizaProFile(muestra, filename, tipo) {
     + '"insights":["insight 1 con número","insight 2","insight 3"],'
     + '"total_principal":0'
     + '} '
-    + 'Datos:
-' + muestra;
+    + 'Datos:\n' + muestra;
   try {
     var raw = await claude(prompt, [], 800);
     var clean = raw.replace(/```json|```/g,'').trim();
