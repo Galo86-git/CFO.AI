@@ -3026,10 +3026,7 @@ function proPromptPorTipo(tipo, muestra) {
       'Cruzalo con las ventas si es posible para calcular margen. ' +
       'Formato: {"colMap":{"producto":"col","costoUnit":"col","costoTotal":"col","proveedor":"col","fecha":"col"},' +
       '"metricas":{"costoTotalGeneral":0,"topProductosMayCosto":[{"nombre":"x","costo":0}],' +
-      '"proveedorPrincipal":"x","periodoCompras":"x"}}
-
-Datos:
-' + muestra;
+      '"proveedorPrincipal":"x","periodoCompras":"x"}}' + ' Datos: ' + muestra;
   }
   if (tipo === 'stock') {
     return base +
@@ -3038,10 +3035,7 @@ Datos:
       'Formato: {"colMap":{"producto":"col","stockActual":"col","stockMinimo":"col","precioCompra":"col","precioVenta":"col","categoria":"col"},' +
       '"metricas":{"valorTotalStock":0,"cantProductos":0,"productosbajoMinimo":0,' +
       '"topInmovilizados":[{"nombre":"x","valor":0,"diasSinMovimiento":0}],' +
-      '"rotacionPromedio":0}}
-
-Datos:
-' + muestra;
+      '"rotacionPromedio":0}}' + ' Datos: ' + muestra;
   }
   if (tipo === 'cobrar') {
     return base +
@@ -3049,10 +3043,7 @@ Datos:
       'Calculá: total a cobrar, monto vencido, días promedio de cobro. ' +
       'Formato: {"colMap":{"cliente":"col","monto":"col","fechaVencimiento":"col","estado":"col"},' +
       '"metricas":{"totalACobrar":0,"totalVencido":0,"diasPromedioCobro":0,' +
-      '"topDeudores":[{"cliente":"x","monto":0,"diasVencido":0}]}}
-
-Datos:
-' + muestra;
+      '"topDeudores":[{"cliente":"x","monto":0,"diasVencido":0}]}}' + ' Datos: ' + muestra;
   }
   if (tipo === 'pagar') {
     return base +
@@ -3060,10 +3051,7 @@ Datos:
       'Calculá: total a pagar, monto vencido, días promedio de pago. ' +
       'Formato: {"colMap":{"proveedor":"col","monto":"col","fechaVencimiento":"col","estado":"col"},' +
       '"metricas":{"totalAPagar":0,"totalVencido":0,"diasPromediosPago":0,' +
-      '"topAcreedores":[{"proveedor":"x","monto":0}]}}
-
-Datos:
-' + muestra;
+      '"topAcreedores":[{"proveedor":"x","monto":0}]}}' + ' Datos: ' + muestra;
   }
   return base + muestra;
 }
