@@ -1787,6 +1787,7 @@ input[type=file] { display: none; }
       <div class="user-chip">
         <div class="user-av" id="user-av">U</div>
         <span id="user-name" style="font-size:12px;color:var(--muted);">Usuario</span>
+        <span id="plan-badge-nav" style="font-family:var(--fm);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:rgba(200,169,110,.15);color:var(--accent);border:1px solid var(--border2);">FREE</span>
       </div>
       <button class="btn-upgrade" id="btn-upgrade-nav" onclick="goLanding()">⬆ Plan Pro</button>
       <button class="btn-logout" onclick="logout()">Salir</button>
@@ -1871,7 +1872,7 @@ input[type=file] { display: none; }
           </div>
 
         </div>
-        <p style="font-size:11px;color:#8090A8;font-family:var(--fm);text-align:center">Plan Pro · Archivos ilimitados · Múltiples hojas · .xlsx .xls .csv</p>
+        <p id="upload-pro-label" style="font-size:11px;color:#8090A8;font-family:var(--fm);text-align:center">Plan Pro · Archivos ilimitados · Múltiples hojas · .xlsx .xls .csv</p>
       </div>
 
     </div>
@@ -2197,9 +2198,21 @@ function loginGoogle() {
   S.plan = S.pendingPlan || 'free';
   document.getElementById('user-av').textContent = 'D';
   document.getElementById('user-name').textContent = 'Demo';
-  // Mostrar/ocultar botón upgrade según plan
+  // Badge plan en nav
+  var pb = document.getElementById('plan-badge-nav');
+  if (pb) {
+    var labels = { free: 'FREE', pro: 'PRO', full: 'FULL' };
+    pb.textContent = labels[S.plan] || 'FREE';
+    pb.style.background = isFull() ? 'rgba(94,189,138,.15)' : isPro() ? 'rgba(127,119,221,.15)' : 'rgba(200,169,110,.15)';
+    pb.style.color = isFull() ? '#5EBD8A' : isPro() ? '#9F97DD' : 'var(--accent)';
+    pb.style.borderColor = isFull() ? 'rgba(94,189,138,.3)' : isPro() ? 'rgba(127,119,221,.3)' : 'var(--border2)';
+  }
+  // Botón upgrade: solo en free
   var ub = document.getElementById('btn-upgrade-nav');
-  if (ub) ub.style.display = !isPro() ? 'block' : 'none';
+  if (ub) {
+    ub.style.display = !isPro() ? 'block' : 'none';
+    ub.textContent = !isPro() ? '⬆ Plan Pro' : '';
+  }
   initUploadZone();
   showScreen('s-dash');
   document.getElementById('chat-btn').style.display = 'flex';
@@ -2641,9 +2654,9 @@ function renderDash(d, m) {
     if(bb&&!S.chatOpen) bb.style.display='block';
   },3000);
   S.resDone = false;
-  // Mostrar cards de Plan Pro bloqueadas
+  // Cards bloqueadas: solo en plan free
   var proCards = document.getElementById('pro-cards');
-  if (proCards) proCards.style.display = 'block';
+  if (proCards) proCards.style.display = !isPro() ? 'block' : 'none';
   // Mostrar bottom tabs en mobile
   if (window.innerWidth <= 480) {
     var bt = document.getElementById('bottom-tabs');
@@ -2663,29 +2676,21 @@ function renderKPIs(kpis, m) {
   }
   // KPI 3: Ticket
   var ticketVal = kpis.length>=3 ? kpis[2].v : fmt(m.tk);
+  var margenKPI = isPro() && m.tc > 0 && m.tv > 0
+    ? '<div class="kpi"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">'+((m.tv-m.tc)/m.tv*100).toFixed(1)+'%</div><div class="kpi-s">sobre ventas</div></div>'
+    : '<div class="kpi locked"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">34.4%</div><div class="kpi-s">sobre ventas</div><div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div></div>';
+  var stockKPI = isPro()
+    ? '<div class="kpi"><div class="kpi-l">Rotación de Stock</div><div class="kpi-v">'+(m.stockRot||'—')+'</div><div class="kpi-s">anual estimada</div></div>'
+    : '<div class="kpi locked"><div class="kpi-l">Rotación de Stock</div><div class="kpi-v">3.2x</div><div class="kpi-s">anual estimada</div><div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div></div>';
   var html =
-    // Ventas — libre
     '<div class="kpi"><div class="kpi-l">Ventas Totales</div>'
     +'<div class="kpi-v">'+(kpis.length?kpis[0].v:fmt(m.tv))+'</div>'
     +'<div class="kpi-s">'+(kpis.length?kpis[0].s:sub1)+'</div></div>'
-    // Margen — bloqueado
-    +'<div class="kpi locked">'
-    +'<div class="kpi-l">Margen Bruto</div>'
-    +'<div class="kpi-v">34.4%</div>'
-    +'<div class="kpi-s">sobre ventas</div>'
-    +'<div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div>'
-    +'</div>'
-    // Ticket — libre
+    + margenKPI
     +'<div class="kpi"><div class="kpi-l">Ticket Promedio</div>'
     +'<div class="kpi-v">'+ticketVal+'</div>'
     +'<div class="kpi-s">por operación</div></div>'
-    // Rotación stock — bloqueado
-    +'<div class="kpi locked">'
-    +'<div class="kpi-l">Rotación de Stock</div>'
-    +'<div class="kpi-v">3.2x</div>'
-    +'<div class="kpi-s">anual estimada</div>'
-    +'<div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div>'
-    +'</div>';
+    + stockKPI;
   document.getElementById('kpi-row').innerHTML = html;
 }
 
@@ -3347,6 +3352,8 @@ function initUploadZone() {
     document.getElementById('upload-pro').style.display  = 'block';
     document.getElementById('pro-cards').style.display   = 'none';
     document.getElementById('pro-sections').style.display = 'block';
+    var lbl = document.getElementById('upload-pro-label');
+    if (lbl) lbl.textContent = (isFull() ? 'Plan Full' : 'Plan Pro') + ' · Archivos ilimitados · Múltiples hojas · .xlsx .xls .csv';
   }
 }
 
