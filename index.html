@@ -1104,7 +1104,7 @@ input[type=file] { display: none; }
         <div class="step">
           <div class="step-num">02</div>
           <h3 id="s2t">La IA lo analiza</h3>
-          <p id="s2p">Claude — la IA más avanzada del mercado — lee tus datos, identifica columnas, calcula KPIs reales y detecta problemas.</p>
+          <p id="s2p">Nuestra IA lee tus datos, identifica columnas, calcula KPIs reales y detecta problemas automáticamente.</p>
           <div class="step-tag">Inteligencia Artificial</div>
         </div>
         <div class="step">
@@ -1402,7 +1402,6 @@ function showScreen(id) {
 }
 function goLanding()  { showScreen('s-landing'); }
 function goAuth()     { showScreen('s-auth'); }
-function goAuth()     { showScreen('s-auth'); }
 
 // ══════════════════════════════════════════
 // AUTH (Simulado — conectar Supabase aquí)
@@ -1528,8 +1527,7 @@ async function claudeAnaliza(muestra, filename) {
     'Un archivo de ventas tiene registros de operaciones comerciales: cada fila es una venta con fecha, cliente, monto. ' +
     'NO es ventas: inventario, stock, lista de precios, catálogo, balance, presupuesto. ' +
     'Respondé SOLO con una palabra: SI o NO. ' +
-    'Datos:
-' + muestra.slice(0, 2000);
+    'Datos: ' + muestra.slice(0, 2000);
 
   try {
     var validacion = await claude(validationPrompt, [], 10);
@@ -1669,7 +1667,7 @@ function fmt(v) {
 function calcMetrics(sheets, yc, cm) {
   var vk = Object.keys(sheets).find(function(k){ return /vent|sale|transacc/i.test(k); }) || Object.keys(sheets)[0];
   var rows = sheets[vk]||[], cols = rows.length ? Object.keys(rows[0]) : [];
-  // Resolver colMap — Claude puede usar el nombre exacto de la hoja o diferente
+  // Resolver colMap — nuestra IA puede usar el nombre exacto de la hoja o diferente
   var c = {};
   if (cm) {
     c = cm[vk] || cm[Object.keys(cm).find(function(k){ return cm[k] && cm[k].ventaTotal !== undefined; })||''] || {};
