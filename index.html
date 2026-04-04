@@ -1699,7 +1699,7 @@ input[type=file] { display: none; }
             <li class="off" id="f1-7">Alertas de pricing por inflación</li>
             <li class="off" id="f1-8">Análisis de mercado</li>
           </ul>
-          <button class="btn-plan" onclick="goAuth()" id="plan1-btn">Empezar gratis</button>
+          <button class="btn-plan" onclick="goAuth('free')" id="plan1-btn">Empezar gratis</button>
         </div>
         <!-- PRO -->
         <div class="plan featured">
@@ -1717,7 +1717,7 @@ input[type=file] { display: none; }
             <li id="f2-7">Historial de análisis</li>
             <li class="off" id="f2-8">Cash flow proyectado</li>
           </ul>
-          <button class="btn-plan primary" onclick="goAuth()" id="plan2-btn">Empezar Pro</button>
+          <button class="btn-plan primary" onclick="goAuth('pro')" id="plan2-btn">Empezar Pro</button>
         </div>
         <!-- FULL -->
         <div class="plan">
@@ -1734,7 +1734,7 @@ input[type=file] { display: none; }
             <li id="f3-7">Integración API</li>
             <li id="f3-8">Onboarding personalizado</li>
           </ul>
-          <button class="btn-plan" onclick="goAuth()" id="plan3-btn">Empezar Full</button>
+          <button class="btn-plan" onclick="goAuth('full')" id="plan3-btn">Empezar Full</button>
         </div>
       </div>
     </div>
@@ -2185,7 +2185,7 @@ function showScreen(id) {
   document.documentElement.scrollTop = 0;
 }
 function goLanding()  { showScreen('s-landing'); }
-function goAuth()     { showScreen('s-auth'); }
+function goAuth(plan) { S.pendingPlan = plan || 'free'; showScreen('s-auth'); }
 
 // ══════════════════════════════════════════
 // AUTH (Simulado — conectar Supabase aquí)
@@ -2194,7 +2194,7 @@ function loginGoogle() {
   // TODO: Conectar Supabase Auth con Google
   // Por ahora: demo user — cambiar S.plan a 'free' o 'pro' para probar
   S.user = { name: 'Demo', email: 'demo@cfoai.com', avatar: 'D' };
-  S.plan = 'pro'; // ← 'free' | 'pro' | 'full' para testear
+  S.plan = S.pendingPlan || 'free';
   document.getElementById('user-av').textContent = 'D';
   document.getElementById('user-name').textContent = 'Demo';
   // Mostrar/ocultar botón upgrade según plan
