@@ -3150,7 +3150,7 @@ function buildAlerts(m) {
   }
   // 2. MARGEN
   if(tc>0&&tv>0){var mg=(tv-tc)/tv*100,t2=mg<20?'r':mg<35?'a':'g';a.push({ico:mg<20?'⚠️':mg<35?'💰':'✅',t:t2,lbl:'Margen',txt:'Margen bruto: <strong>'+mg.toFixed(1)+'%</strong>. Costo de ventas: '+fmt(tc)+'.'+(mg<20?' Margen bajo.':mg<35?' Margen moderado.':' Margen saludable.'),badge:mg.toFixed(1)+'%'});}
-  else{a.push({ico:'🏷️',t:'b',lbl:'Margen',txt:'Subí tu Excel de Compras para ver el margen real por producto y detectar pérdidas por inflación.',badge:'Plan Pro'});}
+  else{a.push({ico:'🏷️',t:'b',lbl:'Margen',txt:'<span style="cursor:pointer;text-decoration:underline;color:var(--accent)" onclick="hubQuickUpload(\'compras\')">Subí tu Excel de Compras</span> para ver el margen real por producto y detectar pérdidas por inflación.',badge:'Plan Pro'});}
   // 3. PRODUCTO TOP
   if(m.byCat.length){var p=tv>0?m.byCat[0][1]/tv*100:0;a.push({ico:p>50?'🎯':'📦',t:p>50?'a':'b',lbl:'Concentración',txt:(p>50?'<strong>'+m.byCat[0][0]+'</strong> representa el <strong>'+p.toFixed(0)+'%</strong> de ventas. Alta concentración.':'Top categoría: <strong>'+m.byCat[0][0]+'</strong> ('+fmt(m.byCat[0][1])+', '+p.toFixed(0)+'% del total).'),badge:p.toFixed(0)+'%'});}
   else{a.push({ico:'📦',t:'b',lbl:'Productos',txt:'Ticket promedio: <strong>'+fmt(m.tk)+'</strong>. '+m.nt+' transacciones en el período analizado.',badge:fmt(m.tk)});}
@@ -3326,16 +3326,18 @@ function renderKPIs(kpis, m) {
     margenKPI = '<div class="kpi"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">'+((m.tv-m.tc)/m.tv*100).toFixed(1)+'%</div><div class="kpi-s">sobre ventas</div></div>';
   } else if (isPro()) {
     // Pro sin compras aún — invitar a subir
-    margenKPI = '<div class="kpi" style="cursor:pointer;border:1px dashed rgba(200,169,110,.3)" onclick="toggleHubSlot(&quot;compras&quot;)">'
+    margenKPI = '<div class="kpi" style="cursor:pointer;border:1px dashed rgba(200,169,110,.3)" onclick="hubQuickUpload(&quot;compras&quot;)">'
       +'<div class="kpi-l">Margen Bruto</div>'
       +'<div class="kpi-v" style="font-size:18px;color:var(--accent)">+ Subí Compras</div>'
-      +'<div class="kpi-s">para ver tu margen real</div></div>';
+      +'<div class="kpi-s" style="color:var(--accent);text-decoration:underline">hacé click para subir →</div></div>';
   } else {
     // Free — bloqueado
     margenKPI = '<div class="kpi locked"><div class="kpi-l">Margen Bruto</div><div class="kpi-v">34.4%</div><div class="kpi-s">sobre ventas</div><div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div></div>';
   }
   var stockKPI = isPro()
-    ? '<div class="kpi"><div class="kpi-l">Rotación de Stock</div><div class="kpi-v">'+(m.stockRot||'—')+'</div><div class="kpi-s">anual estimada</div></div>'
+    ? (m.stockRot
+        ? '<div class="kpi"><div class="kpi-l">Rotación de Stock</div><div class="kpi-v">'+m.stockRot+'</div><div class="kpi-s">anual estimada</div></div>'
+        : '<div class="kpi" style="cursor:pointer;border:1px dashed rgba(200,169,110,.3)" onclick="hubQuickUpload(&quot;stock&quot;)"><div class="kpi-l">Rotación de Stock</div><div class="kpi-v" style="font-size:18px;color:var(--accent)">+ Subí Stock</div><div class="kpi-s" style="color:var(--accent);text-decoration:underline">hacé click para subir →</div></div>')
     : '<div class="kpi locked"><div class="kpi-l">Rotación de Stock</div><div class="kpi-v">3.2x</div><div class="kpi-s">anual estimada</div><div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div></div>';
   var html =
     '<div class="kpi"><div class="kpi-l">Ventas Totales</div>'
@@ -3645,6 +3647,32 @@ function initPlanUI() {
 }
 
 // triggerProUpload y loadProFile reemplazados por goProFile
+
+// ══════════════════════════════════════════
+// HUB QUICK UPLOAD — abre file picker directo
+// ══════════════════════════════════════════
+function hubQuickUpload(tipo) {
+  // Si hay dashboard visible, volver al upload area
+  var uploadArea = document.getElementById('upload-area');
+  var dashContent = document.getElementById('dash-content');
+  if (uploadArea && dashContent && dashContent.style.display !== 'none') {
+    dashContent.style.display = 'none';
+    uploadArea.style.display = 'block';
+  }
+  // Scroll al top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Esperar un tick, abrir el slot y el file picker
+  setTimeout(function() {
+    // Determinar el prefix según el plan
+    var prefix = isFull() ? 'f-' : '';
+    var slotId = prefix + tipo;
+    // Abrir el slot en el acordeón
+    toggleHubSlot(slotId);
+    // Abrir el file picker directamente
+    var fi = document.getElementById('fi-' + slotId);
+    if (fi) fi.click();
+  }, 400);
+}
 
 // ══════════════════════════════════════════
 // HUB ACORDEÓN — toggle slots
@@ -4501,9 +4529,9 @@ function recalcCapitalDeTrabajo() {
     +'</div>';
 
   var nota = [];
-  if (!cobrar) nota.push('Subí Cuentas por Cobrar para completar el cálculo');
-  if (!pagar)  nota.push('Subí Cuentas por Pagar para completar el cálculo');
-  if (!stock)  nota.push('Subí Stock para incluir el inventario');
+  if (!cobrar) nota.push('<span style="cursor:pointer;text-decoration:underline;color:var(--accent)" onclick="hubQuickUpload(\'cobrar\')">Subí Cuentas por Cobrar</span> para completar el cálculo');
+  if (!pagar)  nota.push('<span style="cursor:pointer;text-decoration:underline;color:var(--accent)" onclick="hubQuickUpload(\'pagar\')">Subí Cuentas por Pagar</span> para completar el cálculo');
+  if (!stock)  nota.push('<span style="cursor:pointer;text-decoration:underline;color:var(--accent)" onclick="hubQuickUpload(\'stock\')">Subí Stock</span> para incluir el inventario');
   document.getElementById('capital-note').textContent = nota.join(' · ');
 }
 
