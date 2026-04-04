@@ -3785,28 +3785,17 @@ function initPlanUI() {
 // HUB QUICK UPLOAD — abre file picker directo
 // ══════════════════════════════════════════
 function hubQuickUpload(tipo) {
-  // Determinar el prefix según el plan
-  var prefix = isFull() ? 'f-' : '';
-  var slotId = prefix + tipo;
-  // Abrir el file picker directamente — sin mover al usuario del dashboard
-  var fi = document.getElementById('fi-' + slotId);
-  if (fi) {
-    fi.click();
+  // Siempre usar ghost input — funciona aunque el hub esté oculto
+  var ghost = document.getElementById('ghost-' + tipo);
+  if (ghost) {
+    ghost.click();
     return;
   }
-  // Si el input no existe (slot no en DOM), mostrar hub
-  var uploadArea = document.getElementById('upload-area');
-  var dashContent = document.getElementById('dash-content');
-  if (uploadArea && dashContent && dashContent.style.display !== 'none') {
-    dashContent.style.display = 'none';
-    uploadArea.style.display = 'block';
-  }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  setTimeout(function() {
-    toggleHubSlot(slotId);
-    var fi2 = document.getElementById('fi-' + slotId);
-    if (fi2) fi2.click();
-  }, 300);
+  // Fallback: intentar el input del hub
+  var prefix = isFull() ? 'f-' : '';
+  var slotId = prefix + tipo;
+  var fi = document.getElementById('fi-' + slotId);
+  if (fi) { fi.click(); return; }
 }
 
 // ══════════════════════════════════════════
@@ -5201,5 +5190,15 @@ renderProSection = function(tipo) {
 };
 
 </script>
+<!-- Ghost file inputs — siempre disponibles aunque el hub esté oculto -->
+<input type="file" id="ghost-ventas"    accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('ventas',this.files[0]);this.value=''">
+<input type="file" id="ghost-compras"   accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('compras',this.files[0]);this.value=''">
+<input type="file" id="ghost-stock"     accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('stock',this.files[0]);this.value=''">
+<input type="file" id="ghost-cobrar"    accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('cobrar',this.files[0]);this.value=''">
+<input type="file" id="ghost-pagar"     accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('pagar',this.files[0]);this.value=''">
+<input type="file" id="ghost-gastos"    accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('f-gastos',this.files[0]);this.value=''">
+<input type="file" id="ghost-nomina"    accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('f-nomina',this.files[0]);this.value=''">
+<input type="file" id="ghost-impuestos" accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('f-impuestos',this.files[0]);this.value=''">
+<input type="file" id="ghost-banco"     accept=".xlsx,.xls,.csv" style="display:none" onchange="goProFile('f-banco',this.files[0]);this.value=''">
 </body>
 </html>
