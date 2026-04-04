@@ -421,6 +421,56 @@ footer {
 .pres-pl { display: flex; flex-direction: column; gap: 2px; }
 .pres-bars { display: flex; flex-direction: column; gap: 4px; }
 
+
+/* ── MULTI-DROP ZONE ── */
+.hub-multidrop {
+  border: 2px dashed rgba(200,169,110,.25);
+  border-radius: 14px;
+  padding: 24px 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: all .2s ease;
+  background: rgba(10,22,40,.4);
+  position: relative;
+}
+.hub-multidrop.over {
+  border-color: var(--accent);
+  background: rgba(200,169,110,.07);
+  transform: scale(1.01);
+}
+.hub-multidrop-ico { font-size: 32px; margin-bottom: 10px; line-height: 1; }
+.hub-multidrop-title {
+  font-family: var(--fh); font-size: 16px; font-weight: 800;
+  color: var(--white); margin-bottom: 6px;
+}
+.hub-multidrop-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.hub-multidrop-tags {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  justify-content: center; margin-bottom: 6px;
+}
+.hub-multidrop-tags span {
+  font-family: var(--fm); font-size: 10px; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px;
+  background: rgba(200,169,110,.1); color: var(--accent);
+  border: 1px solid rgba(200,169,110,.2);
+}
+.hub-multidrop-result {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  justify-content: center; margin-top: 10px; min-height: 0;
+}
+.hub-multidrop-item {
+  font-family: var(--fm); font-size: 11px; font-weight: 600;
+  padding: 4px 12px; border-radius: 20px;
+  display: flex; align-items: center; gap: 5px;
+}
+.hub-multidrop-item.ok  { background: rgba(94,189,138,.15); color: #5EBD8A; border: 1px solid rgba(94,189,138,.3); }
+.hub-multidrop-item.err { background: rgba(220,80,60,.12);  color: #FF7060; border: 1px solid rgba(220,80,60,.25); }
+.hub-multidrop-item.loading { background: rgba(200,169,110,.1); color: var(--accent); border: 1px solid var(--border); }
+@media (max-width: 600px) {
+  .hub-multidrop { padding: 18px 14px; }
+  .hub-multidrop-title { font-size: 14px; }
+}
 /* ═══════════════════════════════════════
    AUTH SCREEN
 ═══════════════════════════════════════ */
@@ -2080,6 +2130,20 @@ function goAuth(plan) {
             <button class="hub-summary-cta" onclick="showDashboardPreview()">Ver dashboard →</button>
           </div>
 
+          <!-- MULTI-DROP ZONE -->
+          <div class="hub-multidrop" id="hub-multidrop-pro"
+            ondragover="multiDragOver(event,'pro')"
+            ondragleave="multiDragLeave('pro')"
+            ondrop="multiDrop(event,'pro')">
+            <div class="hub-multidrop-ico">📂</div>
+            <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
+            <div class="hub-multidrop-sub">Los detectamos automáticamente por nombre — ventas, compras, stock, cobrar, pagar</div>
+            <div class="hub-multidrop-tags">
+              <span>ventas.xlsx</span><span>compras.xlsx</span><span>stock.xlsx</span><span>cobrar.xlsx</span><span>pagar.xlsx</span>
+            </div>
+            <div id="hub-multidrop-pro-result" class="hub-multidrop-result"></div>
+          </div>
+
           <!-- Slots acordeón -->
           <div class="hub-slots">
         <div class="hub-slot" id="pfc-ventas">
@@ -2229,6 +2293,20 @@ function goAuth(plan) {
               <div class="hub-summary-sub" id="full-summary-sub">P&amp;L y Cash Flow automáticos cuando subís todos los archivos</div>
             </div>
             <button class="hub-summary-cta" onclick="showDashboardPreview()">Ver dashboard →</button>
+          </div>
+
+          <!-- MULTI-DROP ZONE -->
+          <div class="hub-multidrop" id="hub-multidrop-full"
+            ondragover="multiDragOver(event,'full')"
+            ondragleave="multiDragLeave('full')"
+            ondrop="multiDrop(event,'full')">
+            <div class="hub-multidrop-ico">📂</div>
+            <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
+            <div class="hub-multidrop-sub">Los detectamos por nombre — ventas, compras, stock, gastos, nómina, impuestos, banco...</div>
+            <div class="hub-multidrop-tags">
+              <span>ventas.xlsx</span><span>compras.xlsx</span><span>stock.xlsx</span><span>gastos.xlsx</span><span>nomina.xlsx</span><span>impuestos.xlsx</span><span>banco.xlsx</span>
+            </div>
+            <div id="hub-multidrop-full-result" class="hub-multidrop-result"></div>
           </div>
 
           <div class="hub-section-label" style="color:var(--accent)">Base Pro</div>
@@ -5188,6 +5266,85 @@ renderProSection = function(tipo) {
     setTimeout(function(){ renderPL(); renderCashFlow(); renderExecutiveBrief(); }, 300);
   }
 };
+
+
+// ══════════════════════════════════════════
+// MULTI-DROP — detectar archivos por nombre
+// ══════════════════════════════════════════
+var TIPO_PATTERNS = {
+  ventas:    [/vent|sale|ingreso|factura/i],
+  compras:   [/compra|costo|proveedor|purchase/i],
+  stock:     [/stock|inventario|invent/i],
+  cobrar:    [/cobrar|receivable|deudor/i],
+  pagar:     [/pagar|payable|acreedor/i],
+  gastos:    [/gasto|operativo|expense/i],
+  nomina:    [/nomin|sueldo|salario|payroll|rrhh/i],
+  impuestos: [/impuesto|iva|tax|fiscal/i],
+  banco:     [/banco|extract|bancario|movimiento|bank/i],
+};
+
+function detectTipo(filename) {
+  var base = filename.replace(/\.[^.]+$/, '').toLowerCase();
+  var found = null;
+  Object.keys(TIPO_PATTERNS).forEach(function(tipo) {
+    if (!found && TIPO_PATTERNS[tipo].some(function(p){ return p.test(base); })) {
+      found = tipo;
+    }
+  });
+  return found;
+}
+
+function multiDragOver(e, plan) {
+  e.preventDefault();
+  var zone = document.getElementById('hub-multidrop-' + plan);
+  if (zone) zone.classList.add('over');
+}
+function multiDragLeave(plan) {
+  var zone = document.getElementById('hub-multidrop-' + plan);
+  if (zone) zone.classList.remove('over');
+}
+
+async function multiDrop(e, plan) {
+  e.preventDefault();
+  multiDragLeave(plan);
+  var files = Array.from(e.dataTransfer.files).filter(function(f){
+    return /\.(xlsx|xls|csv)$/i.test(f.name);
+  });
+  if (!files.length) return;
+
+  var resultEl = document.getElementById('hub-multidrop-' + plan + '-result');
+  resultEl.innerHTML = '';
+
+  var planFull = plan === 'full';
+
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    var tipo = detectTipo(file.name);
+
+    var pill = document.createElement('div');
+    pill.className = 'hub-multidrop-item loading';
+    pill.innerHTML = '&#x23F3; ' + file.name.split('.')[0].slice(0, 18);
+    resultEl.appendChild(pill);
+
+    if (!tipo) {
+      pill.className = 'hub-multidrop-item err';
+      pill.innerHTML = '&#x2717; ' + file.name.split('.')[0].slice(0, 16) + ' (no reconocido)';
+      continue;
+    }
+
+    var tipoFinal = planFull && ['gastos','nomina','impuestos','banco'].indexOf(tipo) !== -1
+      ? 'f-' + tipo : tipo;
+
+    try {
+      await goProFile(tipoFinal, file);
+      pill.className = 'hub-multidrop-item ok';
+      pill.innerHTML = '&#x2713; ' + file.name.split('.')[0].slice(0, 14) + ' &rarr; ' + tipo;
+    } catch(err) {
+      pill.className = 'hub-multidrop-item err';
+      pill.innerHTML = '&#x2717; ' + file.name.split('.')[0].slice(0, 14) + ' (error)';
+    }
+  }
+}
 
 </script>
 <!-- Ghost file inputs — siempre disponibles aunque el hub esté oculto -->
