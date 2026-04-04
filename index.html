@@ -3785,26 +3785,28 @@ function initPlanUI() {
 // HUB QUICK UPLOAD — abre file picker directo
 // ══════════════════════════════════════════
 function hubQuickUpload(tipo) {
-  // Si hay dashboard visible, volver al upload area
+  // Determinar el prefix según el plan
+  var prefix = isFull() ? 'f-' : '';
+  var slotId = prefix + tipo;
+  // Abrir el file picker directamente — sin mover al usuario del dashboard
+  var fi = document.getElementById('fi-' + slotId);
+  if (fi) {
+    fi.click();
+    return;
+  }
+  // Si el input no existe (slot no en DOM), mostrar hub
   var uploadArea = document.getElementById('upload-area');
   var dashContent = document.getElementById('dash-content');
   if (uploadArea && dashContent && dashContent.style.display !== 'none') {
     dashContent.style.display = 'none';
     uploadArea.style.display = 'block';
   }
-  // Scroll al top
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  // Esperar un tick, abrir el slot y el file picker
   setTimeout(function() {
-    // Determinar el prefix según el plan
-    var prefix = isFull() ? 'f-' : '';
-    var slotId = prefix + tipo;
-    // Abrir el slot en el acordeón
     toggleHubSlot(slotId);
-    // Abrir el file picker directamente
-    var fi = document.getElementById('fi-' + slotId);
-    if (fi) fi.click();
-  }, 400);
+    var fi2 = document.getElementById('fi-' + slotId);
+    if (fi2) fi2.click();
+  }, 300);
 }
 
 // ══════════════════════════════════════════
@@ -3901,6 +3903,7 @@ function showDashboardPreview() {
   if (S.metrics && S.dash) {
     document.getElementById('upload-area').style.display = 'none';
     document.getElementById('dash-content').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
   // Si no, mostrar mensaje de que falta subir ventas
@@ -4302,10 +4305,9 @@ async function goProFile(tipo, file) {
       recalcCapitalDeTrabajo();
     }
 
-    // Si ventas ya está, mostrar dash
-    if (S.sheets) {
-      document.getElementById('dash-content').style.display = 'block';
-    }
+    // NO mostrar dash automáticamente — el usuario clickea "Ver dashboard →"
+    // Solo actualizar el summary del hub
+    updateHubRing(isFull() ? 'f-' : '', 0, 1); // trigger re-count
 
   } catch(e) {
     status.className = 'pro-file-status pending';
@@ -4358,7 +4360,10 @@ async function goProAnalisis() {
     S.dash = analisis.dash;
     document.getElementById('proc').classList.remove('on');
     renderDash(S.dash, S.metrics);
-    document.getElementById('dash-content').style.display = 'block';
+    // Dash computado — NO mostrarlo aún, esperamos que el usuario clickee Ver dashboard
+    // Actualizar summary del hub para que sepa que ventas está lista
+    var hubSub = document.getElementById('pro-summary-sub') || document.getElementById('full-summary-sub');
+    if (hubSub) hubSub.textContent = 'Ventas analizadas ✓ — cargá más archivos o hacé click en Ver dashboard';
   } catch(e) {
     document.getElementById('proc').classList.remove('on');
     console.warn('[CFO.AI Pro] Error analisis ventas:', e.message);
@@ -5005,7 +5010,7 @@ function renderCashFlow() {
   // Saldo inicial card
   html += '<div style="background:rgba(27,79,138,.15);border:1px solid rgba(200,169,110,.15);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">'
     +'<div><div style="font-size:12px;color:var(--muted)">Saldo inicial (extracto bancario)</div>'
-    +(saldoInicial > 0 ? '' : '<div style="font-size:11px;color:var(--dim)">Subí el Extracto Bancario para datos reales</div>')+'</div>'
+    +(saldoInicial > 0 ? '' : '<div style="font-size:11px;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="hubQuickUpload(&quot;banco&quot;)">Subí el Extracto Bancario para datos reales →</div>')+'</div>'
     +'<div style="font-family:var(--fh);font-size:20px;font-weight:900;color:var(--white)">'+fmt(Math.abs(saldoInicial))+'</div>'
     +'</div>';
 
