@@ -2188,7 +2188,7 @@ function goAuth(plan) {
   <!-- DASH NAV -->
   <div class="dash-nav">
     <div class="dash-nav-left">
-      <div class="dash-logo">CFO<span>.AI</span></div>
+      <div class="dash-logo" onclick="goLanding()" style="cursor:pointer" title="Volver al inicio">CFO<span>.AI</span></div>
       <div class="dash-tabs">
         <button class="dash-tab active" onclick="switchTab('overview')" id="tab-overview">Resumen</button>
         <button class="dash-tab" onclick="switchTab('detail')" id="tab-detail">Detalle</button>
@@ -2969,9 +2969,11 @@ function goAuth(plan) {
 
 <script>
 // Scroll to top siempre al cargar
-window.onbeforeunload = function(){ window.scrollTo(0,0); };
-if (history.scrollRestoration) history.scrollRestoration = 'manual';
-window.scrollTo(0,0);
+// Solo scroll al top si estamos en la landing, no en el dashboard
+if (document.getElementById('s-dash') && !document.getElementById('s-dash').classList.contains('active')) {
+  window.scrollTo(0,0);
+}
+if (history.scrollRestoration) history.scrollRestoration = 'auto';
 
 // ══════════════════════════════════════════
 // CONFIGURACIÓN DE PLANES — fuente de verdad
@@ -3046,7 +3048,8 @@ function showScreen(id) {
     var bt = document.getElementById('bottom-tabs');
     if (bt) bt.style.display = 'flex';
   }
-  document.documentElement.scrollTop = 0;
+  // Solo scroll al top en landing — en dash el usuario controla el scroll
+  if (id !== 's-dash') document.documentElement.scrollTop = 0;
 }
 function goLanding()  { showScreen('s-landing'); }
 // goAuth defined above (hoisted)
