@@ -398,8 +398,21 @@ function readExcel(file){
 
 function findTotalCol(cols,yc){
   if(yc&&cols.indexOf(yc)!==-1)return yc;
-  var money=cols.filter(function(c){return c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1;});
+  // Prioridad 1: columna que empiece con "Venta" y tenga $ o €
+  var ventaCol=cols.find(function(c){return /^venta.total/i.test(c.trim());});
+  if(ventaCol)return ventaCol;
+  // Prioridad 2: columna que empiece con "Total" y tenga $ o €
+  var totalCol=cols.find(function(c){return /^total/i.test(c.trim())&&(c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1);});
+  if(totalCol)return totalCol;
+  // Prioridad 3: última columna con $ excluyendo Margen, Costo, IVA
+  var money=cols.filter(function(c){
+    return (c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1)
+      && !/margen|costo|iva|tax|descuento/i.test(c);
+  });
   if(money.length)return money[money.length-1];
+  // Fallback: cualquier columna con $
+  var all=cols.filter(function(c){return c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1;});
+  if(all.length)return all[all.length-1];
   return cols.find(function(c){return /^total/i.test(c.trim());})||null;
 }
 function findCol(cols,pats){return cols.find(function(c){return pats.some(function(p){return p.test(c);});});}
@@ -722,12 +735,23 @@ function calcMargenPorGrupo(metrics, dimKey) {
 
     var costoFila = 0;
 
-    // MÉTODO 1: Subtotal + IVA en la fila de ventas
-    // Total ($) = Subtotal ($) + IVA 21% ($)
-    // El Subtotal es el precio de venta sin IVA, NO el costo.
-    // Costo real = Precio Compra ($) * Cantidad → buscar en stock
+    // MÉTODO 0: Costo Total ($) directo en la fila — máxima precisión
+    var ctCol = findCol(cols, [/^costo.total/i]);
+    if (ctCol) {
+      var ctVal = parseFloat(String(r[ctCol]||'').replace(/[^0-9.-]/g,''))||0;
+      if (ctVal > 0) costoFila = ctVal;
+    }
+    // MÉTODO 0b: Costo Unit. ($) * Cantidad
+    if (costoFila === 0) {
+      var cuCol = findCol(cols, [/^costo.*unit/i]);
+      var caVal = cantCol ? parseFloat(String(r[cantCol]||'').replace(/[^0-9.-]/g,''))||1 : 1;
+      if (cuCol) {
+        var cuVal = parseFloat(String(r[cuCol]||'').replace(/[^0-9.-]/g,''))||0;
+        if (cuVal > 0) costoFila = cuVal * caVal;
+      }
+    }
 
-    // MÉTODO 2: Cruzar con stock por nombre de producto
+    // MÉTODO 1: Cruzar con stock por nombre de producto
     if (prodCol) {
       var nomProd = String(r[prodCol]||'').trim();
       var match = buscarCosto(nomProd);
