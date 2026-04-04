@@ -3450,11 +3450,19 @@ function renderDrillRows(dk) {
   document.getElementById('drill-rows').innerHTML = sorted.map(function(e,i){
     var label=e[0],val=e[1],pct=total>0?((val/total)*100).toFixed(1):'0',bw=Math.round(val/maxV*100),col=COLORS[i%COLORS.length];
     var mg=mMap[label]&&mMap[label].margen!==null?mMap[label].margen:null;
-    // Plan gratis: margen siempre borroso con candado
-    var mgH='<span style="position:relative;display:inline-flex;align-items:center;gap:3px;">'
-      +'<span style="font-family:var(--fm);font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:rgba(200,169,110,.12);color:var(--accent);filter:blur(4px);user-select:none;">34.4%</span>'
-      +'<span title="Plan Pro" style="font-size:10px;cursor:pointer;" onclick="goLanding()">🔒</span>'
-      +'</span>';
+    // Margen: real si Pro con datos, bloqueado si Free
+    var mgH;
+    if (isPro() && mg !== null) {
+      var mgCls = mg >= 30 ? 'color:#2E7D52' : mg >= 15 ? 'color:#B7791F' : 'color:#C0392B';
+      mgH = '<span style="font-family:var(--fm);font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(0,0,0,.06);'+mgCls+'">'+mg.toFixed(1)+'%</span>';
+    } else if (isPro()) {
+      mgH = '<span style="font-family:var(--fm);font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="hubQuickUpload(&quot;compras&quot;)">+ Compras</span>';
+    } else {
+      mgH = '<span style="position:relative;display:inline-flex;align-items:center;gap:3px;">'
+        +'<span style="font-family:var(--fm);font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;background:rgba(200,169,110,.12);color:var(--accent);filter:blur(4px);user-select:none;">34.4%</span>'
+        +'<span title="Plan Pro" style="font-size:10px;cursor:pointer;" onclick="goLanding()">🔒</span>'
+        +'</span>';
+    }
     return '<div class="drow" data-i="'+i+'" onclick="dbarClick(this)">'
       +'<div class="drow-top"><div class="drow-lbl"><span class="drow-dot" style="background:'+col+'"></span>'+label+'<span class="drow-arr">▶</span></div>'
       +'<div class="drow-nums"><span class="drow-val">'+fmt(val)+'</span>'+mgH+'<span class="drow-pct">'+pct+'%</span></div></div>'
@@ -3473,13 +3481,11 @@ function dbarClick(row) {
     +'<div class="det-i"><div class="det-l">Operaciones</div><div class="det-v">'+cData.ops+'</div></div>'
     +'<div class="det-i"><div class="det-l">Ventas</div><div class="det-v">'+fmt(cData.venta)+'</div></div>'
     +'<div class="det-i"><div class="det-l">Ticket medio</div><div class="det-v">'+(cData.ops>0?fmt(cData.venta/cData.ops):'$0')+'</div></div>'
-    +'<div class="det-i" style="position:relative;overflow:hidden;">'
-    +'<div class="det-l">Margen</div>'
-    +'<div class="det-v" style="filter:blur(5px);user-select:none;">34.4%</div>'
-    +'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;" onclick="goLanding()">'
-    +'<span style="font-size:11px;">🔒</span>'
-    +'<span style="font-family:var(--fm);font-size:9px;font-weight:700;color:var(--accent);letter-spacing:.08em;">PLAN PRO</span>'
-    +'</div></div>'
+    +(isPro() && cData.margen !== null
+      ? '<div class="det-i"><div class="det-l">Margen</div><div class="det-v" style="'+(cData.margen>=30?'color:#2E7D52':cData.margen>=15?'color:#B7791F':'color:#C0392B')+'">'+cData.margen.toFixed(1)+'%</div></div>'
+      : isPro()
+        ? '<div class="det-i"><div class="det-l">Margen</div><div class="det-v" style="font-size:12px;color:var(--accent);cursor:pointer;text-decoration:underline" onclick="hubQuickUpload(&quot;compras&quot;)">Subí Compras →</div></div>'
+        : '<div class="det-i" style="position:relative;overflow:hidden;"><div class="det-l">Margen</div><div class="det-v" style="filter:blur(5px);user-select:none;">34.4%</div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;" onclick="goLanding()"><span style="font-size:11px;">🔒</span><span style="font-family:var(--fm);font-size:9px;font-weight:700;color:var(--accent);letter-spacing:.08em;">PLAN PRO</span></div></div>')
     +'</div>';
   secs.forEach(function(sd){
     var dim=m.dims.find(function(d){return d.key===dk;});
@@ -4337,6 +4343,19 @@ function renderMargenPro() {
       }).join('')
     : '<div style="color:#2E7D52;font-size:13px;padding:12px;background:rgba(46,125,82,.06);border-radius:7px;border:1px solid rgba(46,125,82,.15)">✅ No se detectaron problemas de pricing. Los márgenes están alineados con la inflación.</div>';
   document.getElementById('pricing-alerts-list').innerHTML = alertHtml;
+
+  // ── Actualizar S.metrics.tc con el costo real calculado ──
+  var totalCosto = resultados.reduce(function(a,r){ return a + r.costo; }, 0);
+  if (totalCosto > 0 && S.metrics) {
+    S.metrics.tc = totalCosto;
+    // Refrescar KPIs con el margen real
+    renderKPIs(S.dash && S.dash.kpis || [], S.metrics);
+    // Refrescar semáforo
+    renderSemaforo(S.metrics);
+    // Refrescar drill si está visible
+    if (S.drillDim) renderDrillRows(S.drillDim);
+    console.log('[CFO.AI] Margen actualizado: tc=' + fmt(totalCosto) + ' → margen=' + ((S.metrics.tv - totalCosto)/S.metrics.tv*100).toFixed(1) + '%');
+  }
 }
 
 // STOCK E INVENTARIO
