@@ -1499,17 +1499,30 @@ function prepararMuestra(sheets, filename) {
     var cols = Object.keys(rows[0]);
     out += '=== HOJA: ' + name + ' (' + rows.length + ' filas) ===\n';
     out += 'Columnas: ' + cols.join(' | ') + '\n';
-    out += 'Primeras 3 filas:\n';
+    out += 'Primeras 3 filas (muestra):\n';
     rows.slice(0,3).forEach(function(r,i){
       var vals = cols.map(function(c){ return c + '=' + JSON.stringify(r[c]); });
       out += 'F'+(i+1)+': ' + vals.join(', ') + '\n';
     });
-    if (rows.length > 5) {
-      out += 'Últimas 2 filas:\n';
-      rows.slice(-2).forEach(function(r,i){
-        var vals = cols.map(function(c){ return c + '=' + JSON.stringify(r[c]); });
-        out += vals.join(', ') + '\n';
-      });
+    // PRE-CALCULAR TOTALES por columna numérica para que Claude no tenga que sumar
+    out += '\nTOTALES PRE-CALCULADOS (JS sumó todas las ' + rows.length + ' filas):\n';
+    cols.forEach(function(col) {
+      var total = rows.reduce(function(a,r){
+        var raw = r[col];
+        if (typeof raw === 'string' && raw.charAt(0) === '=') return a;
+        var v = parseFloat(String(raw||'').replace(/[^0-9.-]/g,''));
+        return a + (isNaN(v) ? 0 : v);
+      }, 0);
+      if (total > 0) out += col + ' TOTAL = ' + Math.round(total) + '\n';
+    });
+    // Rango de fechas
+    var fechCol = cols.find(function(c){ return /fecha|date/i.test(c); });
+    if (fechCol) {
+      var fechas = rows.map(function(r){ return r[fechCol]; }).filter(Boolean);
+      if (fechas.length) {
+        out += 'Fecha primera fila: ' + JSON.stringify(fechas[0]) + '\n';
+        out += 'Fecha última fila: ' + JSON.stringify(fechas[fechas.length-1]) + '\n';
+      }
     }
     out += '\n';
   });
