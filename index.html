@@ -2258,9 +2258,9 @@ function goAuth(plan) {
             ondrop="multiDrop(event,'pro')">
             <div class="hub-multidrop-ico">📂</div>
             <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
-            <div class="hub-multidrop-sub">Los detectamos automáticamente por nombre — ventas, compras, stock, cobrar, pagar</div>
+            <div class="hub-multidrop-sub">Detectamos por nombre de archivo o nombre de hoja — también funciona con un Excel de múltiples hojas</div>
             <div class="hub-multidrop-tags">
-              <span>ventas.xlsx</span><span>compras.xlsx</span><span>stock.xlsx</span><span>cobrar.xlsx</span><span>pagar.xlsx</span>
+              <span>ventas.xlsx</span><span>compras.xlsx</span><span>todo_en_uno.xlsx</span><span>pagar.xlsx</span>
             </div>
             <div id="hub-multidrop-pro-result" class="hub-multidrop-result"></div>
           </div>
@@ -2423,9 +2423,9 @@ function goAuth(plan) {
             ondrop="multiDrop(event,'full')">
             <div class="hub-multidrop-ico">📂</div>
             <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
-            <div class="hub-multidrop-sub">Los detectamos por nombre — ventas, compras, stock, gastos, nómina, impuestos, banco...</div>
+            <div class="hub-multidrop-sub">Detectamos por nombre de archivo o hoja — podés subir un solo Excel con múltiples hojas y lo procesamos todo</div>
             <div class="hub-multidrop-tags">
-              <span>ventas.xlsx</span><span>compras.xlsx</span><span>stock.xlsx</span><span>gastos.xlsx</span><span>nomina.xlsx</span><span>impuestos.xlsx</span><span>banco.xlsx</span>
+              <span>ventas.xlsx</span><span>gastos.xlsx</span><span>todo_junto.xlsx</span><span>banco.xlsx</span>
             </div>
             <div id="hub-multidrop-full-result" class="hub-multidrop-result"></div>
           </div>
@@ -5440,6 +5440,32 @@ function multiDragLeave(plan) {
   if (zone) zone.classList.remove('over');
 }
 
+// Detectar tipo de hoja por nombre (igual que detectTipo pero para sheet names)
+function detectTipoHoja(sheetName) {
+  return detectTipo(sheetName); // reutiliza la misma lógica
+}
+
+// Leer un archivo Excel y devolver sus hojas como objeto {sheetName: rows[]}
+function readExcelSheets(file) {
+  return new Promise(function(res, rej) {
+    var r = new FileReader();
+    r.onload = function(e) {
+      try {
+        var wb = XLSX.read(e.target.result, {type:'binary', cellDates:true, cellNF:false, cellText:false, cellStyles:false, cellFormula:false});
+        var sheets = {};
+        wb.SheetNames.forEach(function(name) {
+          var ws = wb.Sheets[name];
+          var json = XLSX.utils.sheet_to_json(ws, {defval:''});
+          if (json.length > 0) sheets[name] = json;
+        });
+        res({ sheetNames: wb.SheetNames, sheets: sheets });
+      } catch(err) { rej(err); }
+    };
+    r.onerror = function() { rej(new Error('No se pudo leer el archivo')); };
+    r.readAsBinaryString(file);
+  });
+}
+
 async function multiDrop(e, plan) {
   e.preventDefault();
   multiDragLeave(plan);
@@ -5450,50 +5476,127 @@ async function multiDrop(e, plan) {
 
   var resultEl = document.getElementById('hub-multidrop-' + plan + '-result');
   resultEl.innerHTML = '';
-
   var planFull = plan === 'full';
+  var okCount = 0, totalCount = 0;
 
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
-    var tipo = detectTipo(file.name);
 
-    var pill = document.createElement('div');
-    pill.className = 'hub-multidrop-item loading';
-    pill.innerHTML = '&#x23F3; ' + file.name.split('.')[0].slice(0, 18);
-    resultEl.appendChild(pill);
-
-    if (!tipo) {
+    // ── Leer el Excel para ver cuántas hojas tiene ──
+    var parsed;
+    try {
+      parsed = await readExcelSheets(file);
+    } catch(err) {
+      var pill = document.createElement('div');
       pill.className = 'hub-multidrop-item err';
-      pill.innerHTML = '&#x2717; ' + file.name.split('.')[0].slice(0, 16) + ' (no reconocido)';
+      pill.innerHTML = '&#x2717; ' + file.name.split('.')[0].slice(0,16) + ' (error al leer)';
+      resultEl.appendChild(pill);
+      totalCount++;
       continue;
     }
 
-    var tipoFinal = planFull && ['gastos','nomina','impuestos','banco'].indexOf(tipo) !== -1
-      ? 'f-' + tipo : tipo;
+    var sheetNames = Object.keys(parsed.sheets);
 
-    try {
-      await goProFile(tipoFinal, file);
-      pill.className = 'hub-multidrop-item ok';
-      pill.innerHTML = '&#x2713; ' + file.name.split('.')[0].slice(0, 14) + ' &rarr; ' + tipo;
-    } catch(err) {
-      pill.className = 'hub-multidrop-item err';
-      pill.innerHTML = '&#x2717; ' + file.name.split('.')[0].slice(0, 14) + ' (error)';
+    // ── CASO 1: archivo con una sola hoja ──
+    if (sheetNames.length === 1) {
+      var tipo = detectTipo(file.name) || detectTipoHoja(sheetNames[0]);
+      totalCount++;
+      var pill = document.createElement('div');
+      pill.className = 'hub-multidrop-item loading';
+      pill.innerHTML = '&#x23F3; ' + file.name.split('.')[0].slice(0,16);
+      resultEl.appendChild(pill);
+
+      if (!tipo) {
+        pill.className = 'hub-multidrop-item err';
+        pill.innerHTML = '&#x2717; ' + file.name.split('.')[0].slice(0,16) + ' (no reconocido)';
+        continue;
+      }
+      var tipoFinal = planFull && ['gastos','nomina','impuestos','banco'].indexOf(tipo) !== -1 ? 'f-' + tipo : tipo;
+      try {
+        await goProFile(tipoFinal, file);
+        pill.className = 'hub-multidrop-item ok';
+        pill.innerHTML = '&#x2713; ' + file.name.split('.')[0].slice(0,14) + ' &rarr; ' + tipo;
+        okCount++;
+      } catch(err) {
+        pill.className = 'hub-multidrop-item err';
+        pill.innerHTML = '&#x2717; ' + file.name.split('.')[0].slice(0,14) + ' (error)';
+      }
+
+    // ── CASO 2: archivo con MÚLTIPLES hojas ──
+    } else {
+      // Mostrar header del archivo
+      var header = document.createElement('div');
+      header.style.cssText = 'width:100%;text-align:left;font-family:var(--fm);font-size:10px;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin:10px 0 4px;padding:0 4px;font-weight:700';
+      header.textContent = '📋 ' + file.name + ' — ' + sheetNames.length + ' hojas detectadas';
+      resultEl.appendChild(header);
+
+      for (var j = 0; j < sheetNames.length; j++) {
+        var sheetName = sheetNames[j];
+        var rows = parsed.sheets[sheetName];
+        if (!rows || !rows.length) continue;
+
+        var tipoHoja = detectTipoHoja(sheetName);
+        totalCount++;
+
+        var sheetPill = document.createElement('div');
+        sheetPill.className = 'hub-multidrop-item loading';
+        sheetPill.innerHTML = '&#x23F3; Hoja: ' + sheetName.slice(0, 14);
+        resultEl.appendChild(sheetPill);
+
+        if (!tipoHoja) {
+          sheetPill.className = 'hub-multidrop-item err';
+          sheetPill.innerHTML = '&#x2717; Hoja "' + sheetName.slice(0,12) + '" (no reconocida — renombrala como "ventas", "compras", etc.)';
+          continue;
+        }
+
+        // Crear un File-like object con solo esta hoja
+        var tipoFinalHoja = planFull && ['gastos','nomina','impuestos','banco'].indexOf(tipoHoja) !== -1 ? 'f-' + tipoHoja : tipoHoja;
+
+        try {
+          // Simular goProFile con los datos de la hoja directamente
+          var sheetData = {};
+          sheetData[sheetName] = rows;
+          var analisis = await claudeAnalizaProFile(
+            prepararMuestra(sheetData, sheetName),
+            sheetName, tipoFinalHoja.replace(/^f-/, '')
+          );
+          S.proFiles[tipoFinalHoja.replace(/^f-/, '')] = { sheets: sheetData, analisis: analisis, filename: file.name + ' → ' + sheetName };
+          S.pro[tipoFinalHoja.replace(/^f-/, '')] = { sheets: sheetData, analisis: analisis, loaded: true };
+
+          // Si es ventas, iniciar análisis principal
+          if (tipoFinalHoja.replace(/^f-/, '') === 'ventas') {
+            S.sheets = sheetData; S.yc = {};
+            await goProAnalisis();
+          } else {
+            renderProSection(tipoFinalHoja.replace(/^f-/, ''));
+            recalcCapitalDeTrabajo();
+          }
+
+          markHubSlotLoaded(tipoFinalHoja, file.name + ':' + sheetName);
+          updateProProgress();
+
+          sheetPill.className = 'hub-multidrop-item ok';
+          sheetPill.innerHTML = '&#x2713; Hoja "' + sheetName.slice(0,12) + '" &rarr; ' + tipoHoja;
+          okCount++;
+        } catch(err) {
+          sheetPill.className = 'hub-multidrop-item err';
+          sheetPill.innerHTML = '&#x2717; Hoja "' + sheetName.slice(0,12) + '" (error)';
+        }
+      }
     }
   }
 
-  // Mostrar CTA al terminar
-  var ok    = resultEl.querySelectorAll('.ok').length;
-  var total = files.length;
-  var cta   = document.createElement('div');
+  // CTA final
+  var cta = document.createElement('div');
   cta.style.cssText = 'width:100%;margin-top:16px;text-align:center';
-  if (ok === total) {
+  if (okCount > 0 && okCount === totalCount) {
     cta.innerHTML = '<div style="font-family:var(--fh);font-size:18px;font-weight:900;color:#5EBD8A;margin-bottom:10px">&#x1F389; &#xA1;Todo listo!</div>'
-      + '<button onclick="showDashboardPreview()" style="background:var(--accent);color:var(--navy);font-family:var(--fb);font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;border:none;cursor:pointer;transition:all .2s">Ver mi dashboard financiero &rarr;</button>';
-  } else {
-    cta.innerHTML = '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+ok+' de '+total+' archivos procesados</div>'
-      + '<button onclick="showDashboardPreview()" style="background:transparent;color:var(--accent);font-family:var(--fb);font-size:13px;font-weight:600;padding:10px 22px;border-radius:8px;border:1px solid var(--border);cursor:pointer">Ver dashboard con los datos disponibles &rarr;</button>';
+      + '<button onclick="showDashboardPreview()" style="background:var(--accent);color:var(--navy);font-family:var(--fb);font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;border:none;cursor:pointer">Ver mi dashboard financiero &rarr;</button>';
+  } else if (okCount > 0) {
+    cta.innerHTML = '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+okCount+' de '+totalCount+' hojas procesadas</div>'
+      + '<button onclick="showDashboardPreview()" style="background:transparent;color:var(--accent);font-family:var(--fb);font-size:13px;font-weight:600;padding:10px 22px;border-radius:8px;border:1px solid var(--border);cursor:pointer">Ver dashboard &rarr;</button>';
   }
-  resultEl.appendChild(cta);
+  if (okCount > 0) resultEl.appendChild(cta);
 }
 
 </script>
