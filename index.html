@@ -2255,13 +2255,19 @@ function goAuth(plan) {
           <div class="hub-multidrop" id="hub-multidrop-pro"
             ondragover="multiDragOver(event,'pro')"
             ondragleave="multiDragLeave('pro')"
-            ondrop="multiDrop(event,'pro')">
+            ondrop="multiDrop(event,'pro')"
+            onclick="document.getElementById('multi-input-pro').click()">
             <div class="hub-multidrop-ico">📂</div>
             <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
-            <div class="hub-multidrop-sub">Detectamos por nombre de archivo o nombre de hoja — también funciona con un Excel de múltiples hojas</div>
+            <div class="hub-multidrop-sub">Detectamos por nombre de archivo o hoja — también funciona con un Excel de múltiples hojas</div>
             <div class="hub-multidrop-tags">
               <span>ventas.xlsx</span><span>compras.xlsx</span><span>todo_en_uno.xlsx</span><span>pagar.xlsx</span>
             </div>
+            <button class="hub-slot-btn" style="margin-top:10px" onclick="event.stopPropagation();document.getElementById('multi-input-pro').click()">
+              <span>📱</span> Elegir archivos
+            </button>
+            <input type="file" id="multi-input-pro" accept=".xlsx,.xls,.csv" multiple style="display:none"
+              onchange="multiDropFromInput(this.files,'pro');this.value=''">
             <div id="hub-multidrop-pro-result" class="hub-multidrop-result"></div>
           </div>
 
@@ -2420,13 +2426,19 @@ function goAuth(plan) {
           <div class="hub-multidrop" id="hub-multidrop-full"
             ondragover="multiDragOver(event,'full')"
             ondragleave="multiDragLeave('full')"
-            ondrop="multiDrop(event,'full')">
+            ondrop="multiDrop(event,'full')"
+            onclick="document.getElementById('multi-input-full').click()">
             <div class="hub-multidrop-ico">📂</div>
             <div class="hub-multidrop-title">Arrastrá todos los archivos juntos</div>
-            <div class="hub-multidrop-sub">Detectamos por nombre de archivo o hoja — podés subir un solo Excel con múltiples hojas y lo procesamos todo</div>
+            <div class="hub-multidrop-sub">Detectamos por nombre de archivo o hoja — también funciona con un Excel de múltiples hojas</div>
             <div class="hub-multidrop-tags">
               <span>ventas.xlsx</span><span>gastos.xlsx</span><span>todo_junto.xlsx</span><span>banco.xlsx</span>
             </div>
+            <button class="hub-slot-btn" style="margin-top:10px" onclick="event.stopPropagation();document.getElementById('multi-input-full').click()">
+              <span>📱</span> Elegir archivos
+            </button>
+            <input type="file" id="multi-input-full" accept=".xlsx,.xls,.csv" multiple style="display:none"
+              onchange="multiDropFromInput(this.files,'full');this.value=''">
             <div id="hub-multidrop-full-result" class="hub-multidrop-result"></div>
           </div>
 
@@ -5428,6 +5440,18 @@ function detectTipo(filename) {
     }
   });
   return found;
+}
+
+// Wrapper para input[type=file] — convierte FileList en el mismo flujo que drag&drop
+async function multiDropFromInput(fileList, plan) {
+  var fakeFiles = Array.from(fileList);
+  if (!fakeFiles.length) return;
+  // Reutilizar multiDrop simulando el evento
+  var fakeEvent = {
+    preventDefault: function(){},
+    dataTransfer: { files: fakeFiles }
+  };
+  await multiDrop(fakeEvent, plan);
 }
 
 function multiDragOver(e, plan) {
