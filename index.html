@@ -1511,7 +1511,7 @@ input[type=file] { display: none; }
   transition: transform .2s; flex-shrink: 0;
 }
 .hub-slot.open .hub-slot-arrow { transform: rotate(90deg); }
-.hub-slot.loaded .hub-slot-arrow { display: none; }
+.hub-slot.loaded .hub-slot-arrow { opacity: .4; }
 
 /* Drop panel inside slot */
 .hub-slot-panel {
@@ -1519,7 +1519,7 @@ input[type=file] { display: none; }
   padding: 0 18px 16px 50px;
 }
 .hub-slot.open .hub-slot-panel { display: block; }
-.hub-slot.loaded .hub-slot-panel { display: none; }
+.hub-slot.loaded:not(.open) .hub-slot-panel { display: none; }
 
 .hub-slot-droparea {
   border: 1.5px dashed rgba(200,169,110,.25);
@@ -3679,11 +3679,15 @@ function hubQuickUpload(tipo) {
 // ══════════════════════════════════════════
 function toggleHubSlot(tipo) {
   var slot = document.getElementById('pfc-' + tipo);
-  if (!slot || slot.classList.contains('loaded')) return;
+  if (!slot) return;
   var isOpen = slot.classList.contains('open');
   // Cerrar todos
   document.querySelectorAll('.hub-slot.open').forEach(function(s){ s.classList.remove('open'); });
-  if (!isOpen) slot.classList.add('open');
+  if (!isOpen) {
+    // Si estaba loaded, permitir reemplazar — mostrar panel pero mantener badge
+    slot.classList.remove('loaded');
+    slot.classList.add('open');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -3738,7 +3742,10 @@ function markHubSlotLoaded(tipo, filename) {
   slot.classList.remove('open');
   slot.classList.add('loaded');
   badge.className = 'hub-slot-badge loaded';
-  badge.textContent = '✓ ' + (filename ? filename.split('.')[0].slice(0,14) : 'Cargado');
+  badge.textContent = '✓ ' + (filename ? filename.split('.')[0].slice(0,16) : 'Cargado');
+  // Show replace hint in panel
+  var panel = slot.querySelector('.hub-slot-droparea p');
+  if (panel) panel.textContent = 'Archivo cargado. Arrastrá otro para reemplazarlo.';
   // Update ring
   var isFullPrefix = tipo.startsWith('f-');
   var allTypes = isFullPrefix
