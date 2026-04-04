@@ -1839,8 +1839,8 @@ function calcMetrics(sheets, yc, cm) {
   }
 
   var valCol  = c.ventaTotal || findTotalCol(cols, yc[vk]);
-  var costCol = c.costoTotal || findCol(cols,[/^costo.total/i]);
-  var cuCol   = c.costoUnit  || findCol(cols,[/^costo.*unit/i]);
+  var costCol = c.costoTotal || null; // Solo disponible en Plan Pro
+  var cuCol = c.costoUnit || null; // Solo disponible en Plan Pro
   var fechCol = c.fecha      || findCol(cols,[/fecha|date/i]);
   var prodCol = c.producto   || findCol(cols,[/^producto|^articulo/i]);
   var cliCol  = c.cliente    || findCol(cols,[/cliente|razon/i]);
@@ -1848,7 +1848,7 @@ function calcMetrics(sheets, yc, cm) {
   var cantCol = c.cantidad   || findCol(cols,[/cantidad|qty/i]);
   var vendCol = c.vendedor   || findCol(cols,[/vendedor/i]);
 
-  console.log('[CFO.AI] Columnas → venta:'+valCol+' | costo:'+costCol+' | cli:'+cliCol+' | fecha:'+fechCol);
+  console.log('[CFO.AI] Columnas → venta:'+valCol+' | cli:'+cliCol+' | fecha:'+fechCol+' | meses:'+Object.keys(byMes||{}).length);
 
   var tv = sumCol(rows, valCol);
   var tc = sumCol(rows, costCol) || (cuCol&&cantCol ? rows.reduce(function(a,r){
@@ -1995,7 +1995,7 @@ function renderDash(d, m) {
   if (Object.keys(m.byMes).length >= 2) renderTimeline(m);
   if (d.insights&&d.insights.length) renderInsights(d.insights);
   if (m.dims.length) { renderDrill(m); document.getElementById('card-drill').style.display='block'; }
-  document.getElementById('upgrade-banner').style.display = m.tc ? 'none' : 'flex';
+  // pro-cards siempre visible en plan gratis
   setTimeout(function(){var b=document.getElementById('chat-bdg');if(b&&!S.chatOpen)b.classList.add('on');},3000);
   S.resDone = false;
   // Mostrar cards de Plan Pro bloqueadas
