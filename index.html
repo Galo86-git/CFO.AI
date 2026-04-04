@@ -979,6 +979,93 @@ input[type=file] { display: none; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+
+/* KPI BLOQUEADO */
+.kpi.locked {
+  position: relative;
+  background: #F8F9FC;
+  border: 1px dashed #C8D4E8;
+}
+.kpi.locked .kpi-v {
+  filter: blur(6px);
+  user-select: none;
+  color: #8090A8;
+}
+.kpi-lock {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; flex-direction: column;
+  align-items: center; gap: 5px;
+  z-index: 2;
+}
+.kpi-lock-ico { font-size: 18px; }
+.kpi-lock-tag {
+  font-family: var(--fm); font-size: 9px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 3px;
+  background: var(--accent); color: var(--navy);
+  white-space: nowrap;
+}
+.kpi.locked::after { background: transparent; }
+
+/* CARD BLOQUEADA */
+.card-pro {
+  background: #F8F9FC;
+  border: 1px dashed #C8D4E8;
+  border-radius: 6px; padding: 22px 20px;
+  margin-bottom: 12px;
+  position: relative; overflow: hidden;
+}
+.card-pro-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 14px;
+}
+.card-pro-title {
+  font-family: var(--fh); font-size: 15px; font-weight: 700;
+  color: #8090A8; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: 8px;
+}
+.pro-badge {
+  font-family: var(--fm); font-size: 9px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 3px;
+  background: var(--accent); color: var(--navy);
+}
+.card-pro-preview {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+  filter: blur(4px); user-select: none; pointer-events: none;
+  margin-bottom: 14px;
+}
+.card-pro-preview-item {
+  background: #fff; border-radius: 5px; padding: 10px 12px;
+  border: 1px solid #DDE3EC;
+}
+.card-pro-preview-l {
+  font-family: var(--fm); font-size: 9px; color: #8090A8;
+  margin-bottom: 4px; text-transform: uppercase;
+}
+.card-pro-preview-v {
+  font-size: 16px; font-weight: 700; color: var(--navy);
+}
+.card-pro-cta {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; background: var(--navy);
+  border-radius: 5px; flex-wrap: wrap; gap: 10px;
+}
+.card-pro-cta p {
+  font-size: 12px; color: #94A3B8; margin: 0;
+}
+.card-pro-cta strong { color: var(--white); font-weight: 600; }
+.btn-pro-cta {
+  background: var(--accent); color: var(--navy);
+  padding: 8px 18px; border-radius: 4px;
+  font-family: var(--fb); font-size: 12px; font-weight: 700;
+  border: none; cursor: pointer; white-space: nowrap;
+  transition: background .18s;
+}
+.btn-pro-cta:hover { background: var(--accent2); }
+
 /* RESPONSIVE */
 @media(max-width: 900px){
   nav { padding: 0 20px; }
@@ -1317,13 +1404,73 @@ input[type=file] { display: none; }
           <div class="card-title">🤖 Análisis de IA</div>
           <div id="ins-list"></div>
         </div>
-        <!-- Upgrade banner -->
-        <div class="upgrade-banner" id="upgrade-banner" style="display:none">
-          <div>
-            <h4>¿Querés ver el margen real por producto?</h4>
-            <p>Con el Plan Pro subís Compras y Stock y ves exactamente dónde ganás y dónde perdés.</p>
+        <!-- Cards Pro bloqueadas -->
+        <div id="pro-cards">
+
+          <!-- Margen por producto -->
+          <div class="card-pro">
+            <div class="card-pro-header">
+              <div class="card-pro-title">📊 Margen real por producto <span class="pro-badge">🔒 Plan Pro</span></div>
+            </div>
+            <div class="card-pro-preview">
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto A</div><div class="card-pro-preview-v">44.2%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto B</div><div class="card-pro-preview-v">31.8%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto C</div><div class="card-pro-preview-v">18.5%</div></div>
+            </div>
+            <div class="card-pro-cta">
+              <p><strong>Detectá qué productos te dan plata</strong> y cuáles te hacen perder margen por inflación.</p>
+              <button class="btn-pro-cta" onclick="goLanding()">Ver Plan Pro →</button>
+            </div>
           </div>
-          <button class="btn-upgrade-lg" onclick="goLanding()">Ver Plan Pro →</button>
+
+          <!-- Capital de trabajo -->
+          <div class="card-pro">
+            <div class="card-pro-header">
+              <div class="card-pro-title">💰 Capital de trabajo e inventario <span class="pro-badge">🔒 Plan Pro</span></div>
+            </div>
+            <div class="card-pro-preview">
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Stock inmovilizado</div><div class="card-pro-preview-v">$2.8M</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Rotación real</div><div class="card-pro-preview-v">3.2x</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Días de stock</div><div class="card-pro-preview-v">114 días</div></div>
+            </div>
+            <div class="card-pro-cta">
+              <p><strong>Descubrí cuánta plata tenés trabada</strong> en mercadería sin rotar.</p>
+              <button class="btn-pro-cta" onclick="goLanding()">Ver Plan Pro →</button>
+            </div>
+          </div>
+
+          <!-- Alertas de pricing -->
+          <div class="card-pro">
+            <div class="card-pro-header">
+              <div class="card-pro-title">⚠️ Alertas de pricing por inflación <span class="pro-badge">🔒 Plan Pro</span></div>
+            </div>
+            <div class="card-pro-preview">
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Producto sin ajuste</div><div class="card-pro-preview-v">-8.3%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Margen perdido</div><div class="card-pro-preview-v">$180K</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Productos afectados</div><div class="card-pro-preview-v">4</div></div>
+            </div>
+            <div class="card-pro-cta">
+              <p><strong>Detectá qué productos no ajustaron precio</strong> con la inflación y cuánto te costó.</p>
+              <button class="btn-pro-cta" onclick="goLanding()">Ver Plan Pro →</button>
+            </div>
+          </div>
+
+          <!-- Clientes por rentabilidad -->
+          <div class="card-pro">
+            <div class="card-pro-header">
+              <div class="card-pro-title">👥 Clientes por rentabilidad <span class="pro-badge">🔒 Plan Pro</span></div>
+            </div>
+            <div class="card-pro-preview">
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Cliente más rentable</div><div class="card-pro-preview-v">42.1%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Cliente menos rentable</div><div class="card-pro-preview-v">12.3%</div></div>
+              <div class="card-pro-preview-item"><div class="card-pro-preview-l">Clientes deficitarios</div><div class="card-pro-preview-v">2</div></div>
+            </div>
+            <div class="card-pro-cta">
+              <p><strong>Sabé cuáles clientes te convienen</strong> y cuáles te consumen margen sin darte ganancia.</p>
+              <button class="btn-pro-cta" onclick="goLanding()">Ver Plan Pro →</button>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -1846,23 +1993,44 @@ function renderDash(d, m) {
   document.getElementById('upgrade-banner').style.display = m.tc ? 'none' : 'flex';
   setTimeout(function(){var b=document.getElementById('chat-bdg');if(b&&!S.chatOpen)b.classList.add('on');},3000);
   S.resDone = false;
+  // Mostrar cards de Plan Pro bloqueadas
+  var proCards = document.getElementById('pro-cards');
+  if (proCards) proCards.style.display = 'block';
 }
 
 function renderKPIs(kpis, m) {
-  if (!kpis.length) kpis = [
-    {l:'Ventas Totales', v:fmt(m.tv), s:m.nt+' transacciones', t:'up'},
-    {l:'Ticket Promedio', v:fmt(m.tk), s:'por operación', t:'neu'},
-    {l:'Transacciones', v:String(m.nt), s:m.pReal||'período completo', t:'neu'},
-    {l:'Meses de datos', v:String(Object.keys(m.byMes).length), s:'períodos analizados', t:'neu'}
-  ];
-  document.getElementById('kpi-row').innerHTML = kpis.map(function(k){
-    var sub = k.s||'';
-    if (m.pComp&&m.pComp.delta&&/venta|ingreso|factur/i.test(k.l)) {
-      var d=parseFloat(m.pComp.delta),cls=d>=0?'up':'dn',arr=d>=0?'▲':'▼';
-      sub += ' <span class="'+cls+'">'+arr+' '+Math.abs(d).toFixed(1)+'% vs '+m.pComp.prev+'</span>';
-    }
-    return '<div class="kpi"><div class="kpi-l">'+k.l+'</div><div class="kpi-v">'+k.v+'</div><div class="kpi-s '+(k.t||'')+'">'+sub+'</div></div>';
-  }).join('');
+  // KPI 1: Ventas Totales
+  var sub1 = m.nt+' transacciones';
+  if (m.pComp&&m.pComp.delta) {
+    var d=parseFloat(m.pComp.delta),cls=d>=0?'up':'dn',arr=d>=0?'▲':'▼';
+    sub1 += ' <span class="'+cls+'">'+arr+' '+Math.abs(d).toFixed(1)+'% vs '+m.pComp.prev+'</span>';
+  }
+  // KPI 3: Ticket
+  var ticketVal = kpis.length>=3 ? kpis[2].v : fmt(m.tk);
+  var html =
+    // Ventas — libre
+    '<div class="kpi"><div class="kpi-l">Ventas Totales</div>'
+    +'<div class="kpi-v">'+(kpis.length?kpis[0].v:fmt(m.tv))+'</div>'
+    +'<div class="kpi-s">'+(kpis.length?kpis[0].s:sub1)+'</div></div>'
+    // Margen — bloqueado
+    +'<div class="kpi locked">'
+    +'<div class="kpi-l">Margen Bruto</div>'
+    +'<div class="kpi-v">34.4%</div>'
+    +'<div class="kpi-s">sobre ventas</div>'
+    +'<div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div>'
+    +'</div>'
+    // Ticket — libre
+    +'<div class="kpi"><div class="kpi-l">Ticket Promedio</div>'
+    +'<div class="kpi-v">'+ticketVal+'</div>'
+    +'<div class="kpi-s">por operación</div></div>'
+    // Rotación stock — bloqueado
+    +'<div class="kpi locked">'
+    +'<div class="kpi-l">Rotación de Stock</div>'
+    +'<div class="kpi-v">3.2x</div>'
+    +'<div class="kpi-s">anual estimada</div>'
+    +'<div class="kpi-lock"><div class="kpi-lock-ico">🔒</div><div class="kpi-lock-tag">Plan Pro</div></div>'
+    +'</div>';
+  document.getElementById('kpi-row').innerHTML = html;
 }
 
 function renderAlerts(alerts) {
