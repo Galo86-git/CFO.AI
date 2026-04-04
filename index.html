@@ -373,7 +373,7 @@ function readExcel(file){
     var reader=new FileReader();
     reader.onload=function(e){
       try{
-        var wb=XLSX.read(e.target.result,{type:'binary',cellDates:true,cellNF:false,cellText:false,cellStyles:true});
+        var wb=XLSX.read(e.target.result,{type:'binary',cellDates:true,cellNF:false,cellText:false,cellStyles:true,cellFormula:false});
         var sheets={},yc={};
         wb.SheetNames.forEach(function(name){
           var ws=wb.Sheets[name];
@@ -419,7 +419,13 @@ function findTotalCol(cols,yc){
 function findCol(cols,pats){return cols.find(function(c){return pats.some(function(p){return p.test(c);});});}
 function sumCol(rows,col){
   if(!col)return 0;
-  var t=rows.reduce(function(a,r){var v=parseFloat(String(r[col]||'').replace(/[^0-9.-]/g,''));return a+(isNaN(v)?0:v);},0);
+  var t=rows.reduce(function(a,r){
+    var raw=r[col];
+    // Ignorar fórmulas sin calcular (string que empieza con =)
+    if(typeof raw==='string'&&raw.charAt(0)==='=')return a;
+    var v=parseFloat(String(raw||'').replace(/[^0-9.-]/g,''));
+    return a+(isNaN(v)?0:v);
+  },0);
   if(t===0){
     var c2=Object.keys(rows[0]||{});
     var sub=c2.find(function(c){return /subtotal/i.test(c);});
@@ -450,17 +456,20 @@ function extractMes(fecha){
 }
 function fmt(v){if(v>=1e9)return '$'+(v/1e9).toFixed(1)+'B';if(v>=1e6)return '$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return '$'+(v/1e3).toFixed(0)+'K';return '$'+v.toFixed(0);}
 
-function calcMetrics(sheets,yellowCols){
+function calcMetrics(sheets,yellowCols,colMap){
   var vk=Object.keys(sheets).find(function(k){return /vent|sale|transacc/i.test(k);})||Object.keys(sheets)[0];
   var rows=sheets[vk]||[];
   var cols=rows.length?Object.keys(rows[0]):[];
   var yc=(yellowCols||{})[vk];
-  var valCol=findTotalCol(cols,yc);
-  var catCol=findCol(cols,[/categ|rubro|familia/i]);
-  var cliCol=findCol(cols,[/cliente|razon|raz.n/i]);
-  var fechCol=findCol(cols,[/fecha|date/i]);
-  var vendCol=findCol(cols,[/vendedor/i]);
-  var prodCol=findCol(cols,[/^producto|^articulo/i]);
+  // Usar mapa de Claude si está disponible
+  var cm = colMap && colMap[vk] ? colMap[vk] : {};
+  var valCol = cm.ventaTotal  || findTotalCol(cols,yc);
+  var catCol = cm.categoria   || findCol(cols,[/categ|rubro|familia/i]);
+  var cliCol = cm.cliente     || findCol(cols,[/cliente|razon|raz.n/i]);
+  var fechCol= cm.fecha       || findCol(cols,[/fecha|date/i]);
+  var vendCol= cm.vendedor    || findCol(cols,[/vendedor/i]);
+  var prodCol= cm.producto    || findCol(cols,[/^producto|^articulo/i]);
+  console.log('[CFO.AI] Columnas usadas → venta:', valCol, '| costo:', cm.costoTotal||'auto', '| fecha:', fechCol);
   var tv=sumCol(rows,valCol),nt=rows.length,tk=nt>0?tv/nt:0;
   var byMes={},byMesC={};
   if(fechCol&&valCol)rows.forEach(function(r){var mes=extractMes(r[fechCol]);if(!mes)return;var v=parseFloat(String(r[valCol]||'').replace(/[^0-9.-]/g,''))||0;byMes[mes]=(byMes[mes]||0)+v;byMesC[mes]=(byMesC[mes]||0)+1;});
@@ -566,6 +575,46 @@ function callClaude(prompt,ctx,maxTok){
 
 function stepDone(idx){return new Promise(function(res){setTimeout(function(){var el=document.getElementById('ps'+idx);if(el)el.className='done';var nx=document.getElementById('ps'+(idx+1));if(nx)nx.className='active';res();},600);});}
 
+
+// ══════════════════════════════════════════
+// IDENTIFICAR COLUMNAS CON CLAUDE
+// ══════════════════════════════════════════
+async function identificarColumnas(sheets, yellowCols) {
+  try {
+    var muestras = {};
+    Object.keys(sheets).forEach(function(name) {
+      var rows = sheets[name];
+      if (!rows || !rows.length) return;
+      muestras[name] = {
+        columnas: Object.keys(rows[0]),
+        muestra: rows.slice(0,3)
+      };
+    });
+
+    var prompt = 'Analizá este Excel y devolvé SOLO un JSON identificando las columnas clave por hoja. '
+      + 'Para cada hoja devolvé: ventaTotal (columna de venta/ingreso total), '
+      + 'costoTotal (columna de costo total), costoUnit (costo unitario), '
+      + 'fecha (columna de fecha), producto (nombre de producto), '
+      + 'cliente (nombre de cliente), cantidad (columna cantidad), '
+      + 'precioVenta (precio unitario de venta), vendedor (vendedor si existe). '
+      + 'Si una columna no existe ponés null. '
+      + 'Formato: {"NombreHoja": {"ventaTotal":"NombreCol","costoTotal":"NombreCol",...}, ...}
+
+'
+      + 'Datos:
+' + JSON.stringify(muestras).slice(0, 6000);
+
+    var raw = await callClaude(prompt, [], 800);
+    var clean = raw.replace(/```json|```/g, '').trim();
+    var result = JSON.parse(clean);
+    console.log('[CFO.AI] Columnas identificadas por Claude:', result);
+    return result;
+  } catch(e) {
+    console.log('[CFO.AI] Fallback a detección automática:', e.message);
+    return null;
+  }
+}
+
 async function startUpload(file){
   if(!file)return;
   S.currentFile=file.name;showScreen('processing');
@@ -575,7 +624,10 @@ async function startUpload(file){
     var r1=await readExcel(file);S.sheets=r1.sheets;S.yellowCols=r1.yellowCols;
     if(S.compareFile){var r2=await readExcel(S.compareFile);S.compareSheets=r2.sheets;}
     await stepDone(1);
-    var metrics=calcMetrics(S.sheets,S.yellowCols);
+    // Identificar columnas con Claude
+    var colMap = await identificarColumnas(S.sheets, S.yellowCols);
+    S.colMap = colMap;
+    var metrics=calcMetrics(S.sheets,S.yellowCols,colMap);
     var cmpM=S.compareSheets?calcMetrics(S.compareSheets,{}):null;
     var summary=buildSummary(S.sheets,file.name,S.yellowCols,metrics);
     await stepDone(2);
@@ -736,15 +788,15 @@ function calcMargenPorGrupo(metrics, dimKey) {
 
     var costoFila = 0;
 
-    // MÉTODO 0: Costo Total ($) directo en la fila — máxima precisión
-    var ctCol = findCol(cols, [/^costo.total/i]);
+    // MÉTODO 0: Costo Total ($) — Claude identificó la columna exacta
+    var ctCol = costoTotalDirecto || findCol(cols, [/^costo.total/i]);
     if (ctCol) {
       var ctVal = parseFloat(String(r[ctCol]||'').replace(/[^0-9.-]/g,''))||0;
       if (ctVal > 0) costoFila = ctVal;
     }
-    // MÉTODO 0b: Costo Unit. ($) * Cantidad
+    // MÉTODO 0b: Costo Unit. * Cantidad
     if (costoFila === 0) {
-      var cuCol = findCol(cols, [/^costo.*unit/i, /costo unit/i]);
+      var cuCol = costoUnitDirecto || findCol(cols, [/^costo.*unit/i, /costo unit/i]);
       var caVal = cantCol ? parseFloat(String(r[cantCol]||'').replace(/[^0-9.-]/g,''))||1 : 1;
       if (cuCol) {
         var cuVal = parseFloat(String(r[cuCol]||'').replace(/[^0-9.-]/g,''))||0;
