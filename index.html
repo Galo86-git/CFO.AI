@@ -2306,12 +2306,19 @@ function isFull() { return S.plan === 'full'; }
 var S = {
   user: null, // { name, email, avatar }
   plan: 'free',
+  pendingPlan: 'free',
   sheets: null, yc: {}, colMap: null,
   metrics: null, dash: null,
   chatHistory: [], chatOpen: false, chatInit: false,
   drillDim: null, drillLabels: [],
   resDone: false, resTxt: '',
-  lang: 'es'
+  lang: 'es',
+  proFiles: {},   // archivos Plan Pro: ventas, compras, stock, cobrar, pagar
+  pro: {          // análisis procesados Plan Pro
+    ventas:  { loaded: false }, compras: { loaded: false },
+    stock:   { loaded: false }, cobrar:  { loaded: false },
+    pagar:   { loaded: false }
+  }
 };
 var COLORS = ['#1B4F8A','#C8A96E','#2E7D52','#B7791F','#7B5EA7','#C0392B','#1A7A8A','#5D4E37'];
 var MESES  = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -3186,66 +3193,10 @@ function toggleLang(){
 // PLAN PRO: INICIALIZACIÓN UI
 // ══════════════════════════════════════════
 function initPlanUI() {
-  if (!isPro()) {
-    document.getElementById('pro-panel').classList.remove('on');
-  } else {
-    document.getElementById('pro-panel').classList.add('on');
-  }
+  // pro-panel removed — plan UI handled by initUploadZone()
 }
 
-// ══════════════════════════════════════════
-// PLAN PRO: TRIGGER UPLOAD
-// ══════════════════════════════════════════
-function triggerProUpload(tipo) {
-  var item = document.getElementById('pf-'+tipo);
-  if (item && item.classList.contains('loaded')) return;
-  document.getElementById('fi-'+tipo).click();
-}
-
-// ══════════════════════════════════════════
-// PLAN PRO: CARGAR ARCHIVO ADICIONAL
-// ══════════════════════════════════════════
-async function loadProFile(tipo, file) {
-  if (!file) return;
-
-  // UI: loading
-  var item = document.getElementById('pf-'+tipo);
-  var st   = document.getElementById('pf-'+tipo+'-st');
-  item.classList.add('loading');
-  st.className = 'pro-file-status loading';
-  st.textContent = '⏳ Analizando...';
-
-  try {
-    var result = await readExcel(file);
-    var sheets = result.sheets;
-
-    // Mandar a Claude para identificar columnas y calcular métricas clave
-    var muestra = prepararMuestra(sheets, file.name);
-    var prompt = proPromptPorTipo(tipo, muestra);
-    var raw = await claude(prompt, [], 1200);
-    var clean = raw.replace(/```json|```/g,'').trim();
-    var analisis;
-    try { analisis = JSON.parse(clean); }
-    catch(e) { var mm=clean.match(/\{[\s\S]*\}/); analisis=mm?JSON.parse(mm[0]):{colMap:{},metricas:{}}; }
-
-    // Guardar en estado
-    S.pro[tipo] = { sheets: sheets, analisis: analisis, loaded: true };
-
-    // UI: ok
-    item.classList.remove('loading'); item.classList.add('loaded');
-    st.className = 'pro-file-status ok';
-    st.textContent = '✓ ' + file.name.split('.')[0];
-
-    // Renderizar la sección que se desbloqueó
-    renderProSection(tipo, analisis);
-
-  } catch(e) {
-    item.classList.remove('loading');
-    st.className = 'pro-file-status wait';
-    st.textContent = '⚠ Error — reintentar';
-    console.warn('[CFO.AI Pro] Error cargando '+tipo+':', e.message);
-  }
-}
+// triggerProUpload y loadProFile reemplazados por goProFile
 
 // ══════════════════════════════════════════
 // PLAN PRO: PROMPTS POR TIPO
@@ -3460,9 +3411,9 @@ function updateKPIRotacion(rotacion, diasStock) {
 
 // ── CAPITAL DE TRABAJO ───────────────────
 function renderCapitalTrabajo() {
-  var cobrar = S.pro.cobrar.loaded ? (S.pro.cobrar.analisis.metricas.totalACobrar||0) : null;
-  var pagar  = S.pro.pagar.loaded  ? (S.pro.pagar.analisis.metricas.totalAPagar||0) : null;
-  var stock  = S.pro.stock.loaded  ? (S.pro.stock.analisis.metricas.valorTotalStock||0) : 0;
+  var cobrar = (S.pro.cobrar&&S.pro.cobrar.loaded&&S.pro.cobrar.analisis&&S.pro.cobrar.analisis.metricas) ? (S.pro.cobrar.analisis.metricas.totalACobrar||0) : null;
+  var pagar  = (S.pro.pagar&&S.pro.pagar.loaded&&S.pro.pagar.analisis&&S.pro.pagar.analisis.metricas)   ? (S.pro.pagar.analisis.metricas.totalAPagar||0) : null;
+  var stock  = (S.pro.stock&&S.pro.stock.loaded&&S.pro.stock.analisis&&S.pro.stock.analisis.metricas)   ? (S.pro.stock.analisis.metricas.valorTotalStock||0) : 0;
 
   // Capital de trabajo = Cobrar + Stock - Pagar
   var capital = null;
@@ -3565,8 +3516,12 @@ function initUploadZone() {
 // Procesar cada archivo Pro
 async function goProFile(tipo, file) {
   if (!file) return;
+  // Para plan Full los tipos vienen como 'f-ventas', 'f-compras', etc.
+  // Los normalizamos al tipo base para reutilizar el mismo flujo
+  var tipoBase = tipo.replace(/^f-/, '');
   var card   = document.getElementById('pfc-'+tipo);
   var status = document.getElementById('pfs-'+tipo);
+  if (!status) { console.warn('No status element for', tipo); return; }
   status.className = 'pro-file-status pending';
   status.textContent = 'Procesando...';
 
@@ -3579,25 +3534,25 @@ async function goProFile(tipo, file) {
 
     // Analizar con IA
     var muestra = prepararMuestra(sheets, file.name);
-    var analisis = await claudeAnalizaProFile(muestra, file.name, tipo);
+    var analisis = await claudeAnalizaProFile(muestra, file.name, tipoBase);
 
-    // Guardar
-    S.proFiles[tipo] = { sheets: sheets, analisis: analisis, filename: file.name };
+    // Guardar en ambos objetos para compatibilidad total
+    S.proFiles[tipoBase] = { sheets: sheets, analisis: analisis, filename: file.name };
+    S.pro[tipoBase] = { sheets: sheets, analisis: analisis, loaded: true };
 
     // Actualizar UI del card
-    card.classList.add('loaded');
-    card.onclick = null; // deshabilitar click
+    if (card) { card.classList.add('loaded'); card.onclick = null; }
     status.className = 'pro-file-status loaded';
     status.textContent = '✓ Cargado';
 
     // Si es ventas, iniciar dashboard principal también
-    if (tipo === 'ventas') {
+    if (tipoBase === 'ventas') {
       S.sheets = sheets;
       S.yc = result.yc;
       await goProAnalisis();
     } else {
       // Actualizar secciones Pro
-      renderProSection(tipo);
+      renderProSection(tipoBase);
       recalcCapitalDeTrabajo();
     }
 
@@ -3679,7 +3634,7 @@ function renderProSection(tipo) {
 function renderMargenPro() {
   var compras = S.proFiles.compras;
   var ventas  = S.metrics;
-  if (!compras || !ventas) return;
+  if (!compras || !ventas || !compras.sheets) return;
   document.getElementById('card-margen-pro').style.display = 'block';
   document.getElementById('card-pricing-alerts').style.display = 'block';
 
@@ -3920,9 +3875,9 @@ function renderPagarPro() {
 
 // CAPITAL DE TRABAJO
 function recalcCapitalDeTrabajo() {
-  var cobrar = S.proFiles.cobrar;
-  var pagar  = S.proFiles.pagar;
-  var stock  = S.proFiles.stock;
+  var cobrar = S.proFiles.cobrar || null;
+  var pagar  = S.proFiles.pagar  || null;
+  var stock  = S.proFiles.stock  || null;
   if (!cobrar && !pagar && !stock) return;
   document.getElementById('card-capital').style.display = 'block';
 
@@ -3989,6 +3944,8 @@ function doReset(){
   S.sheets=null;S.yc={};S.colMap=null;S.metrics=null;S.dash=null;
   S.chatHistory=[];S.chatOpen=false;S.chatInit=false;S.drillDim=null;S.drillLabels=[];
   S.resDone=false;S.resTxt='';
+  S.proFiles={};
+  S.pro={ventas:{loaded:false},compras:{loaded:false},stock:{loaded:false},cobrar:{loaded:false},pagar:{loaded:false}};
   document.getElementById('fi') && (document.getElementById('fi').value='');
   ['ventas','compras','stock','cobrar','pagar'].forEach(function(t){
     var fi=document.getElementById('fi-'+t); if(fi) fi.value='';
