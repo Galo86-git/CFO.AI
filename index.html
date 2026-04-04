@@ -623,7 +623,20 @@ function fmt(v) {
 function calcMetrics(sheets, yc, cm) {
   var vk = Object.keys(sheets).find(function(k){ return /vent|sale|transacc/i.test(k); }) || Object.keys(sheets)[0];
   var rows = sheets[vk]||[], cols = rows.length ? Object.keys(rows[0]) : [];
-  var c = (cm&&cm[vk]) ? cm[vk] : {};
+  // Acceder al colMap de Claude — probar con nombre exacto, luego primer hoja disponible
+  var c = {};
+  if (cm) {
+    if (cm[vk]) {
+      c = cm[vk];
+    } else {
+      // Claude puede haber usado un nombre ligeramente diferente
+      var firstKey = Object.keys(cm)[0];
+      if (firstKey && cm[firstKey] && typeof cm[firstKey] === 'object' && cm[firstKey].ventaTotal !== undefined) {
+        c = cm[firstKey];
+      }
+    }
+  }
+  console.log('[CFO.AI] colMap usado:', JSON.stringify(c));
 
   var valCol  = c.ventaTotal  || findTotalCol(cols, yc[vk]);
   var costCol  = c.costoTotal  || findCol(cols,[/^costo.total/i]);
