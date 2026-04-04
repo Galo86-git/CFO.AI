@@ -558,15 +558,24 @@ async function identificarColumnas(sheets, yc) {
 // ══════════════════════════════
 function findTotalCol(cols, yc) {
   if (yc && cols.indexOf(yc) !== -1) return yc;
-  var v = cols.find(function(c){ return /^venta.total/i.test(c.trim()); });
-  if (v) return v;
-  var skip = ['costo','margen','iva','tax','descuento','precio'];
+  // Prioridad absoluta: columna que empiece con "Venta" (Venta Total, Ventas, etc.)
+  var v1 = cols.find(function(c){ return /^venta/i.test(c.trim()); });
+  if (v1) return v1;
+  // Segunda: columna "Ingreso" o "Factura"
+  var v2 = cols.find(function(c){ return /^ingreso|^factura/i.test(c.trim()); });
+  if (v2) return v2;
+  // Tercera: "Total" con $ excluyendo Costo
+  var v3 = cols.find(function(c){ return /^total/i.test(c.trim()) && (c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1) && !/costo|cost/i.test(c); });
+  if (v3) return v3;
+  // Cuarta: última columna con $ excluyendo costo, margen, iva, precio
+  var skip = ['costo','margen','iva','tax','descuento','precio','price','subtotal'];
   var money = cols.filter(function(c){
     var cl = c.toLowerCase();
     return (c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1) && !skip.some(function(s){ return cl.startsWith(s); });
   });
   if (money.length) return money[money.length-1];
-  var all = cols.filter(function(c){ return c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1; });
+  // Fallback: cualquier columna con $ que no empiece con costo
+  var all = cols.filter(function(c){ return (c.indexOf('($)')!==-1||c.indexOf('(€)')!==-1) && !/^costo/i.test(c.trim()); });
   if (all.length) return all[all.length-1];
   return cols.find(function(c){ return /^total/i.test(c.trim()); }) || null;
 }
@@ -852,6 +861,91 @@ function step(i) {
   });
 }
 
+
+// ══════════════════════════════
+// PREPARAR MUESTRA PARA CLAUDE
+// ══════════════════════════════
+function prepararMuestra(sheets, filename) {
+  var out = 'Archivo: ' + filename + '\n\n';
+  Object.keys(sheets).forEach(function(name) {
+    var rows = sheets[name];
+    if (!rows||!rows.length) return;
+    var cols = Object.keys(rows[0]);
+    out += '=== HOJA: ' + name + ' ===\n';
+    out += 'Columnas: ' + cols.join(', ') + '\n';
+    out += 'Total filas: ' + rows.length + '\n';
+    // Muestra de 3 filas
+    out += 'Primeras 3 filas:\n';
+    rows.slice(0,3).forEach(function(r,i) {
+      out += 'Fila '+(i+1)+': ';
+      var vals = cols.slice(0,10).map(function(c){ return c+'='+JSON.stringify(r[c]); });
+      out += vals.join(', ') + '\n';
+    });
+    // Últimas 2 filas (para ver si hay totales)
+    if (rows.length > 3) {
+      out += 'Últimas 2 filas:\n';
+      rows.slice(-2).forEach(function(r,i) {
+        var vals = cols.slice(0,10).map(function(c){ return c+'='+JSON.stringify(r[c]); });
+        out += vals.join(', ') + '\n';
+      });
+    }
+    out += '\n';
+    if (out.length > 7000) return;
+  });
+  return out.slice(0, 8000);
+}
+
+// ══════════════════════════════
+// CLAUDE ANALIZA EL EXCEL
+// ══════════════════════════════
+async function claudeAnalizaExcel(muestra, filename) {
+  // Prompt 1: Claude identifica columnas Y calcula KPIs reales
+  var p1 = 'Sos un analista financiero experto en PyMEs argentinas. '
+    + 'Analizá este Excel, identificá las columnas correctas y calculá los KPIs reales sumando los datos. '
+    + 'REGLAS IMPORTANTES:\n'
+    + '- La columna de VENTAS es la que contiene ingresos/facturación (no costos, no márgenes, no precios unitarios)\n'
+    + '- Sumá TODAS las filas de datos para calcular totales (ignorá filas de encabezado o totales al pie)\n'
+    + '- Si hay columna de Costo Total, calculá margen = (Ventas - Costos) / Ventas * 100\n'
+    + '- El ticket promedio = Ventas Totales / cantidad de transacciones\n'
+    + '- Para el período, mirá la columna de fecha y detectá el rango\n'
+    + '\nDevolvé SOLO este JSON (sin markdown, sin texto extra):\n'
+    + '{"titulo":"nombre negocio","tipo":"tipo 2-3 palabras","periodo":"Ene 2025 – Mar 2026",'
+    + '"colMap":{"NombreHoja":{"ventaTotal":"col exacta o null","costoTotal":"col exacta o null",'
+    + '"costoUnit":"col exacta o null","fecha":"col exacta o null","producto":"col exacta o null",'
+    + '"cliente":"col exacta o null","cantidad":"col exacta o null","categoria":"col exacta o null",'
+    + '"vendedor":"col exacta o null"}},'
+    + '"kpis":['
+    + '{"l":"Ventas Totales","v":"$XX.XM","s":"NNN transacciones · período","t":"up"},'
+    + '{"l":"Margen Bruto","v":"XX.X%","s":"sobre precio de venta","t":"up|down|neu"},'
+    + '{"l":"Ticket Promedio","v":"$XXXK","s":"por operación","t":"neu"},'
+    + '{"l":"KPI más relevante para este negocio","v":"valor","s":"contexto","t":"up|down|neu"}'
+    + '],'
+    + '"insights":['
+    + '{"ico":"🟢","txt":"hallazgo positivo concreto con número real del Excel"},'
+    + '{"ico":"🔴","txt":"problema o alerta con número real del Excel"},'
+    + '{"ico":"🔵","txt":"dato informativo relevante con número real"},'
+    + '{"ico":"💡","txt":"recomendación accionable y específica para este negocio"}'
+    + ']}\n\n'
+    + 'Datos del Excel:\n' + muestra;
+
+  try {
+    var raw = await claude(p1, [], 2000);
+    var clean = raw.replace(/```json|```/g,'').trim();
+    var result;
+    try { result = JSON.parse(clean); }
+    catch(e) { var mm = clean.match(/\{[\s\S]*\}/); result = mm ? JSON.parse(mm[0]) : null; }
+    if (!result) throw new Error('JSON inválido');
+
+    console.log('[CFO.AI] ✓ KPIs de Claude:', result.kpis && result.kpis.map(function(k){return k.l+': '+k.v;}).join(' | '));
+    return { dash: result, colMap: result.colMap || null };
+
+  } catch(e) {
+    console.warn('[CFO.AI] Fallback a detección automática:', e.message);
+    return { dash: {titulo:filename, tipo:'', periodo:'', kpis:[], insights:[]}, colMap: null };
+  }
+}
+
+
 // ══════════════════════════════
 // MAIN FLOW
 // ══════════════════════════════
@@ -862,49 +956,31 @@ async function go(file) {
   document.getElementById('proc-s').textContent = file.name;
 
   try {
+    // PASO 0: Leer Excel
     await step(0);
     var result = await readExcel(file);
     S.sheets = result.sheets; S.yc = result.yc;
 
+    // PASO 1: Claude mira los datos crudos y define los 4 KPIs del negocio
     await step(1);
-    S.colMap = await identificarColumnas(S.sheets, S.yc);
+    var muestra = prepararMuestra(S.sheets, file.name);
+    var analisis = await claudeAnalizaExcel(muestra, file.name);
+    // colMap tiene los nombres exactos de columnas identificados por Claude
+    S.colMap = analisis.colMap;
 
+    // PASO 2: Con el colMap de Claude, calculamos métricas locales para
+    // timeline, drill-down y alertas (cosas que requieren iterar las filas)
     await step(2);
     S.metrics = calcMetrics(S.sheets, S.yc, S.colMap);
 
+    // PASO 3: Claude analiza los KPIs que él mismo calculó y genera insights
     await step(3);
-    // Llamar Claude para título, KPIs formateados e insights
-    var m = S.metrics;
-    var resumen = 'Archivo: '+file.name+'\n'
-      + 'Ventas totales: '+fmt(m.tv)+' ('+m.nt+' operaciones)\n'
-      + 'Ticket medio: '+fmt(m.tk)+'\n'
-      + (m.tc>0?'Costo ventas: '+fmt(m.tc)+'\n':'')
-      + (m.tStock>0?'Stock: '+fmt(m.tStock)+'\n':'')
-      + (m.pComp?'Último mes: '+m.pComp.last+' ('+fmt(m.pComp.vL)+', '+m.pComp.delta+'% vs '+m.pComp.prev+')\n':'')
-      + (m.byCat.length?'Top categorías: '+m.byCat.slice(0,4).map(function(e){return e[0]+' ('+fmt(e[1])+')';}).join(', ')+'\n':'')
-      + (m.pReal?'Período: '+m.pReal:'');
+    var dash = analisis.dash;
 
-    var prompt = 'Sos analista financiero de PyMEs argentinas. Con estos datos devolvé SOLO JSON sin markdown:\n'
-      + '{"titulo":"nombre del negocio","tipo":"tipo negocio 2-3 palabras","kpis":['
-      + '{"l":"label","v":"valor formateado","s":"subtexto","t":"up|down|neu"},'
-      + '{"l":"label","v":"valor formateado","s":"subtexto","t":"up|down|neu"},'
-      + '{"l":"label","v":"valor formateado","s":"subtexto","t":"up|down|neu"},'
-      + '{"l":"label","v":"valor formateado","s":"subtexto","t":"up|down|neu"}'
-      + '],"insights":['
-      + '{"ico":"🟢","txt":"insight positivo con número concreto"},'
-      + '{"ico":"🔴","txt":"alerta con número concreto"},'
-      + '{"ico":"🔵","txt":"dato informativo concreto"},'
-      + '{"ico":"💡","txt":"recomendación accionable específica"}'
-      + ']}\n\nUSA SOLO estos datos calculados (no inventes):\n'+resumen;
-
-    var raw = await claude(prompt, [], 1600);
-    var clean = raw.replace(/```json|```/g,'').trim();
-    var dash;
-    try { dash = JSON.parse(clean); }
-    catch(e) { var mm=clean.match(/\{[\s\S]*\}/); dash=mm?JSON.parse(mm[0]):{titulo:file.name,tipo:'',kpis:[],insights:[]}; }
-
+    // PASO 4: Renderizar
     await step(4);
     S.dash = dash;
+    var m = S.metrics;
     renderDash(dash, m);
     show('sd');
     saveHist(file.name, dash.titulo||file.name);
