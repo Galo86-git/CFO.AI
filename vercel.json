@@ -1,3 +1,11 @@
 {
-  "version": 2
+  "version": 2,
+  "routes": [
+    { "src": "/api/claude",        "dest": "/api/claude.js" },
+    { "src": "/api/mp-subscribe",  "dest": "/api/mp-subscribe.js" },
+    { "src": "/api/mp-webhook",    "dest": "/api/mp-webhook.js" },
+    { "src": "/api/tc",            "dest": "/api/tc.js" },
+    { "src": "/api/validate-url",  "dest": "/api/validate-url.js" },
+    { "src": "/api/extract-colors","dest": "/api/extract-colors.js" }
+  ]
 }
