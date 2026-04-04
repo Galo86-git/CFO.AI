@@ -819,7 +819,7 @@ function buildAlerts(m) {
         +(rComp>70?' Relación alta — revisar política de compras.':rComp>50?' Relación moderada — oportunidad de negociar.':' Buena eficiencia en compras.'),
       badge:rComp.toFixed(0)+'% s/ventas'});
   } else if (m.tStock>0) {
-    a.push({ico:'📦',t:'b',lbl:'Costos',txt:'Stock valorizado: <strong>'+fmt(m.tStock)+'</strong>.'+(m.sCrit.length?' <strong>'+m.sCrit.length+' productos bajo mínimo</strong>: '+m.sCrit.slice(0,3).join(', ').':' Sin alertas críticas de stock.'),badge:fmt(m.tStock)});
+    a.push({ico:'📦',t:'b',lbl:'Costos',txt:'Stock valorizado: <strong>'+fmt(m.tStock)+'</strong>.'+(m.sCrit.length>0?' <strong>'+m.sCrit.length+' productos bajo mínimo</strong>: '+m.sCrit.slice(0,3).join(', ')+(m.sCrit.length>3?' y más':'')+'.':' Sin alertas críticas de stock.'),badge:fmt(m.tStock)});
   } else {
     a.push({ico:'📦',t:'b',lbl:'Costos',txt:'Agregá una hoja de Compras o Stock para ver el análisis de costos.',badge:'Sin datos'});
   }
