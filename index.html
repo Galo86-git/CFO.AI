@@ -1509,6 +1509,51 @@ input[type=file] { display: none; }
   .sug { font-size: 9px; padding: 3px 7px; }
   .chat-inp { font-size: 12px; }
 
+  /* Dash actions — centrados y táctiles */
+  .dash-actions {
+    width: 100%; justify-content: center;
+    gap: 8px;
+  }
+  .btn-act, .btn-new {
+    flex: 1; min-height: 44px;
+    padding: 10px 8px; font-size: 12px;
+    border-radius: 10px; text-align: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-act:active, .btn-new:active { transform: scale(.96); }
+
+  /* Nav tabs — sin overflow */
+  .dash-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 2px; }
+  .dash-tab { padding: 6px 10px; font-size: 10px; white-space: nowrap; flex-shrink: 0; }
+
+  /* P&L mobile */
+  #pl-content > div:last-child > div {
+    grid-template-columns: 1fr auto !important;
+    gap: 6px !important;
+  }
+  #pl-content [style*="grid-template-columns:220px"] {
+    grid-template-columns: 1fr auto !important;
+  }
+
+  /* Cash Flow mobile — 1 col */
+  #cf-content > div:nth-child(3) {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Executive brief */
+  #executive-brief { padding: 14px 16px; }
+  #executive-brief > div:last-child { font-size: 13px; }
+
+  /* Semáforo mobile */
+  .sem-top { flex-wrap: wrap; gap: 8px; }
+  .sem-dias { font-size: 36px !important; }
+  .sem-msg { font-size: 15px; }
+
+  /* Hub multi-drop mobile */
+  .hub-multidrop { padding: 18px 12px; }
+  .hub-multidrop-title { font-size: 14px; }
+
   /* CTA strip */
   .cta { padding: 18px 16px; flex-direction: column; gap: 12px; border-radius: 8px; }
   .cta h3 { font-size: 13px; }
@@ -1910,6 +1955,12 @@ input[type=file] { display: none; }
   font-size: 22px; line-height: 1;
   transition: transform .15s;
   display: block;
+}
+
+/* P&L row responsive */
+@media (max-width: 480px) {
+  .pl-row { grid-template-columns: 1fr auto !important; }
+  .pl-row > div:nth-child(2) { display: none; } /* hide bar on mobile */
 }
 </style>
 <script>
@@ -5023,7 +5074,7 @@ function renderPL() {
     var bg = isSub ? 'rgba(255,255,255,.04)' : 'transparent';
     var borderT = isSub ? 'border-top:1px solid rgba(255,255,255,.08);margin-top:8px;padding-top:8px' : '';
 
-    html += '<div style="display:grid;grid-template-columns:220px 1fr 100px;align-items:center;gap:16px;padding:10px 16px;border-radius:8px;background:'+bg+';'+borderT+'">'
+    html += '<div class="pl-row" style="display:grid;grid-template-columns:minmax(120px,220px) 1fr minmax(80px,100px);align-items:center;gap:12px;padding:10px 14px;border-radius:8px;background:'+bg+';'+borderT+'">'
       +'<div style="font-size:'+(isSub?'14':'13')+'px;font-weight:'+(isSub?'700':'400')+';color:'+(isSub?'var(--white)':'var(--muted)')+';padding-left:'+(line.indent*16)+'px">'+line.label+'</div>'
       +'<div style="position:relative;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden">'
       +'<div style="position:absolute;'+(isPos?'left':'right')+':0;width:'+barW+'%;height:100%;background:'+barColor+';border-radius:3px;transition:width .6s ease"></div>'
@@ -5143,7 +5194,7 @@ function renderCashFlow() {
   }
 
   // Cards por mes
-  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:28px">';
   proyeccion.forEach(function(p) {
     var borderColor = p.riesgo ? 'rgba(220,80,60,.4)' : 'rgba(200,169,110,.15)';
     html += '<div style="background:rgba(15,32,64,.6);border:1px solid '+borderColor+';border-radius:12px;padding:18px">'
