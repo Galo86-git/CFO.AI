@@ -1009,7 +1009,7 @@ input[type=file] { display: none; }
   <div class="nav-links">
     <a href="#como-funciona">Cómo funciona</a>
     <a href="#precios">Precios</a>
-    <button class="nav-lang" onclick="toggleLang()" id="lang-btn">EN</button>
+    
   </div>
   <button class="nav-cta" onclick="goAuth()" id="nav-cta-btn">Empezar gratis</button>
 </nav>
@@ -1105,7 +1105,7 @@ input[type=file] { display: none; }
           <div class="step-num">02</div>
           <h3 id="s2t">La IA lo analiza</h3>
           <p id="s2p">Claude — la IA más avanzada del mercado — lee tus datos, identifica columnas, calcula KPIs reales y detecta problemas.</p>
-          <div class="step-tag">Claude AI</div>
+          <div class="step-tag">Inteligencia Artificial</div>
         </div>
         <div class="step">
           <div class="step-num">03</div>
@@ -1245,10 +1245,10 @@ input[type=file] { display: none; }
         <div class="upload-title" id="upl-title">Subí tu Excel de ventas</div>
         <div class="upload-sub" id="upl-sub">Una sola hoja · Arrastrá o hacé click para seleccionar</div>
         <div class="upload-formats">
-          <span class="fmt">.xlsx</span><span class="fmt">.xls</span><span class="fmt">.csv</span>
+          <span class="fmt">.xlsx</span><span class="fmt">.xls</span>
         </div>
         <button class="btn-upload" onclick="event.stopPropagation();document.getElementById('fi').click()" id="upl-btn">Elegir archivo</button>
-        <input type="file" id="fi" accept=".xlsx,.xls,.csv" onchange="go(this.files[0])">
+        <input type="file" id="fi" accept=".xlsx,.xls" onchange="go(this.files[0])">
         <p class="upload-note" id="upl-note">Plan Gratis · 1 Excel · 1 hoja · Solo ventas</p>
       </div>
     </div>
@@ -1260,7 +1260,7 @@ input[type=file] { display: none; }
       <div class="proc-sub" id="proc-sub">Procesando archivo</div>
       <ul class="proc-steps">
         <li class="go"   id="ps0">Leyendo el archivo</li>
-        <li class="wait" id="ps1">Claude identifica tus datos</li>
+        <li class="wait" id="ps1">Identificando datos</li>
         <li class="wait" id="ps2">Calculando métricas reales</li>
         <li class="wait" id="ps3">Generando insights</li>
         <li class="wait" id="ps4">Armando el dashboard</li>
@@ -1278,7 +1278,7 @@ input[type=file] { display: none; }
         </div>
         <div class="dash-actions">
           <button class="btn-act" id="btn-res" onclick="toggleRes()">📋 Resumen</button>
-          <button class="btn-act" id="btn-xls" onclick="exportXLS()">⬇ Exportar Excel</button>
+          
           <button class="btn-new" onclick="doReset()">← Nuevo archivo</button>
         </div>
       </div>
@@ -1759,7 +1759,7 @@ async function go(file) {
     var result = await readExcel(file);
     S.sheets = result.sheets; S.yc = result.yc;
 
-    // 1: Claude identifica
+    // 1: Identificando
     await step(1);
     var muestra = prepararMuestra(S.sheets, file.name);
     var analisis = await claudeAnaliza(muestra, file.name);
